@@ -1,0 +1,596 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>PrintLoop — Kiosk</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,700;0,9..144,800;1,9..144,500;1,9..144,600&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --ink:#1A1410; --paper:#F8F4ED; --paper-light:#FFFEFA;
+    --persimmon:#D14B2C; --ochre:#C7944A; --sage:#6B7A5C; --fog:#888888;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%}
+  body{
+    font-family:"Inter",system-ui,sans-serif;
+    background:var(--paper);color:var(--ink);
+    overflow:hidden;user-select:none;
+    background-image:
+      radial-gradient(circle at 88% 12%, rgba(209,75,44,.07), transparent 38%),
+      radial-gradient(circle at 8% 92%, rgba(199,148,74,.10), transparent 42%);
+  }
+  ::selection{background:var(--persimmon);color:var(--paper)}
+  .serif{font-family:"Fraunces",Georgia,serif}
+  .mono{font-family:"JetBrains Mono",monospace}
+  .label{text-transform:uppercase;letter-spacing:.2em;font-weight:700;font-size:11px}
+
+  .app{height:100vh;display:flex;flex-direction:column}
+
+  /* ── Masthead ───────────────────────────────────────────── */
+  header{
+    background:var(--ink);color:var(--paper);
+    border-bottom:3px solid var(--persimmon);
+    padding:18px 40px;display:flex;justify-content:space-between;align-items:center;flex-shrink:0;
+  }
+  .word{font-family:"Fraunces",serif;font-weight:800;font-size:26px;letter-spacing:-.01em}
+  .word i{color:var(--persimmon);font-style:normal}
+  .status{display:flex;align-items:center;gap:14px;font-size:11px;font-weight:700;letter-spacing:.18em;text-transform:uppercase}
+  .status .sep{opacity:.35}
+  .dot{width:9px;height:9px;border-radius:50%;display:inline-block;margin-right:7px;vertical-align:middle}
+  .on .dot{background:var(--sage);animation:pulse 1.6s ease-in-out infinite}
+  .on{color:var(--sage)}
+  .off .dot{background:var(--persimmon)}
+  .off{color:var(--persimmon)}
+  .gear{background:none;border:0;color:var(--paper);opacity:.4;font-size:17px;cursor:pointer;padding:4px 8px;transition:opacity .15s}
+  .gear:hover{opacity:1}
+  @keyframes pulse{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.5);opacity:.45}}
+
+  /* ── Stage ──────────────────────────────────────────────── */
+  main{flex:1;position:relative;overflow:hidden}
+  .blob{position:absolute;border-radius:50%;pointer-events:none}
+  .b1{right:5%;top:8%;width:230px;height:230px;background:rgba(209,75,44,.08)}
+  .b2{left:4%;bottom:6%;width:170px;height:170px;background:rgba(199,148,74,.13)}
+  .screen{
+    position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;
+    text-align:center;padding:32px;
+  }
+  .screen.show{display:flex;animation:fadein .45s ease}
+  @keyframes fadein{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+  .kicker{color:var(--persimmon);margin-bottom:14px}
+  h1.big{font-family:"Fraunces",serif;font-weight:800;font-size:clamp(40px,6.4vw,76px);line-height:.96;letter-spacing:-.02em;max-width:14ch}
+  h1.big em{font-style:italic;color:var(--persimmon);font-weight:600}
+  .lede{font-family:"Fraunces",serif;font-style:italic;font-size:clamp(16px,1.7vw,22px);color:rgba(26,20,16,.6);margin-top:14px}
+  .fleuron{color:var(--ochre);font-size:30px;line-height:1}
+
+  /* ── Code cells ─────────────────────────────────────────── */
+  .cells{display:flex;gap:14px;margin:34px 0 22px}
+  .cell{
+    width:clamp(58px,8vw,92px);height:clamp(82px,11vw,124px);
+    border:2px solid var(--ink);border-radius:10px;background:var(--paper-light);
+    display:flex;align-items:center;justify-content:center;
+    font-family:"JetBrains Mono",monospace;font-weight:700;font-size:clamp(32px,4.4vw,56px);
+    transition:transform .12s,background .12s,color .12s;
+  }
+  .cell.filled{background:var(--ink);color:var(--paper)}
+  .cell.active{border-color:var(--persimmon);box-shadow:0 0 0 5px rgba(209,75,44,.18);transform:translateY(-3px)}
+
+  /* ── Keypad ─────────────────────────────────────────────── */
+  .keypad{display:grid;grid-template-columns:repeat(8,1fr);gap:9px;width:min(680px,92vw)}
+  .key{
+    border:2px solid var(--ink);border-radius:8px;background:var(--paper-light);
+    font-family:"JetBrains Mono",monospace;font-weight:700;font-size:20px;
+    padding:16px 0;cursor:pointer;transition:transform .1s,box-shadow .1s,background .1s;
+  }
+  .key:hover{background:var(--paper)}
+  .key:active{transform:translate(2px,2px);background:var(--ink);color:var(--paper)}
+  .keyrow{display:flex;gap:9px;width:min(680px,92vw);margin-top:9px}
+  .btn{
+    border:2px solid var(--ink);border-radius:8px;cursor:pointer;
+    font-weight:700;text-transform:uppercase;letter-spacing:.12em;font-size:15px;
+    padding:18px 26px;transition:transform .14s,box-shadow .14s;
+  }
+  .btn:hover{transform:translate(-3px,-3px);box-shadow:5px 5px 0 var(--ink)}
+  .btn:active{transform:none;box-shadow:none}
+  .btn-primary{background:var(--persimmon);color:var(--paper)}
+  .btn-dark{background:var(--ink);color:var(--paper)}
+  .btn-dark:hover{box-shadow:5px 5px 0 var(--persimmon)}
+  .btn-ghost{background:transparent;color:var(--ink)}
+  .grow{flex:1}
+
+  /* ── Job preview ────────────────────────────────────────── */
+  .ticket{
+    border:2px solid var(--ink);border-radius:14px;background:var(--paper-light);
+    width:min(640px,94vw);text-align:left;overflow:hidden;
+    box-shadow:8px 8px 0 var(--ink);
+  }
+  .ticket-h{background:var(--ink);color:var(--paper);padding:16px 26px;display:flex;justify-content:space-between;align-items:center}
+  .ticket-b{padding:26px}
+  .file{font-family:"Fraunces",serif;font-weight:700;font-size:24px;line-height:1.2;margin-bottom:4px;word-break:break-word}
+  .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:rgba(26,20,16,.14);border:1px solid rgba(26,20,16,.14);border-radius:8px;overflow:hidden;margin:20px 0}
+  .gi{background:var(--paper-light);padding:14px 16px}
+  .gi .k{color:var(--fog);font-size:9px}
+  .gi .v{font-family:"JetBrains Mono",monospace;font-weight:700;font-size:17px;margin-top:5px}
+  .cost{display:flex;justify-content:space-between;align-items:baseline;border-top:2px dashed rgba(26,20,16,.25);padding-top:18px}
+  .cost .amt{font-family:"Fraunces",serif;font-weight:800;font-size:38px}
+
+  /* ── Result marks ───────────────────────────────────────── */
+  .mark{width:128px;height:128px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:62px;border:3px solid var(--ink);margin-bottom:8px}
+  .mark.ok{background:var(--sage);color:var(--paper);border-color:var(--sage);animation:pop .5s cubic-bezier(.2,1.4,.4,1)}
+  .mark.bad{background:var(--persimmon);color:var(--paper);border-color:var(--persimmon)}
+  .mark.work{border-style:dashed;color:var(--persimmon);animation:spin 1.4s linear infinite}
+  @keyframes pop{from{transform:scale(.3);opacity:0}to{transform:scale(1);opacity:1}}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .countdown{font-family:"JetBrains Mono",monospace;color:var(--fog);font-size:13px;margin-top:18px}
+
+  /* ── Setup ──────────────────────────────────────────────── */
+  .setup{width:min(520px,94vw);text-align:left}
+  .field{margin-bottom:18px}
+  .field label{display:block;margin-bottom:7px}
+  .input{
+    width:100%;padding:14px 16px;border:2px solid var(--ink);border-radius:8px;
+    background:var(--paper-light);font-family:"JetBrains Mono",monospace;font-size:15px;outline:none;transition:box-shadow .14s,transform .14s;
+  }
+  .input:focus{transform:translate(-2px,-2px);box-shadow:3px 3px 0 var(--persimmon)}
+  .note{font-size:12px;color:var(--fog);margin-top:7px;font-style:italic;font-family:"Fraunces",serif}
+
+  /* ── Footer ─────────────────────────────────────────────── */
+  footer{
+    background:var(--ink);color:var(--paper);padding:14px 40px;
+    display:flex;justify-content:space-between;align-items:center;flex-shrink:0;
+  }
+  footer .sig{font-family:"Fraunces",serif;font-style:italic;font-size:14px;opacity:.85}
+  footer .vol{font-size:11px;letter-spacing:.2em}
+  footer .vol .f{color:var(--ochre);margin-left:8px}
+  .hint{font-size:12px;color:var(--fog);margin-top:14px;letter-spacing:.14em;text-transform:uppercase;font-weight:600}
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div class="word">PrintLoop<i>.</i></div>
+    <div class="status">
+      <span class="serif" style="font-style:italic;color:var(--ochre);font-weight:600">No.&nbsp;04</span>
+      <span class="sep">·</span>
+      <span id="stationLabel">STATION</span>
+      <span class="sep">·</span>
+      <span id="netState" class="off"><span class="dot"></span><span id="netText">CONNECTING</span></span>
+      <span class="sep">·</span>
+      <span id="clock" class="mono" style="letter-spacing:.1em">--:--</span>
+      <button class="gear" id="gearBtn" title="Settings">⚙</button>
+    </div>
+  </header>
+
+  <main>
+    <div class="blob b1"></div>
+    <div class="blob b2"></div>
+
+    <!-- IDLE / CODE ENTRY -->
+    <section class="screen" data-screen="idle">
+      <div class="label kicker">▸ A ritual in six characters</div>
+      <h1 class="big">Kindly enter your <em>code</em>.</h1>
+      <div class="lede">The six characters delivered to your phone.</div>
+      <div class="cells" id="cells"></div>
+      <div class="keypad" id="keypad"></div>
+      <div class="keyrow">
+        <button class="btn btn-ghost" id="clearBtn">Clear</button>
+        <button class="btn btn-ghost" id="backBtn">⌫ Delete</button>
+        <button class="btn btn-primary grow" id="verifyBtn">Verify code →</button>
+      </div>
+      <div class="hint">No code? Visit printloop.ng to begin</div>
+    </section>
+
+    <!-- CHECKING -->
+    <section class="screen" data-screen="checking">
+      <div class="mark work">❦</div>
+      <h1 class="big" style="font-size:clamp(34px,4.6vw,54px)">One moment.</h1>
+      <div class="lede" id="checkingText">Verifying your code…</div>
+    </section>
+
+    <!-- JOB PREVIEW -->
+    <section class="screen" data-screen="job">
+      <div class="label kicker">▸ Ready at this station</div>
+      <div class="ticket">
+        <div class="ticket-h">
+          <span class="label">Print job</span>
+          <span class="mono" id="jobCode" style="font-weight:700;letter-spacing:.18em"></span>
+        </div>
+        <div class="ticket-b">
+          <div class="file" id="jobFile">—</div>
+          <div class="mono" style="color:var(--fog);font-size:13px" id="jobPages">— pages</div>
+          <div class="grid" id="jobGrid"></div>
+          <div class="cost">
+            <div>
+              <div class="label" style="color:var(--fog)">Total paid</div>
+              <div class="serif" style="font-style:italic;color:var(--fog);font-size:13px">Settled — collect & go</div>
+            </div>
+            <div class="amt" id="jobCost">₦0</div>
+          </div>
+        </div>
+      </div>
+      <div class="keyrow" style="width:min(640px,94vw)">
+        <button class="btn btn-ghost" id="cancelJob">Cancel</button>
+        <button class="btn btn-primary grow" id="releaseJob">Release &amp; print →</button>
+      </div>
+    </section>
+
+    <!-- BATCH -->
+    <section class="screen" data-screen="batch">
+      <div class="label kicker">▸ Group batch</div>
+      <div class="ticket">
+        <div class="ticket-h"><span class="label">Group batch</span><span class="mono" id="batchCode" style="font-weight:700;letter-spacing:.18em"></span></div>
+        <div class="ticket-b">
+          <div class="file" id="batchName">—</div>
+          <div class="grid">
+            <div class="gi"><div class="k label">Documents</div><div class="v" id="batchCount">0</div></div>
+            <div class="gi"><div class="k label">Paper</div><div class="v" id="batchPaper">—</div></div>
+            <div class="gi"><div class="k label">Colour</div><div class="v" id="batchColor">—</div></div>
+          </div>
+          <div class="serif" style="font-style:italic;color:rgba(26,20,16,.6)">All paid participants will print in sequence.</div>
+        </div>
+      </div>
+      <div class="keyrow" style="width:min(640px,94vw)">
+        <button class="btn btn-ghost" id="cancelBatch">Cancel</button>
+        <button class="btn btn-primary grow" id="releaseBatch">Release batch →</button>
+      </div>
+    </section>
+
+    <!-- PRINTING -->
+    <section class="screen" data-screen="printing">
+      <div class="mark work">⎙</div>
+      <h1 class="big" style="font-size:clamp(34px,4.6vw,54px)">Releasing to printer.</h1>
+      <div class="lede">Please wait at the tray.</div>
+    </section>
+
+    <!-- SUCCESS -->
+    <section class="screen" data-screen="success">
+      <div class="mark ok">✓</div>
+      <h1 class="big">Collect your <em>documents</em>.</h1>
+      <div class="lede" id="successMsg">Your job has been released.</div>
+      <div class="fleuron" style="margin-top:18px">❦</div>
+      <div class="countdown" id="successCd"></div>
+    </section>
+
+    <!-- ERROR -->
+    <section class="screen" data-screen="error">
+      <div class="mark bad" id="errMark">!</div>
+      <h1 class="big" style="font-size:clamp(34px,5vw,60px)" id="errTitle">Hmm.</h1>
+      <div class="lede" id="errMsg">Something went wrong.</div>
+      <div class="countdown" id="errCd"></div>
+      <div class="keyrow" style="width:auto;margin-top:26px;justify-content:center">
+        <button class="btn btn-dark" id="errRetry">Try again →</button>
+      </div>
+    </section>
+
+    <!-- SETUP -->
+    <section class="screen" data-screen="setup">
+      <div class="setup">
+        <div class="label kicker">▸ Station configuration</div>
+        <h1 class="big" style="font-size:clamp(32px,4.4vw,50px);max-width:none;margin-bottom:26px">Pair this <em>kiosk</em>.</h1>
+        <div class="field">
+          <label class="label">API base URL</label>
+          <input class="input" id="cfgBase" placeholder="http://localhost:4000" />
+        </div>
+        <div class="field">
+          <label class="label">Kiosk key</label>
+          <input class="input" id="cfgKey" placeholder="KSK_…" />
+          <div class="note">Issued by an administrator under Printers → regenerate key.</div>
+        </div>
+        <div id="cfgResult" class="note" style="min-height:18px"></div>
+        <div class="keyrow" style="width:100%">
+          <button class="btn btn-ghost" id="cfgBack">Back</button>
+          <button class="btn btn-primary grow" id="cfgSave">Test &amp; save →</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <span class="sig">Yours faithfully — PrintLoop, Lagos.</span>
+    <span class="vol mono">VOL. I · ©2026 <span class="f">❦</span></span>
+  </footer>
+</div>
+
+<script>
+(function(){
+  "use strict";
+  var ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  var LEN = 6;
+  var LS = { base:"pl_kiosk_apiBase", key:"pl_kiosk_key" };
+
+  var state = { screen:"idle", code:"", apiBase:"", kioskKey:"", online:false,
+                kioskId:null, timers:[], hbTimer:null };
+
+  var $ = function(s){ return document.querySelector(s); };
+  var screens = {};
+  document.querySelectorAll(".screen").forEach(function(el){ screens[el.dataset.screen]=el; });
+
+  function clearTimers(){ state.timers.forEach(clearTimeout); state.timers=[]; }
+  function later(fn,ms){ var t=setTimeout(fn,ms); state.timers.push(t); return t; }
+
+  function show(name){
+    clearTimers();
+    state.screen=name;
+    Object.keys(screens).forEach(function(k){ screens[k].classList.toggle("show", k===name); });
+    if(name==="idle"){ renderCells(); }
+  }
+
+  /* ── Config ─────────────────────────────────────────── */
+  function loadCfg(){
+    state.apiBase=(localStorage.getItem(LS.base)||"http://localhost:4000").replace(/\/+$/,"");
+    state.kioskKey=localStorage.getItem(LS.key)||"";
+  }
+  function api(path){ return state.apiBase+"/api/printer/"+path; }
+
+  function call(path, body){
+    return fetch(api(path), {
+      method:"POST",
+      headers:{ "Content-Type":"application/json", "X-Kiosk-Key":state.kioskKey },
+      body:JSON.stringify(body||{})
+    }).then(function(r){
+      return r.json().catch(function(){ return {success:false,message:"Bad response"}; })
+        .then(function(j){ return { http:r.status, body:j }; });
+    });
+  }
+
+  /* ── Heartbeat ──────────────────────────────────────── */
+  function heartbeat(){
+    if(!state.kioskKey){ setNet(false); return; }
+    fetch(api("heartbeat"), { headers:{ "X-Kiosk-Key":state.kioskKey } })
+      .then(function(r){ return r.json().then(function(j){ return {http:r.status,body:j}; }); })
+      .then(function(res){
+        if(res.http===200 && res.body && res.body.success){
+          state.kioskId = res.body.data && res.body.data.kioskId;
+          setNet(true);
+        } else { setNet(false); }
+      })
+      .catch(function(){ setNet(false); });
+  }
+  function setNet(ok){
+    state.online=ok;
+    var el=$("#netState"), txt=$("#netText");
+    el.className = ok ? "on" : "off";
+    txt.textContent = ok ? "Online" : "Offline";
+    $("#stationLabel").textContent = state.kioskId
+      ? ("STATION " + String(state.kioskId).slice(0,4).toUpperCase())
+      : "STATION";
+  }
+
+  /* ── Clock ──────────────────────────────────────────── */
+  function tickClock(){
+    var d=new Date();
+    $("#clock").textContent =
+      String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0");
+  }
+
+  /* ── Code entry ─────────────────────────────────────── */
+  function renderCells(){
+    var c=$("#cells"); c.innerHTML="";
+    for(var i=0;i<LEN;i++){
+      var d=document.createElement("div");
+      d.className="cell"+(state.code[i]?" filled":"")+(i===state.code.length?" active":"");
+      d.textContent=state.code[i]||"";
+      c.appendChild(d);
+    }
+  }
+  function buildKeypad(){
+    var kp=$("#keypad");
+    ALPHABET.split("").forEach(function(ch){
+      var b=document.createElement("button");
+      b.className="key"; b.textContent=ch;
+      b.addEventListener("click",function(){ pushChar(ch); });
+      kp.appendChild(b);
+    });
+  }
+  function pushChar(ch){
+    if(state.screen!=="idle") return;
+    if(state.code.length>=LEN) return;
+    state.code+=ch; renderCells(); resetIdleTimeout();
+  }
+  function delChar(){ state.code=state.code.slice(0,-1); renderCells(); resetIdleTimeout(); }
+  function clearCode(){ state.code=""; renderCells(); resetIdleTimeout(); }
+  function resetIdleTimeout(){
+    clearTimers();
+    if(state.code) later(function(){ clearCode(); }, 45000);
+  }
+
+  /* ── Verify flow ────────────────────────────────────── */
+  function verify(){
+    if(state.code.length<LEN){ flashCells(); return; }
+    if(!state.online){ return showError("Station offline","This kiosk can't reach PrintLoop. Ask staff for help.",10000); }
+    var code=state.code;
+    $("#checkingText").textContent="Verifying your code…";
+    show("checking");
+    call("validate-code",{code:code}).then(function(res){
+      if(res.http===429){
+        var secs=(res.body && res.body.lockedSeconds)|| (res.body && res.body.data && res.body.data.lockedSeconds) || 1800;
+        return lockout(secs);
+      }
+      if(!res.body || !res.body.success){
+        return showError("Code not accepted", (res.body && res.body.message) || "That code didn't work. Check it and try again.", 8000);
+      }
+      if(res.body.type==="group_batch"){ return loadBatch(code, res.body.data); }
+      $("#checkingText").textContent="Fetching your document…";
+      return call("get-job",{code:code}).then(function(g){
+        if(!g.body || !g.body.success) return showError("Couldn't load job", (g.body&&g.body.message)||"Try again.", 8000);
+        if(g.body.type==="group_batch") return loadBatch(code,g.body.data);
+        showJob(code,g.body.data);
+      });
+    }).catch(function(){ showError("Connection lost","Couldn't reach the server. Try again.",9000); });
+  }
+  function flashCells(){
+    var c=$("#cells");
+    c.animate([{transform:"translateX(0)"},{transform:"translateX(-8px)"},{transform:"translateX(8px)"},{transform:"translateX(0)"}],{duration:240});
+  }
+
+  /* ── Job preview ────────────────────────────────────── */
+  function gi(k,v){ return '<div class="gi"><div class="k label">'+k+'</div><div class="v">'+v+'</div></div>'; }
+  function showJob(code,d){
+    var pc=d.printConfig||{};
+    $("#jobCode").textContent=code;
+    $("#jobFile").textContent=d.fileName||"Document";
+    $("#jobPages").textContent=(d.totalPages||0)+" page"+((d.totalPages===1)?"":"s");
+    $("#jobGrid").innerHTML =
+      gi("Paper", pc.paper||"A4")+
+      gi("Colour", pc.color==="color"?"Colour":"B&amp;W")+
+      gi("Sides", pc.sided==="double"?"Duplex":"Single")+
+      gi("Quality",(pc.qualityDpi||300)+" dpi")+
+      gi("Copies",pc.copies||1)+
+      gi("Pages", d.totalPages||0);
+    $("#jobCost").textContent="₦"+Number(d.cost||0).toLocaleString();
+    state._job={ code:code, cost:d.cost||0, totalPages:d.totalPages||0 };
+    show("job");
+    later(function(){ if(state.screen==="job"){ resetToIdle(); } }, 60000);
+  }
+  function releaseJob(){
+    var j=state._job; if(!j) return resetToIdle();
+    show("printing");
+    call("complete",{ code:j.code, cost:j.cost, totalPages:j.totalPages }).then(function(res){
+      if(res.body && res.body.success){
+        $("#successMsg").textContent="Job "+j.code+" released. Collect "+(j.totalPages||0)+" page"+(j.totalPages===1?"":"s")+".";
+        success();
+      } else {
+        showError("Release failed",(res.body&&res.body.message)||"The printer didn't accept this job.",9000);
+      }
+    }).catch(function(){ showError("Connection lost","Couldn't confirm with the server.",9000); });
+  }
+
+  /* ── Batch ──────────────────────────────────────────── */
+  function loadBatch(code,d){
+    return call("get-job",{code:code}).then(function(g){
+      var data=(g.body&&g.body.success)?g.body.data:d;
+      $("#batchCode").textContent=code;
+      $("#batchName").textContent=(data&&data.groupName)||"Group session";
+      $("#batchCount").textContent=(data&&(data.fileCount!=null?data.fileCount:(data.files?data.files.length:0)))||0;
+      var o=(data&&data.defaultOptions)||{};
+      $("#batchPaper").textContent=o.paper||"A4";
+      $("#batchColor").textContent=o.color==="color"?"Colour":"B&W";
+      state._batch={ code:code };
+      show("batch");
+      later(function(){ if(state.screen==="batch"){ resetToIdle(); } }, 60000);
+    });
+  }
+  function releaseBatch(){
+    var b=state._batch; if(!b) return resetToIdle();
+    show("printing");
+    call("complete-batch",{ code:b.code }).then(function(res){
+      if(res.body && res.body.success){
+        var d=res.body.data||{};
+        $("#successMsg").textContent="Batch released ("+(d.printed||0)+"/"+(d.total||0)+"). Documents print in sequence.";
+        success();
+      } else {
+        showError("Batch failed",(res.body&&res.body.message)||"The printer didn't accept the batch.",9000);
+      }
+    }).catch(function(){ showError("Connection lost","Couldn't confirm with the server.",9000); });
+  }
+
+  /* ── Result states ──────────────────────────────────── */
+  function success(){
+    show("success");
+    var n=7;
+    var el=$("#successCd"); el.textContent="Returning in "+n+"s";
+    var iv=setInterval(function(){
+      n--; el.textContent="Returning in "+n+"s";
+      if(n<=0){ clearInterval(iv); resetToIdle(); }
+    },1000);
+    state.timers.push(iv);
+  }
+  function showError(title,msg,ms){
+    show("error");
+    $("#errMark").textContent="!";
+    $("#errTitle").textContent=title;
+    $("#errMsg").textContent=msg;
+    var el=$("#errCd"); el.textContent="";
+    if(ms){ var n=Math.round(ms/1000);
+      el.textContent="Returning in "+n+"s";
+      var iv=setInterval(function(){ n--; el.textContent="Returning in "+n+"s";
+        if(n<=0){ clearInterval(iv); resetToIdle(); } },1000);
+      state.timers.push(iv);
+    }
+  }
+  function lockout(secs){
+    show("error");
+    $("#errMark").textContent="⏱";
+    $("#errTitle").textContent="Too many tries";
+    var n=secs;
+    function fmt(s){ var m=Math.floor(s/60); return m+"m "+(s%60)+"s"; }
+    $("#errMsg").textContent="This station is paused to prevent abuse.";
+    var el=$("#errCd"); el.textContent="Unlocks in "+fmt(n);
+    var iv=setInterval(function(){ n--; el.textContent="Unlocks in "+fmt(Math.max(0,n));
+      if(n<=0){ clearInterval(iv); resetToIdle(); } },1000);
+    state.timers.push(iv);
+  }
+  function resetToIdle(){ state.code=""; state._job=null; state._batch=null; show("idle"); }
+
+  /* ── Setup ──────────────────────────────────────────── */
+  function openSetup(){
+    $("#cfgBase").value=state.apiBase;
+    $("#cfgKey").value=state.kioskKey;
+    $("#cfgResult").textContent="";
+    show("setup");
+  }
+  function saveSetup(){
+    var base=$("#cfgBase").value.trim().replace(/\/+$/,"");
+    var key=$("#cfgKey").value.trim();
+    if(!base||!key){ $("#cfgResult").textContent="Both fields are required."; return; }
+    $("#cfgResult").textContent="Testing connection…";
+    fetch(base+"/api/printer/heartbeat",{ headers:{ "X-Kiosk-Key":key } })
+      .then(function(r){ return r.json().then(function(j){ return {http:r.status,body:j}; }); })
+      .then(function(res){
+        if(res.http===200 && res.body && res.body.success){
+          localStorage.setItem(LS.base,base);
+          localStorage.setItem(LS.key,key);
+          loadCfg();
+          $("#cfgResult").textContent="✓ Paired. Station online.";
+          heartbeat();
+          later(resetToIdle,900);
+        } else if(res.http===401){
+          $("#cfgResult").textContent="✗ Invalid kiosk key.";
+        } else {
+          $("#cfgResult").textContent="✗ "+((res.body&&res.body.message)||"Couldn't reach the server.");
+        }
+      })
+      .catch(function(){ $("#cfgResult").textContent="✗ Couldn't reach "+base; });
+  }
+
+  /* ── Wiring ─────────────────────────────────────────── */
+  buildKeypad();
+  $("#verifyBtn").addEventListener("click",verify);
+  $("#clearBtn").addEventListener("click",clearCode);
+  $("#backBtn").addEventListener("click",delChar);
+  $("#cancelJob").addEventListener("click",resetToIdle);
+  $("#releaseJob").addEventListener("click",releaseJob);
+  $("#cancelBatch").addEventListener("click",resetToIdle);
+  $("#releaseBatch").addEventListener("click",releaseBatch);
+  $("#errRetry").addEventListener("click",resetToIdle);
+  $("#gearBtn").addEventListener("click",openSetup);
+  $("#cfgSave").addEventListener("click",saveSetup);
+  $("#cfgBack").addEventListener("click",function(){ state.kioskKey?resetToIdle():null; });
+
+  document.addEventListener("keydown",function(e){
+    if(state.screen==="setup") return;
+    if(state.screen!=="idle"){
+      if(e.key==="Escape") resetToIdle();
+      if(e.key==="Enter" && state.screen==="job") releaseJob();
+      return;
+    }
+    var k=e.key.toUpperCase();
+    if(k==="ENTER"){ verify(); }
+    else if(k==="BACKSPACE"){ delChar(); }
+    else if(k==="ESCAPE"){ clearCode(); }
+    else if(k.length===1 && ALPHABET.indexOf(k)>=0){ pushChar(k); }
+  });
+
+  /* ── Boot ───────────────────────────────────────────── */
+  loadCfg();
+  tickClock(); setInterval(tickClock,15000);
+  if(!state.kioskKey){ openSetup(); }
+  else { resetToIdle(); }
+  heartbeat();
+  state.hbTimer=setInterval(heartbeat,20000);
+})();
+</script>
+</body>
+</html>

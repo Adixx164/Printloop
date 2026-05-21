@@ -1,0 +1,1176 @@
+{
+  "users": [
+    {
+      "id": "usr_demo_student",
+      "firstName": "Demo",
+      "lastName": "Student",
+      "email": "student@printloop.test",
+      "phoneNumber": "+2348000000000",
+      "isEmailVerified": true,
+      "role": "user",
+      "adminPrivileges": [],
+      "createdAt": "2026-05-15T08:39:37.184Z",
+      "salt": "2cf15fe2222992f0fb3fa9fa772ea3d9",
+      "passwordHash": "4ebfb8e68d8c25507c6bbde2de57dfc9345491514c4948a1ae1b8763ec477d86"
+    },
+    {
+      "id": "usr_super_admin",
+      "firstName": "Print",
+      "lastName": "Admin",
+      "email": "admin@printloop.test",
+      "phoneNumber": "+2348000000001",
+      "isEmailVerified": true,
+      "role": "super_admin",
+      "adminPrivileges": [
+        "manage_pricing",
+        "manage_kiosks",
+        "manage_users",
+        "manage_admins",
+        "view_logs",
+        "view_reports"
+      ],
+      "createdAt": "2026-05-15T08:39:37.184Z",
+      "salt": "96a9a877199156cf2de420a0d7fa7656",
+      "passwordHash": "ee054b5635dce6751521a37b40cd5342e30175d944e2c80cf086c4913293fdc2"
+    }
+  ],
+  "sessions": [
+    {
+      "userId": "usr_super_admin",
+      "accessToken": "3a1d6dddad6cfe734ed507c7a3ee3164f049a6eeac272ffd",
+      "refreshToken": "1c891a20b8674e28761ba2063b11b0abc679d75e0a965dbf6fb1450e2f500184",
+      "expiresAt": "2026-05-16T20:49:05.471Z",
+      "refreshExpiresAt": "2026-05-23T19:49:05.471Z"
+    },
+    {
+      "userId": "usr_demo_student",
+      "accessToken": "3a06dba71de68feb07e2aeb8070b5fb458e2f14afa0fccdc",
+      "refreshToken": "8d8db735433db5df3e73941472aaa1d3f67499b9d30e265080d5da6629a8e9f4",
+      "expiresAt": "2026-05-18T10:18:46.543Z",
+      "refreshExpiresAt": "2026-05-25T09:18:46.543Z"
+    }
+  ],
+  "wallets": [
+    {
+      "userId": "usr_demo_student",
+      "balance": 4163,
+      "transactions": [
+        {
+          "id": "ace68f62-bf24-479b-988e-96b221651090",
+          "type": "refund",
+          "amount": 10,
+          "description": "Auto-refund for expired print code 53GAUR",
+          "balance": 4163,
+          "createdAt": "2026-05-18T09:18:46.593Z"
+        },
+        {
+          "id": "0d1ced4e-80af-4a42-bfd6-3fd851c3fa6e",
+          "type": "refund",
+          "amount": 250,
+          "description": "Auto-refund for expired print code 324MMF",
+          "balance": 4153,
+          "createdAt": "2026-05-18T09:18:46.593Z"
+        },
+        {
+          "id": "79e6d9fd-2046-4fa4-9aeb-aa5a1f8cbec7",
+          "type": "refund",
+          "amount": 250,
+          "description": "Auto-refund for expired print code 8GFHLV",
+          "balance": 3903,
+          "createdAt": "2026-05-18T09:18:46.593Z"
+        },
+        {
+          "id": "c2608d5f-ccc0-4b57-8734-b4967c9c30e4",
+          "type": "refund",
+          "amount": 15,
+          "description": "Auto-refund for expired print code H65Y75",
+          "balance": 3653,
+          "createdAt": "2026-05-18T09:18:46.593Z"
+        },
+        {
+          "id": "3a6fc2a1-dfbf-4e06-86f5-6bfcb7550f67",
+          "type": "refund",
+          "amount": 10,
+          "description": "Auto-refund for expired print code 4BPZWD",
+          "balance": 3638,
+          "createdAt": "2026-05-18T09:18:46.593Z"
+        },
+        {
+          "id": "7dbe1784-5a8d-42d0-ad37-46839c0ba4b6",
+          "type": "refund",
+          "amount": 6,
+          "description": "Auto-refund for expired print code BMNPFZ",
+          "balance": 3628,
+          "createdAt": "2026-05-18T09:18:46.593Z"
+        },
+        {
+          "id": "90547706-6699-4d56-b7b0-8fecfa923988",
+          "type": "print",
+          "amount": -200,
+          "description": "colourjob (card)",
+          "balance": 3622,
+          "createdAt": "2026-05-17T04:31:33.227Z"
+        },
+        {
+          "id": "40b0e1e9-cb32-43f4-a608-5de99560bb0b",
+          "type": "print",
+          "amount": -10,
+          "description": "ipps (card)",
+          "balance": 3622,
+          "createdAt": "2026-05-17T04:30:27.234Z"
+        },
+        {
+          "id": "6952dad0-02a7-43bb-96c2-ea29a35f76d6",
+          "type": "print",
+          "amount": -250,
+          "description": "jobB (card)",
+          "balance": 3622,
+          "createdAt": "2026-05-17T04:30:26.105Z"
+        },
+        {
+          "id": "412d3476-4dd3-4bf2-aa11-74dce0dbec29",
+          "type": "print",
+          "amount": -250,
+          "description": "jobA (card)",
+          "balance": 3622,
+          "createdAt": "2026-05-17T04:30:25.997Z"
+        },
+        {
+          "id": "3cfd57e7-641c-4be6-bbcd-c606e381eb1d",
+          "type": "refund",
+          "amount": 20,
+          "description": "Auto-refund for expired print code MUASQW",
+          "balance": 3622,
+          "createdAt": "2026-05-17T04:29:50.830Z"
+        },
+        {
+          "id": "6615e116-5264-405d-81f3-9856a0e8abb1",
+          "type": "refund",
+          "amount": 5,
+          "description": "Auto-refund for expired print code MTQNEZ",
+          "balance": 3602,
+          "createdAt": "2026-05-17T04:29:50.830Z"
+        },
+        {
+          "id": "240cca84-e1d2-4406-aa9e-205cb7c6c522",
+          "type": "refund",
+          "amount": 5,
+          "description": "Auto-refund for expired print code SBC79F",
+          "balance": 3597,
+          "createdAt": "2026-05-17T04:29:50.830Z"
+        },
+        {
+          "id": "ff84ec1b-0ddb-4f98-9141-b9d268392d17",
+          "type": "refund",
+          "amount": 5,
+          "description": "Auto-refund for expired print code 3EDFUS",
+          "balance": 3592,
+          "createdAt": "2026-05-17T04:29:50.830Z"
+        },
+        {
+          "id": "a9e3441f-a4cb-4c07-8afd-a212a2b5eb95",
+          "type": "refund",
+          "amount": 50,
+          "description": "Auto-refund for expired print code 7RTKT3",
+          "balance": 3587,
+          "createdAt": "2026-05-17T04:29:50.830Z"
+        },
+        {
+          "id": "9f78947a-5742-4fcc-8941-6b7bd39c248c",
+          "type": "refund",
+          "amount": 43,
+          "description": "Auto-refund for expired print code HQP2YK",
+          "balance": 3537,
+          "createdAt": "2026-05-17T04:29:50.830Z"
+        },
+        {
+          "id": "fce8b6a1-f443-42d7-816f-d24e3150a814",
+          "type": "refund",
+          "amount": 60,
+          "description": "Auto-refund for expired print code 79DLHZ",
+          "balance": 3494,
+          "createdAt": "2026-05-17T04:29:50.830Z"
+        },
+        {
+          "id": "79c2d04e-12e8-4e68-94c3-ff2dbd46b440",
+          "type": "print",
+          "amount": -15,
+          "description": "Ibma Details (card)",
+          "balance": 3434,
+          "createdAt": "2026-05-16T20:12:16.717Z"
+        },
+        {
+          "id": "9e907226-3dd5-496e-990b-38e8706130e8",
+          "type": "topup",
+          "amount": 1000,
+          "description": "Paystack top-up",
+          "balance": 3434,
+          "createdAt": "2026-05-16T19:49:44.793Z"
+        },
+        {
+          "id": "dab56bff-ce5f-481f-936b-ea33282bfa2e",
+          "type": "print",
+          "amount": -10,
+          "description": "2 documents (batch) (wallet)",
+          "balance": 2434,
+          "createdAt": "2026-05-16T19:37:09.552Z"
+        },
+        {
+          "id": "fe7e2f0b-e874-43d5-954d-0522b76ba32b",
+          "type": "print",
+          "amount": -6,
+          "description": "Construction Engineering note Formwork I (wallet)",
+          "balance": 2444,
+          "createdAt": "2026-05-16T19:35:43.048Z"
+        },
+        {
+          "id": "d195d670-41ac-4b00-baff-1af96fb89cf9",
+          "type": "refund",
+          "amount": 60,
+          "description": "Auto-refund for expired print code KYQBQK",
+          "balance": 2450,
+          "createdAt": "2026-05-16T14:42:06.602Z"
+        },
+        {
+          "id": "ce103fe2-16a8-4ae9-85d9-0340920b8020",
+          "type": "refund",
+          "amount": 12,
+          "description": "Auto-refund for expired print code 9XTE3K",
+          "balance": 2390,
+          "createdAt": "2026-05-16T14:42:06.602Z"
+        },
+        {
+          "id": "7cfb9d36-9f9b-40f6-9bb7-69e080f56a35",
+          "type": "refund",
+          "amount": 180,
+          "description": "Auto-refund for expired print code 9SABL6",
+          "balance": 2378,
+          "createdAt": "2026-05-16T14:42:06.602Z"
+        },
+        {
+          "id": "72442016-54b7-4438-9a96-e8f05b9723e6",
+          "type": "refund",
+          "amount": 60,
+          "description": "Auto-refund for expired print code M7K3X9",
+          "balance": 2198,
+          "createdAt": "2026-05-16T14:42:06.602Z"
+        },
+        {
+          "id": "85d346c5-9d6c-4c3c-81c2-4a6b21bbcd45",
+          "type": "print",
+          "amount": -20,
+          "description": "LOL (card)",
+          "balance": 2138,
+          "createdAt": "2026-05-16T00:56:55.224Z"
+        },
+        {
+          "id": "fb78e051-6c83-4f43-8f77-acc0debb8d9c",
+          "type": "print",
+          "amount": -5,
+          "description": "results (card)",
+          "balance": 2138,
+          "createdAt": "2026-05-16T00:53:10.282Z"
+        },
+        {
+          "id": "1be60eee-4c64-4145-9fee-934491ba0d06",
+          "type": "print",
+          "amount": -5,
+          "description": "project 211202031 (card)",
+          "balance": 2138,
+          "createdAt": "2026-05-16T00:53:10.273Z"
+        },
+        {
+          "id": "b2e27c5d-42d7-404a-a187-3d7bcfddc5e6",
+          "type": "print",
+          "amount": -5,
+          "description": "printloop investment proposal (card)",
+          "balance": 2138,
+          "createdAt": "2026-05-16T00:53:10.262Z"
+        },
+        {
+          "id": "b58f79fb-022d-469c-9725-2c38b0f6d9ba",
+          "type": "print",
+          "amount": -50,
+          "description": "PRINTLOOP INVESTMENT PROPOSAL SUMMARY (card)",
+          "balance": 2138,
+          "createdAt": "2026-05-16T00:53:10.251Z"
+        },
+        {
+          "id": "9fef7dae-aa87-47c9-8747-b30aae5c1d8f",
+          "type": "print",
+          "amount": -43,
+          "description": "Screenshot 2026-05-13 194712 (ussd)",
+          "balance": 2138,
+          "createdAt": "2026-05-15T23:26:11.580Z"
+        },
+        {
+          "id": "c5610abf-5141-4207-8042-a24ef6cf9d5b",
+          "type": "print",
+          "amount": -60,
+          "description": "Screenshot 2026-04-24 222930 (wallet)",
+          "balance": 2138,
+          "createdAt": "2026-05-15T21:59:56.598Z"
+        },
+        {
+          "id": "7ddd40f5-fdab-4e1e-b10f-b1142038fcf3",
+          "type": "print",
+          "amount": -60,
+          "description": "Screenshot 2026-05-13 194712 (wallet)",
+          "balance": 2198,
+          "createdAt": "2026-05-15T08:50:03.172Z"
+        },
+        {
+          "id": "e5b9be9d-23c6-4c0f-9496-d50ada4410ee",
+          "type": "print",
+          "amount": -12,
+          "description": "Screenshot 2026-04-26 020605 (wallet)",
+          "balance": 2258,
+          "createdAt": "2026-05-15T08:49:20.226Z"
+        },
+        {
+          "id": "8fe88144-1a42-4738-90ef-a5e5d0b9ee28",
+          "type": "print",
+          "amount": -180,
+          "description": "Screenshot 2026-03-23 162904 (wallet)",
+          "balance": 2270,
+          "createdAt": "2026-05-15T08:41:57.303Z"
+        },
+        {
+          "id": "txn_seed_topup",
+          "type": "topup",
+          "amount": 2000,
+          "description": "Paystack top-up",
+          "balance": 2450,
+          "createdAt": "2026-05-15T08:39:37.184Z"
+        },
+        {
+          "id": "txn_seed_print",
+          "type": "print",
+          "amount": -60,
+          "description": "CSC 401 - Week 9 notes",
+          "balance": 450,
+          "createdAt": "2026-05-15T07:09:37.184Z"
+        }
+      ]
+    },
+    {
+      "userId": "usr_super_admin",
+      "balance": 50,
+      "transactions": [
+        {
+          "id": "47e5895f-128e-4993-8883-3157bf102f4c",
+          "type": "refund",
+          "amount": 5,
+          "description": "Auto-refund for expired print code QDAP6J",
+          "balance": 50,
+          "createdAt": "2026-05-18T09:18:46.593Z"
+        },
+        {
+          "id": "fd3b953e-124f-4aaa-9cd7-a20f514d2449",
+          "type": "refund",
+          "amount": 5,
+          "description": "Auto-refund for expired print code CYCL87",
+          "balance": 45,
+          "createdAt": "2026-05-18T09:18:46.593Z"
+        },
+        {
+          "id": "88a0926c-f42a-4db0-9817-ecf8ef1400e3",
+          "type": "refund",
+          "amount": 5,
+          "description": "Auto-refund for expired print code 4GVUWE",
+          "balance": 40,
+          "createdAt": "2026-05-18T09:18:46.593Z"
+        },
+        {
+          "id": "05efee92-e389-48f3-9256-52ecae32f7a2",
+          "type": "refund",
+          "amount": 10,
+          "description": "Auto-refund for expired print code Q82PU8",
+          "balance": 35,
+          "createdAt": "2026-05-18T09:18:46.593Z"
+        },
+        {
+          "id": "e4c9414c-1fd9-45c4-8142-e1304267a247",
+          "type": "refund",
+          "amount": 25,
+          "description": "Auto-refund for expired print code W4MG9J",
+          "balance": 25,
+          "createdAt": "2026-05-18T09:18:46.593Z"
+        },
+        {
+          "id": "6f2052e9-8071-4a8d-b506-b9773300ec6d",
+          "type": "print",
+          "amount": -5,
+          "description": "LOL (card)",
+          "balance": 0,
+          "createdAt": "2026-05-16T14:43:10.890Z"
+        },
+        {
+          "id": "60804f3a-9dae-4a80-9cf4-cdea94266a13",
+          "type": "print",
+          "amount": -5,
+          "description": "L1 (card)",
+          "balance": 0,
+          "createdAt": "2026-05-16T14:43:10.882Z"
+        },
+        {
+          "id": "a3b6f767-53ce-4b8e-a651-a8ffe81574b4",
+          "type": "print",
+          "amount": -5,
+          "description": "Ibma Details (card)",
+          "balance": 0,
+          "createdAt": "2026-05-16T14:43:10.869Z"
+        },
+        {
+          "id": "defd82ac-28eb-46b9-b249-23a0659fd651",
+          "type": "print",
+          "amount": -10,
+          "description": "highway engineering midterm (card)",
+          "balance": 0,
+          "createdAt": "2026-05-16T14:43:10.860Z"
+        },
+        {
+          "id": "7a0cd809-2462-40a1-8a59-d60b06f23d65",
+          "type": "print",
+          "amount": -25,
+          "description": "printloop investment proposal (card)",
+          "balance": 0,
+          "createdAt": "2026-05-16T14:41:46.850Z"
+        }
+      ]
+    },
+    {
+      "userId": "32317204-f93c-4d72-9f2e-b2947f81bc4b",
+      "balance": 1000,
+      "transactions": [
+        {
+          "id": "71efa801-85af-4c1e-acd9-438f2f3d204a",
+          "type": "topup",
+          "amount": 1000,
+          "description": "Paystack top-up",
+          "balance": 1000,
+          "createdAt": "2026-05-18T17:23:38.483Z"
+        }
+      ]
+    }
+  ],
+  "printJobs": [
+    {
+      "id": "job_csc_401",
+      "userId": "usr_demo_student",
+      "fileName": "CSC 401 - Week 9 lecture notes.pdf",
+      "pageCount": 12,
+      "code": "M7K3X9",
+      "cost": 60,
+      "status": "refunded",
+      "jobType": "single",
+      "paymentMethod": "wallet",
+      "createdAt": "2026-05-15T08:39:37.184Z",
+      "expiresAt": "2026-05-16T08:39:37.184Z",
+      "printConfiguration": {
+        "copies": 1,
+        "paper": "A4",
+        "color": "bw",
+        "sided": "single",
+        "qualityDpi": 300,
+        "pages": "all"
+      },
+      "refundedAt": "2026-05-16T14:42:06.602Z"
+    },
+    {
+      "id": "job_project_proposal",
+      "userId": "usr_demo_student",
+      "fileName": "Project proposal - draft 3.docx",
+      "pageCount": 8,
+      "code": "T2L8B4",
+      "cost": 200,
+      "status": "done",
+      "jobType": "single",
+      "paymentMethod": "wallet",
+      "kioskId": "st_yaba",
+      "createdAt": "2026-05-14T08:39:37.184Z",
+      "expiresAt": "2026-05-15T08:39:37.184Z",
+      "printConfiguration": {
+        "copies": 1,
+        "paper": "A4",
+        "color": "color",
+        "sided": "single",
+        "qualityDpi": 600,
+        "pages": "all"
+      }
+    },
+    {
+      "id": "job_nysc_form",
+      "userId": "usr_demo_student",
+      "fileName": "NYSC application form.pdf",
+      "pageCount": 2,
+      "code": "A9P1Q5",
+      "cost": 10,
+      "status": "done",
+      "jobType": "single",
+      "paymentMethod": "wallet",
+      "kioskId": "st_unilag_arts",
+      "createdAt": "2026-05-12T08:39:37.184Z",
+      "expiresAt": "2026-05-13T08:39:37.184Z",
+      "printConfiguration": {
+        "copies": 1,
+        "paper": "A4",
+        "color": "bw",
+        "sided": "single",
+        "qualityDpi": 300,
+        "pages": "all"
+      }
+    },
+    {
+      "id": "80e6bd59-6b9c-4d77-94d8-41ec056030f6",
+      "userId": "usr_demo_student",
+      "fileName": "Screenshot 2026-03-23 162904.png",
+      "pageCount": 10,
+      "code": "9SABL6",
+      "cost": 180,
+      "status": "refunded",
+      "jobType": "single",
+      "paymentMethod": "wallet",
+      "createdAt": "2026-05-15T08:41:57.303Z",
+      "expiresAt": "2026-05-16T08:41:57.303Z",
+      "printConfiguration": {
+        "copies": 3,
+        "paper": "A4",
+        "color": "bw",
+        "sided": "single",
+        "qualityDpi": 600,
+        "pages": "all",
+        "pageRange": ""
+      },
+      "refundedAt": "2026-05-16T14:42:06.602Z"
+    },
+    {
+      "id": "b07def9c-b3af-4875-82bd-7ffc4daf3265",
+      "userId": "usr_demo_student",
+      "fileName": "Screenshot 2026-04-26 020605.png",
+      "pageCount": 1,
+      "code": "9XTE3K",
+      "cost": 12,
+      "status": "refunded",
+      "jobType": "single",
+      "paymentMethod": "wallet",
+      "createdAt": "2026-05-15T08:49:20.226Z",
+      "expiresAt": "2026-05-16T08:49:20.227Z",
+      "printConfiguration": {
+        "copies": 2,
+        "paper": "A4",
+        "color": "bw",
+        "sided": "single",
+        "qualityDpi": 600,
+        "pages": "all",
+        "pageRange": ""
+      },
+      "refundedAt": "2026-05-16T14:42:06.602Z"
+    },
+    {
+      "id": "857e2d9f-c526-4342-91ca-840100ed2bb5",
+      "userId": "usr_demo_student",
+      "fileName": "Screenshot 2026-05-13 194712.png",
+      "pageCount": 1,
+      "code": "KYQBQK",
+      "cost": 60,
+      "status": "refunded",
+      "jobType": "single",
+      "paymentMethod": "wallet",
+      "createdAt": "2026-05-15T08:50:03.172Z",
+      "expiresAt": "2026-05-16T08:50:03.172Z",
+      "printConfiguration": {
+        "copies": 10,
+        "paper": "A4",
+        "color": "bw",
+        "sided": "single",
+        "qualityDpi": 600,
+        "pages": "all",
+        "pageRange": ""
+      },
+      "refundedAt": "2026-05-16T14:42:06.602Z"
+    },
+    {
+      "id": "caa386d6-a93c-43a7-a007-c32260483b94",
+      "userId": "usr_demo_student",
+      "fileName": "Screenshot 2026-04-24 222930.png",
+      "pageCount": 10,
+      "code": "79DLHZ",
+      "cost": 60,
+      "status": "refunded",
+      "jobType": "single",
+      "paymentMethod": "wallet",
+      "createdAt": "2026-05-15T21:59:56.598Z",
+      "expiresAt": "2026-05-16T21:59:56.598Z",
+      "printConfiguration": {
+        "copies": 1,
+        "paper": "A4",
+        "color": "bw",
+        "sided": "single",
+        "qualityDpi": 600,
+        "pages": "all",
+        "pageRange": ""
+      },
+      "refundedAt": "2026-05-17T04:29:50.830Z"
+    },
+    {
+      "id": "fa0c61cd-a0dd-4e2d-85bb-535948b1bede",
+      "userId": "usr_demo_student",
+      "fileName": "Screenshot 2026-05-13 194712.png",
+      "pageCount": 10,
+      "code": "HQP2YK",
+      "cost": 43,
+      "status": "refunded",
+      "jobType": "single",
+      "paymentMethod": "ussd",
+      "createdAt": "2026-05-15T23:26:11.580Z",
+      "expiresAt": "2026-05-16T23:26:11.580Z",
+      "printConfiguration": {
+        "copies": 1,
+        "paper": "A4",
+        "color": "bw",
+        "sided": "double",
+        "qualityDpi": 300,
+        "pages": "all",
+        "pageRange": ""
+      },
+      "refundedAt": "2026-05-17T04:29:50.830Z"
+    },
+    {
+      "id": "ff95452a-7192-4a95-99ae-a02e8a82611d",
+      "userId": "usr_demo_student",
+      "fileName": "PRINTLOOP INVESTMENT PROPOSAL SUMMARY.pdf",
+      "pageCount": 10,
+      "code": "7RTKT3",
+      "cost": 50,
+      "status": "refunded",
+      "jobType": "personal_batch",
+      "paymentMethod": "card",
+      "createdAt": "2026-05-16T00:53:10.251Z",
+      "expiresAt": "2026-05-17T00:53:10.251Z",
+      "printConfiguration": {
+        "copies": 1,
+        "paper": "A4",
+        "color": "bw",
+        "sided": "single",
+        "qualityDpi": 300,
+        "pages": "all",
+        "pageRange": "1-2"
+      },
+      "refundedAt": "2026-05-17T04:29:50.830Z"
+    },
+    {
+      "id": "33f31495-94d7-4a54-b41b-88017340e271",
+      "userId": "usr_demo_student",
+      "fileName": "printloop investment proposal.pdf",
+      "pageCount": 1,
+      "code": "3EDFUS",
+      "cost": 5,
+      "status": "refunded",
+      "jobType": "personal_batch",
+      "paymentMethod": "card",
+      "createdAt": "2026-05-16T00:53:10.262Z",
+      "expiresAt": "2026-05-17T00:53:10.262Z",
+      "printConfiguration": {
+        "copies": 1,
+        "paper": "A4",
+        "color": "bw",
+        "sided": "single",
+        "qualityDpi": 300,
+        "pages": "all",
+        "pageRange": ""
+      },
+      "refundedAt": "2026-05-17T04:29:50.830Z"
+    },
+    {
+      "id": "dbed372c-532f-4560-9b71-cdcb40155aa0",
+      "userId": "usr_demo_student",
+      "fileName": "project 211202031.pdf",
+      "pageCount": 1,
+      "code": "SBC79F",
+      "cost": 5,
+      "status": "refunded",
+      "jobType": "personal_batch",
+      "paymentMethod": "card",
+      "createdAt": "2026-05-16T00:53:10.273Z",
+      "expiresAt": "2026-05-17T00:53:10.273Z",
+      "printConfiguration": {
+        "copies": 1,
+        "paper": "A4",
+        "color": "bw",
+        "sided": "single",
+        "qualityDpi": 300,
+        "pages": "all",
+        "pageRange": ""
+      },
+      "refundedAt": "2026-05-17T04:29:50.830Z"
+    },
+    {
+      "id": "9e32cf8a-74e2-4397-ab72-0cf78f053bbe",
+      "userId": "usr_demo_student",
+      "fileName": "results.pdf",
+      "pageCount": 1,
+      "code": "MTQNEZ",
+      "cost": 5,
+      "status": "refunded",
+      "jobType": "personal_batch",
+      "paymentMethod": "card",
+      "createdAt": "2026-05-16T00:53:10.282Z",
+      "expiresAt": "2026-05-17T00:53:10.282Z",
+      "printConfiguration": {
+        "copies": 1,
+        "paper": "A4",
+        "color": "bw",
+        "sided": "single",
+        "qualityDpi": 300,
+        "pages": "all",
+        "pageRange": ""
+      },
+      "refundedAt": "2026-05-17T04:29:50.830Z"
+    },
+    {
+      "id": "d8da3bb4-ef89-442d-9b11-16f9c30cb411",
+      "userId": "usr_demo_student",
+      "fileName": "LOL.pdf",
+      "pageCount": 4,
+      "code": "MUASQW",
+      "cost": 20,
+      "status": "refunded",
+      "jobType": "single",
+      "paymentMethod": "card",
+      "createdAt": "2026-05-16T00:56:55.224Z",
+      "expiresAt": "2026-05-17T00:56:55.224Z",
+      "printConfiguration": {
+        "copies": 1,
+        "paper": "A4",
+        "color": "bw",
+        "sided": "single",
+        "qualityDpi": 300,
+        "pages": "all",
+        "pageRange": ""
+      },
+      "refundedAt": "2026-05-17T04:29:50.830Z"
+    },
+    {
+      "id": "8c72683f-b840-47d8-be08-f2b79d6f5b33",
+      "userId": "usr_super_admin",
+      "fileName": "printloop investment proposal.pdf",
+      "pageCount": 1,
+      "code": "W4MG9J",
+      "cost": 25,
+      "status": "refunded",
+      "jobType": "single",
+      "paymentMethod": "card",
+      "createdAt": "2026-05-16T14:41:46.850Z",
+      "expiresAt": "2026-05-17T14:41:46.850Z",
+      "printConfiguration": {
+        "copies": 1,
+        "paper": "A4",
+        "color": "color",
+        "sided": "single",
+        "qualityDpi": 300,
+        "pages": "range",
+        "pageRange": "13"
+      },
+      "refundedAt": "2026-05-18T09:18:46.593Z"
+    },
+    {
+      "id": "f07fe484-744f-4a24-b5a2-708f2117fbc9",
+      "userId": "usr_super_admin",
+      "fileName": "highway engineering midterm.pdf",
+      "pageCount": 2,
+      "code": "Q82PU8",
+      "cost": 10,
+      "status": "refunded",
+      "jobType": "personal_batch",
+      "paymentMethod": "card",
+      "createdAt": "2026-05-16T14:43:10.860Z",
+      "expiresAt": "2026-05-17T14:43:10.860Z",
+      "printConfiguration": {
+        "copies": 1,
+        "paper": "A4",
+        "color": "bw",
+        "sided": "single",
+        "qualityDpi": 300,
+        "pages": "all",
+        "pageRange": ""
+      },
+      "refundedAt": "2026-05-18T09:18:46.593Z"
+    },
+    {
+      "id": "15847e1e-68ce-4726-a45a-2ed067c4205c",
+      "userId": "usr_super_admin",
+      "fileName": "Ibma Details.pdf",
+      "pageCount": 1,
+      "code": "4GVUWE",
+      "cost": 5,
+      "status": "refunded",
+      "jobType": "personal_batch",
+      "paymentMethod": "card",
+      "createdAt": "2026-05-16T14:43:10.869Z",
+      "expiresAt": "2026-05-17T14:43:10.869Z",
+      "printConfiguration": {
+        "copies": 1,
+        "paper": "A4",
+        "color": "bw",
+        "sided": "single",
+        "qualityDpi": 300,
+        "pages": "all",
+        "pageRange": ""
+      },
+      "refundedAt": "2026-05-18T09:18:46.593Z"
+    },
+    {
+      "id": "33472b06-2f60-4a9c-ae8a-10707aa6498b",
+      "userId": "usr_super_admin",
+      "fileName": "L1.pdf",
+      "pageCount": 1,
+      "code": "CYCL87",
+      "cost": 5,
+      "status": "refunded",
+      "jobType": "personal_batch",
+      "paymentMethod": "card",
+      "createdAt": "2026-05-16T14:43:10.882Z",
+      "expiresAt": "2026-05-17T14:43:10.882Z",
+      "printConfiguration": {
+        "copies": 1,
+        "paper": "A4",
+        "color": "bw",
+        "sided": "single",
+        "qualityDpi": 300,
+        "pages": "all",
+        "pageRange": ""
+      },
+      "refundedAt": "2026-05-18T09:18:46.593Z"
+    },
+    {
+      "id": "2c6894be-90d0-4241-b511-e4ba4486068a",
+      "userId": "usr_super_admin",
+      "fileName": "LOL.pdf",
+      "pageCount": 1,
+      "code": "QDAP6J",
+      "cost": 5,
+      "status": "refunded",
+      "jobType": "personal_batch",
+      "paymentMethod": "card",
+      "createdAt": "2026-05-16T14:43:10.890Z",
+      "expiresAt": "2026-05-17T14:43:10.890Z",
+      "printConfiguration": {
+        "copies": 1,
+        "paper": "A4",
+        "color": "bw",
+        "sided": "single",
+        "qualityDpi": 300,
+        "pages": "all",
+        "pageRange": ""
+      },
+      "refundedAt": "2026-05-18T09:18:46.593Z"
+    },
+    {
+      "id": "7368951a-3c63-4c9d-a012-367b05e438f8",
+      "userId": "usr_demo_student",
+      "fileName": "Construction Engineering note Formwork I.pptx",
+      "pageCount": 1,
+      "code": "BMNPFZ",
+      "cost": 6,
+      "status": "refunded",
+      "jobType": "single",
+      "paymentMethod": "wallet",
+      "createdAt": "2026-05-16T19:35:43.048Z",
+      "expiresAt": "2026-05-17T19:35:43.048Z",
+      "printConfiguration": {
+        "copies": 1,
+        "paper": "A4",
+        "color": "bw",
+        "sided": "single",
+        "qualityDpi": 600,
+        "pages": "all",
+        "pageRange": ""
+      },
+      "refundedAt": "2026-05-18T09:18:46.593Z"
+    },
+    {
+      "id": "226341a2-8f93-4317-b71b-88b634b6633e",
+      "userId": "usr_demo_student",
+      "fileName": "2 documents (batch)",
+      "pageCount": 2,
+      "code": "4BPZWD",
+      "cost": 10,
+      "status": "refunded",
+      "jobType": "personal_batch",
+      "paymentMethod": "wallet",
+      "createdAt": "2026-05-16T19:37:09.552Z",
+      "expiresAt": "2026-05-17T19:37:09.552Z",
+      "printConfiguration": {
+        "copies": 1,
+        "paper": "A4",
+        "color": "bw",
+        "sided": "single",
+        "qualityDpi": 300,
+        "pages": "all"
+      },
+      "refundedAt": "2026-05-18T09:18:46.593Z"
+    },
+    {
+      "id": "9ac95853-287a-431c-9d19-123170bc854c",
+      "userId": "usr_demo_student",
+      "fileName": "Ibma Details.pdf",
+      "pageCount": 3,
+      "code": "H65Y75",
+      "cost": 15,
+      "status": "refunded",
+      "jobType": "single",
+      "paymentMethod": "card",
+      "createdAt": "2026-05-16T20:12:16.717Z",
+      "expiresAt": "2026-05-17T20:12:16.717Z",
+      "printConfiguration": {
+        "copies": 1,
+        "paper": "A4",
+        "color": "bw",
+        "sided": "single",
+        "qualityDpi": 300,
+        "pages": "all",
+        "pageRange": ""
+      },
+      "refundedAt": "2026-05-18T09:18:46.593Z"
+    },
+    {
+      "id": "e09da357-026e-4624-bcfa-7c994e5bf781",
+      "userId": "usr_demo_student",
+      "fileName": "jobA.pdf",
+      "pageCount": 10,
+      "code": "8GFHLV",
+      "cost": 250,
+      "status": "refunded",
+      "jobType": "single",
+      "paymentMethod": "card",
+      "createdAt": "2026-05-17T04:30:25.997Z",
+      "expiresAt": "2026-05-18T04:30:25.997Z",
+      "printConfiguration": {
+        "copies": 1,
+        "paper": "A4",
+        "color": "color",
+        "sided": "single",
+        "qualityDpi": 300,
+        "pages": "all"
+      },
+      "refundedAt": "2026-05-18T09:18:46.593Z"
+    },
+    {
+      "id": "671acc1e-da4b-49a6-a6ed-a401bce4b761",
+      "userId": "usr_demo_student",
+      "fileName": "jobB.pdf",
+      "pageCount": 10,
+      "code": "324MMF",
+      "cost": 250,
+      "status": "refunded",
+      "jobType": "single",
+      "paymentMethod": "card",
+      "createdAt": "2026-05-17T04:30:26.105Z",
+      "expiresAt": "2026-05-18T04:30:26.105Z",
+      "printConfiguration": {
+        "copies": 1,
+        "paper": "A4",
+        "color": "color",
+        "sided": "single",
+        "qualityDpi": 300,
+        "pages": "all"
+      },
+      "refundedAt": "2026-05-18T09:18:46.593Z"
+    },
+    {
+      "id": "94155ea7-d50d-418d-9d78-d4b47a903228",
+      "userId": "usr_demo_student",
+      "fileName": "ipps.pdf",
+      "pageCount": 2,
+      "code": "53GAUR",
+      "cost": 10,
+      "status": "refunded",
+      "jobType": "single",
+      "paymentMethod": "card",
+      "createdAt": "2026-05-17T04:30:27.234Z",
+      "expiresAt": "2026-05-18T04:30:27.234Z",
+      "printConfiguration": {
+        "copies": 1,
+        "paper": "A4",
+        "color": "bw",
+        "sided": "single",
+        "qualityDpi": 300,
+        "pages": "all"
+      },
+      "refundedAt": "2026-05-18T09:18:46.593Z"
+    },
+    {
+      "id": "b21d76a9-10be-4026-94c9-4108f7eceac2",
+      "userId": "usr_demo_student",
+      "fileName": "colourjob.pdf",
+      "pageCount": 4,
+      "code": "8C6RZC",
+      "cost": 200,
+      "status": "done",
+      "jobType": "single",
+      "paymentMethod": "card",
+      "createdAt": "2026-05-17T04:31:33.227Z",
+      "expiresAt": "2026-05-18T04:31:33.227Z",
+      "printConfiguration": {
+        "copies": 2,
+        "paper": "A4",
+        "color": "color",
+        "sided": "single",
+        "qualityDpi": 300,
+        "pages": "all"
+      },
+      "kioskId": "st_yaba"
+    }
+  ],
+  "stations": [
+    {
+      "id": "st_yaba",
+      "name": "Yaba Station",
+      "area": "Yaba, Lagos",
+      "distanceMeters": 240,
+      "status": "online",
+      "queue": 2,
+      "ipAddress": "192.168.1.100"
+    },
+    {
+      "id": "st_unilag_arts",
+      "name": "UNILAG - Faculty of Arts",
+      "area": "Akoka",
+      "distanceMeters": 1200,
+      "status": "online",
+      "queue": 0
+    },
+    {
+      "id": "st_unilag_sports",
+      "name": "UNILAG - Sports Centre",
+      "area": "Akoka",
+      "distanceMeters": 1400,
+      "status": "online",
+      "queue": 5
+    },
+    {
+      "id": "st_akoka",
+      "name": "Akoka Junction",
+      "area": "Akoka",
+      "distanceMeters": 1800,
+      "status": "online",
+      "queue": 1
+    },
+    {
+      "id": "st_bariga",
+      "name": "Bariga Print Hub",
+      "area": "Bariga",
+      "distanceMeters": 2100,
+      "status": "offline",
+      "queue": 0
+    },
+    {
+      "id": "st_surulere",
+      "name": "Surulere Plaza",
+      "area": "Surulere",
+      "distanceMeters": 5600,
+      "status": "online",
+      "queue": 0
+    }
+  ],
+  "groupSessions": [
+    {
+      "id": "8f46430c-b75e-4610-8f87-19c6c1520e1d",
+      "hostUserId": "usr_demo_student",
+      "groupName": "CSC 301 Assignment 2",
+      "deadline": "2026-05-17T00:31:20.182Z",
+      "status": "closed",
+      "shareUrl": "/groups/csc-301-assignment-2/join",
+      "createdAt": "2026-05-16T00:31:20.219Z",
+      "defaultOptions": {
+        "paper": "A4",
+        "color": "bw",
+        "sided": "double",
+        "qualityDpi": 300,
+        "enforce": true
+      },
+      "participants": [],
+      "batchCode": "GP37GZ8N"
+    },
+    {
+      "id": "3e19f180-a95f-4d3a-b1ef-358c80136c7c",
+      "hostUserId": "usr_demo_student",
+      "groupName": "CSC 301 Assignment 2",
+      "deadline": "2026-05-16T08:43:36.243Z",
+      "status": "open",
+      "shareUrl": "/groups/csc-301-assignment-2/join",
+      "createdAt": "2026-05-15T08:43:36.252Z",
+      "defaultOptions": {
+        "paper": "A4",
+        "color": "bw",
+        "sided": "double",
+        "qualityDpi": 300,
+        "enforce": true
+      },
+      "participants": []
+    },
+    {
+      "id": "grp_csc_301",
+      "hostUserId": "usr_demo_student",
+      "groupName": "CSC 301 Assignment 2",
+      "deadline": "2026-05-15T16:39:37.184Z",
+      "status": "open",
+      "shareUrl": "/groups/grp_csc_301/join",
+      "createdAt": "2026-05-15T08:39:37.184Z",
+      "defaultOptions": {
+        "paper": "A4",
+        "color": "bw",
+        "sided": "double",
+        "qualityDpi": 300,
+        "enforce": true
+      },
+      "participants": [
+        {
+          "id": "prt_001",
+          "name": "Amina Yusuf",
+          "documentName": "Amina CSC301.pdf",
+          "pages": 6,
+          "paymentStatus": "paid",
+          "printStatus": "queued",
+          "watermarkId": "CSC301-001"
+        },
+        {
+          "id": "prt_002",
+          "name": "Tunde Okafor",
+          "documentName": "Tunde Assignment.docx",
+          "pages": 9,
+          "paymentStatus": "paid",
+          "printStatus": "queued",
+          "watermarkId": "CSC301-002"
+        }
+      ]
+    }
+  ],
+  "pricing": [
+    {
+      "id": 1,
+      "paper": "A4",
+      "bwSingle": 100,
+      "bwDuplex": 130,
+      "colorSingle": 200,
+      "colorDuplex": 250
+    },
+    {
+      "id": 2,
+      "paper": "A3",
+      "bwSingle": 15,
+      "bwDuplex": 12,
+      "colorSingle": 50,
+      "colorDuplex": 42
+    },
+    {
+      "id": 3,
+      "paper": "Letter",
+      "bwSingle": 5,
+      "bwDuplex": 4,
+      "colorSingle": 25,
+      "colorDuplex": 21
+    }
+  ]
+}

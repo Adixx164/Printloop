@@ -1,0 +1,10 @@
+{
+  "name": "printloop-kiosk",
+  "productName": "PrintLoop Kiosk",
+  "version": "1.0.0",
+  "description": "PrintLoop self-service kiosk — a single static HTML page. Serve it on the kiosk machine and open it full-screen in a browser (kiosk mode).",
+  "private": true,
+  "scripts": {
+    "serve": "npx --yes serve -l 8080 ."
+  }
+}

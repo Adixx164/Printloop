@@ -1,0 +1,82 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    font-family: "Inter", system-ui, sans-serif;
+    background-color: #f8f4ed;
+    color: #1a1410;
+  }
+  ::selection { background: #d14b2c; color: #f8f4ed; }
+}
+
+@layer components {
+  .editorial-label {
+    @apply uppercase tracking-editorial font-bold text-[10px];
+  }
+  .editorial-folio {
+    @apply font-serif italic text-ochre font-semibold;
+  }
+  .editorial-rule {
+    @apply border-t-2 border-ink;
+  }
+
+  /* Brutalist button: heavy border, lift-on-hover with hard shadow */
+  .pl-btn {
+    @apply inline-flex items-center justify-center gap-2 border-2 border-ink rounded-md
+           px-5 py-3 font-bold text-sm tracking-wider uppercase cursor-pointer
+           transition-all duration-150 ease-out select-none;
+  }
+  .pl-btn:hover { transform: translate(-3px, -3px); box-shadow: 5px 5px 0 #1a1410; }
+  .pl-btn:active { transform: translate(0, 0); box-shadow: none; }
+
+  .pl-btn-primary { @apply pl-btn bg-persimmon text-paper; }
+  .pl-btn-primary:hover { box-shadow: 5px 5px 0 #1a1410; }
+
+  .pl-btn-dark { @apply pl-btn bg-ink text-paper; }
+  .pl-btn-dark:hover { box-shadow: 5px 5px 0 #d14b2c; }
+
+  .pl-btn-ghost { @apply pl-btn bg-transparent text-ink; }
+
+  /* Input */
+  .pl-input {
+    @apply w-full px-3.5 py-2.5 border-2 border-ink rounded-md bg-paper-light
+           text-ink font-medium text-sm transition-all duration-150 outline-none;
+  }
+  .pl-input:hover { background-color: #f8f4ed; }
+  .pl-input:focus { transform: translate(-2px, -2px); box-shadow: 3px 3px 0 #d14b2c; }
+  .pl-input.error { border-color: #d14b2c; }
+
+  /* Card */
+  .pl-card {
+    @apply border-2 border-ink rounded-lg bg-paper-light p-5 transition-all duration-150 cursor-pointer;
+  }
+  .pl-card:hover { transform: translate(-3px, -3px); box-shadow: 5px 5px 0 #1a1410; }
+
+  /* Chip */
+  .pl-chip {
+    @apply inline-flex items-center gap-1.5 border border-ink rounded-full px-3 py-1.5
+           text-xs font-semibold cursor-pointer transition-colors duration-150;
+  }
+  .pl-chip:hover { background: #1a1410; color: #f8f4ed; }
+  .pl-chip-active { background: #d14b2c; color: #f8f4ed; border-color: #d14b2c; }
+
+  /* Pill: status */
+  .pl-pill { @apply inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] tracking-editorial font-bold uppercase; }
+  .pl-pill-ready { @apply bg-persimmon text-paper; }
+  .pl-pill-done { @apply text-fog border border-fog; }
+
+  .pl-slider {
+    accent-color: #d14b2c;
+  }
+  .pl-slider::-webkit-slider-thumb {
+    cursor: pointer;
+  }
+  .pl-slider::-moz-range-thumb {
+    cursor: pointer;
+  }
+
+  .pl-mono { font-family: "JetBrains Mono", monospace; }
+  .pl-serif { font-family: "Fraunces", serif; }
+}

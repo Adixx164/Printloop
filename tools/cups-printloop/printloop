@@ -1,0 +1,173 @@
+#!/bin/sh
+# PrintLoop CUPS backend.
+#
+# CUPS invokes this binary at /usr/lib/cups/backend/printloop with:
+#   $0 job-id user title copies options [filename]
+# When no filename is given, the document arrives on stdin.
+#
+# The Device URI looks like:
+#   printloop://HOST[:PORT]/?token=USER_PRINT_TOKEN
+# (URL-encoded as needed). We split it into the API base + bearer token and
+# POST a multipart upload to /api/cups/print. The release code returned by
+# the server is written to stderr — CUPS captures stderr and surfaces lines
+# prefixed with STATE: / INFO: / NOTICE: in `lpq -l` and the desktop print
+# queue dialog.
+#
+# Exit codes (CUPS conventions, see backend(7)):
+#   0  success           - the job is in PrintLoop
+#   1  failed-permanent  - drop the job (bad creds, bad file)
+#   2  auth-required     - re-prompt for credentials
+#   4  retry-current     - server transient, try again
+#   5  retry-later       - server long-down, retry in 30s
+
+set -u
+
+# Discover mode (`./printloop` with no args) — print a single line CUPS uses
+# to populate `lpinfo -v`. The "direct" class lets you choose this backend
+# from the printer-setup wizard.
+if [ $# -eq 0 ]; then
+  printf 'direct printloop "Unknown" "PrintLoop (network printer)"\n'
+  exit 0
+fi
+
+JOB_ID="$1"
+JOB_USER="$2"
+JOB_TITLE="$3"
+COPIES="$4"
+OPTIONS="$5"
+INPUT_FILE="${6:-}"
+
+DEVICE_URI="${DEVICE_URI:-}"
+if [ -z "$DEVICE_URI" ]; then
+  echo "ERROR: DEVICE_URI is not set; CUPS should have set it." 1>&2
+  exit 1
+fi
+
+# Parse printloop://HOST[:PORT]/?token=...
+# We do this with sed rather than dragging in awk/python so it works on the
+# minimum CUPS install.
+proto_stripped=$(printf '%s' "$DEVICE_URI" | sed -E 's#^[a-zA-Z]+://##')
+host_port=$(printf '%s' "$proto_stripped" | sed -E 's#[/?].*$##')
+query=$(printf '%s' "$proto_stripped" | sed -nE 's#^[^?]*\?(.*)$#\1#p')
+
+# Token may be passed as ?token=... or in the userinfo (user:token@host) —
+# fish out either.
+TOKEN=$(printf '%s' "$query" | tr '&' '\n' | sed -nE 's#^token=(.*)$#\1#p')
+if [ -z "$TOKEN" ]; then
+  userinfo=$(printf '%s' "$host_port" | sed -nE 's#^([^@]+)@.*#\1#p')
+  TOKEN=$(printf '%s' "$userinfo" | sed -nE 's#^[^:]*:?(.*)$#\1#p')
+  host_port=$(printf '%s' "$host_port" | sed -E 's#^[^@]+@##')
+fi
+if [ -z "$TOKEN" ]; then
+  echo "ERROR: no token in DEVICE_URI ($DEVICE_URI); rotate one at /account/print-token." 1>&2
+  exit 2
+fi
+
+# Decide scheme: localhost / *.local default to http (dev), everything else
+# https. Override with ?scheme=http or ?scheme=https.
+SCHEME=$(printf '%s' "$query" | tr '&' '\n' | sed -nE 's#^scheme=(.*)$#\1#p')
+if [ -z "$SCHEME" ]; then
+  case "$host_port" in
+    localhost*|127.0.0.1*|*.local*) SCHEME="http" ;;
+    *) SCHEME="https" ;;
+  esac
+fi
+API_URL="$SCHEME://$host_port/api/cups/print"
+
+# CUPS log convention.
+echo "INFO: PrintLoop CUPS backend → $API_URL" 1>&2
+echo "INFO: job=$JOB_ID user=$JOB_USER title=\"$JOB_TITLE\" copies=$COPIES" 1>&2
+
+# Spool stdin to a temp file if CUPS didn't give us one. This lets curl do a
+# proper multipart upload (it needs a seekable file for the Content-Length).
+TMPFILE=""
+cleanup() { [ -n "$TMPFILE" ] && [ -f "$TMPFILE" ] && rm -f "$TMPFILE"; }
+trap cleanup EXIT INT TERM
+
+if [ -z "$INPUT_FILE" ] || [ ! -f "$INPUT_FILE" ]; then
+  TMPFILE=$(mktemp -t printloop.XXXXXX) || {
+    echo "ERROR: mktemp failed" 1>&2
+    exit 4
+  }
+  cat > "$TMPFILE" || {
+    echo "ERROR: failed to spool stdin" 1>&2
+    exit 4
+  }
+  UPLOAD_FILE="$TMPFILE"
+else
+  UPLOAD_FILE="$INPUT_FILE"
+fi
+
+# Sanity-check the file is non-empty before we send it.
+if [ ! -s "$UPLOAD_FILE" ]; then
+  echo "ERROR: empty job (0 bytes) — refusing." 1>&2
+  exit 1
+fi
+
+# We give the upload a filename CUPS-style: "JobTitle.pdf" if a title is set.
+UP_NAME=$(printf '%s' "${JOB_TITLE:-document}" | tr '/ ' '__' )
+case "$UP_NAME" in
+  *.pdf|*.PDF|*.jpg|*.JPG|*.jpeg|*.JPEG|*.png|*.PNG) : ;;
+  *) UP_NAME="$UP_NAME.pdf" ;;
+esac
+
+# Single attempt with a small retry on transient HTTP errors. We don't loop
+# forever — CUPS will retry the whole backend with exit code 4 / 5.
+HTTP_OUT=$(mktemp -t printloop-out.XXXXXX) || exit 4
+HTTP_BODY=$(mktemp -t printloop-body.XXXXXX) || { rm -f "$HTTP_OUT"; exit 4; }
+trap 'rm -f "$HTTP_OUT" "$HTTP_BODY"; cleanup' EXIT INT TERM
+
+HTTP_CODE=$(curl --silent --show-error \
+  --output "$HTTP_BODY" \
+  --write-out '%{http_code}' \
+  --max-time 120 \
+  --header "Authorization: Bearer $TOKEN" \
+  --form "file=@$UPLOAD_FILE;filename=$UP_NAME" \
+  --form "title=$JOB_TITLE" \
+  --form "copies=$COPIES" \
+  --form "options=$OPTIONS" \
+  "$API_URL" 2>>"$HTTP_OUT") || HTTP_CODE="000"
+
+case "$HTTP_CODE" in
+  200|201)
+    # Pluck the release code without dragging in jq.
+    CODE=$(sed -nE 's/.*"code":"([A-Z0-9]+)".*/\1/p' "$HTTP_BODY" | head -n1)
+    COST=$(sed -nE 's/.*"cost":([0-9]+).*/\1/p' "$HTTP_BODY" | head -n1)
+    if [ -n "$CODE" ]; then
+      # job-state-message: shows up in `lpq -l` and the GNOME/macOS print
+      # queue dialog as the line CUPS displays for the job.
+      echo "STATE: -cups-job-stopped-with-message" 1>&2
+      echo "INFO: PrintLoop accepted — release code $CODE (cost: ₦${COST:-?})" 1>&2
+      echo "NOTICE: Enter $CODE at any PrintLoop kiosk to print." 1>&2
+    else
+      echo "INFO: PrintLoop accepted the job (no code parsed; check the dashboard)." 1>&2
+    fi
+    exit 0
+    ;;
+  401)
+    echo "ERROR: print token rejected — rotate one at /account/print-token." 1>&2
+    cat "$HTTP_BODY" 1>&2; echo "" 1>&2
+    exit 2
+    ;;
+  403)
+    echo "ERROR: account blocked." 1>&2
+    cat "$HTTP_BODY" 1>&2; echo "" 1>&2
+    exit 1
+    ;;
+  413|415|422)
+    echo "ERROR: PrintLoop rejected the document (HTTP $HTTP_CODE)." 1>&2
+    cat "$HTTP_BODY" 1>&2; echo "" 1>&2
+    exit 1
+    ;;
+  500|502|503|504|000)
+    echo "ERROR: PrintLoop server unreachable / errored (HTTP $HTTP_CODE). Retrying." 1>&2
+    cat "$HTTP_OUT" 1>&2
+    cat "$HTTP_BODY" 1>&2; echo "" 1>&2
+    exit 4
+    ;;
+  *)
+    echo "ERROR: unexpected HTTP $HTTP_CODE from $API_URL" 1>&2
+    cat "$HTTP_BODY" 1>&2; echo "" 1>&2
+    exit 1
+    ;;
+esac
