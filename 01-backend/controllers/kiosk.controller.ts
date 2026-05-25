@@ -23,6 +23,8 @@ export const createKiosk = async (
       printerModel,
       ipAddress,
       notes,
+      mapsUrl,
+      isPublic,
     } = req.body;
 
     if (!name) {
@@ -42,6 +44,8 @@ export const createKiosk = async (
       printerModel,
       ipAddress,
       notes,
+      mapsUrl: mapsUrl ?? null,
+      isPublic: typeof isPublic === 'boolean' ? isPublic : true,
     });
 
     await writeAudit(req, 'kiosk.created', `kiosk:${kiosk.id}`, {
@@ -102,6 +106,9 @@ export const listKiosks = async (
           campus: k.campus,
           status: k.status,
           printerName: k.printerName,
+          ipAddress: k.ipAddress,
+          mapsUrl: k.mapsUrl,
+          isPublic: k.isPublic,
           lastSeenAt: k.lastSeenAt,
           lastPrintedAt: k.lastPrintedAt,
           totalJobsPrinted: k.totalJobsPrinted,
@@ -155,6 +162,8 @@ export const getKiosk = async (
           printerName: kiosk.printerName,
           printerModel: kiosk.printerModel,
           ipAddress: kiosk.ipAddress,
+          mapsUrl: kiosk.mapsUrl,
+          isPublic: kiosk.isPublic,
           lastSeenAt: kiosk.lastSeenAt,
           lastPrintedAt: kiosk.lastPrintedAt,
           totalJobsPrinted: kiosk.totalJobsPrinted,
@@ -316,6 +325,53 @@ export const regenerateApiKey = async (
       success: false,
       message: 'Failed to regenerate API key',
     });
+  }
+};
+
+/**
+ * Probe the kiosk's printer reachability over the LAN.
+ * POST /admin/kiosks/:id/test-connection
+ *
+ * Plain TCP connect to {631, 6310, 9100} on the kiosk's saved
+ * `ipAddress`. Doesn't issue a real IPP request (the appliance may be
+ * IPPS-only or have a self-signed cert) — a successful connect is
+ * enough to distinguish "powered on, on-LAN" from "wrong IP / off".
+ * Audited.
+ */
+export const testKioskConnection = async (
+  req: Request,
+  res: Response,
+): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const kiosk = await kioskService.getKioskById(id);
+    if (!kiosk) {
+      res.status(404).json({ success: false, message: 'Kiosk not found' });
+      return;
+    }
+    if (!kiosk.ipAddress) {
+      res.status(400).json({
+        success: false,
+        message: 'This kiosk has no IP address set — edit it and add one before testing.',
+      });
+      return;
+    }
+    const result = await kioskService.testConnection(kiosk.ipAddress);
+    await writeAudit(req, 'kiosk.connection_tested', `kiosk:${kiosk.id}`, {
+      ok: result.ok,
+      port: result.port,
+    });
+    res.json({
+      success: true,
+      data: {
+        kioskId: kiosk.id,
+        ipAddress: kiosk.ipAddress,
+        ...result,
+      },
+    });
+  } catch (error) {
+    console.error('Test kiosk connection error:', error);
+    res.status(500).json({ success: false, message: 'Failed to test connection' });
   }
 };
 

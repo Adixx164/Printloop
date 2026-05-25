@@ -1,11 +1,9 @@
-import crypto from 'node:crypto';
 import { Router, type Request, type Response } from 'express';
 import multer from 'multer';
 import { AppDataSource } from '../config/database';
 import { User } from '../entities/user.entity';
 import { PrintJob, PrintJobStatus, JobType } from '../entities/printJob.entity';
 import { File } from '../entities/file.entity';
-import { Wallet } from '../entities/wallet.entity';
 import { saveBuffer } from '../utils/fileStore';
 import {
   isPrintableDocument,
@@ -15,45 +13,43 @@ import {
 } from '../services/documentConvert.service';
 import { getUploadLimits } from '../utils/limits';
 import { applyPromotion } from '../services/promotion.service';
+import { computeCost, type PrintConfiguration } from '../services/pricing.service';
+import { tryDebit } from '../services/wallet.service';
+import { makeCode } from '../utils/releaseCode';
 
 const router = Router();
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 50 * 1024 * 1024 } });
 
-const ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-function makeCode(n = 6): string {
-  const b = crypto.randomBytes(n);
-  let s = '';
-  for (let i = 0; i < n; i++) s += ALPHABET[b[i] % ALPHABET.length];
-  return s;
-}
+/** One-shot warning if anyone tries the legacy `?token=` path in prod. */
+let warnedQueryTokenInProd = false;
 
 /**
  * Pull the print token off the request. CUPS device URIs end up as
  *   `Authorization: Bearer <token>` once our CUPS backend script translates
- * the URI; we also accept `?token=` for testability + lpadmin convenience.
+ * the URI. `X-PrintLoop-Token` is the safe header fallback. `?token=` is
+ * only honoured in non-production builds — production proxies log query
+ * strings, leaking the credential.
  */
 function extractToken(req: Request): string | null {
   const auth = req.header('authorization') || '';
   const m = auth.match(/^Bearer\s+([A-Za-z0-9._-]+)$/);
   if (m) return m[1];
-  const q = req.query?.token;
-  if (typeof q === 'string' && q) return q;
   const h = req.header('x-printloop-token');
   if (h) return h;
+  const q = req.query?.token;
+  if (typeof q === 'string' && q) {
+    if (process.env.NODE_ENV === 'production') {
+      if (!warnedQueryTokenInProd) {
+        console.warn(
+          '[cups] refusing ?token= in production — tokens in URLs land in access logs. Use Authorization: Bearer.',
+        );
+        warnedQueryTokenInProd = true;
+      }
+      return null;
+    }
+    return q;
+  }
   return null;
-}
-
-/**
- * Cost copied from customerPrint.routes — the CUPS path is a real customer
- * print, just with a different ingress. Kept inline (not exported) so the
- * pricing change here doesn't accidentally drift from the wallet path.
- */
-function priceOf(pages: number, c: any): number {
-  const copies = Math.max(1, Number(c.copies) || 1);
-  const perPage = c.color === 'color' ? 25 : 5;
-  const duplex = c.sided === 'double' ? 0.85 : 1;
-  const quality = c.qualityDpi === 600 ? 1.2 : c.qualityDpi === 100 ? 0.8 : 1;
-  return Math.max(5, Math.round(Math.max(1, pages) * copies * perPage * duplex * quality));
 }
 
 /**
@@ -68,6 +64,7 @@ export function parseCupsOptions(raw: string | undefined): {
   sided: 'single' | 'double';
   copies: number;
   qualityDpi: 100 | 300 | 600;
+  orientation: 'portrait' | 'landscape';
 } {
   const out: Record<string, string> = {};
   const s = String(raw || '');
@@ -104,7 +101,14 @@ export function parseCupsOptions(raw: string | undefined): {
   else if (qRaw === '5' || qRaw === 'high' || qRaw === 'best') qualityDpi = 600;
   else qualityDpi = 300;
 
-  return { paper, color, sided, copies, qualityDpi };
+  // IPP orientation-requested: 3 = portrait, 4 = landscape, 5 = reverse
+  // landscape, 6 = reverse portrait. PPD synonyms vary; accept the common
+  // ones. Anything we can't classify defaults to portrait.
+  const oRaw = (out['orientation-requested'] || out['orientation'] || '').toLowerCase();
+  const orientation: 'portrait' | 'landscape' =
+    oRaw === '4' || oRaw === '5' || /landscape/.test(oRaw) ? 'landscape' : 'portrait';
+
+  return { paper, color, sided, copies, qualityDpi, orientation };
 }
 
 /**
@@ -183,22 +187,62 @@ router.post('/print', upload.single('file'), async (req: Request, res: Response)
     }
 
     const cups = parseCupsOptions(req.body?.options);
-    // CUPS sometimes splits "copies" off the options blob into its own arg —
-    // honour whichever is larger so the user doesn't get stuck on 1.
-    const copies = Math.max(cups.copies, Math.max(1, parseInt(req.body?.copies || '1', 10) || 1));
-    const printConfiguration = {
+    // CUPS sometimes splits "copies" off the options blob into its own arg.
+    // `cups.copies` is already ≥1 from parseCupsOptions; take whichever
+    // is larger so the user doesn't get stuck on 1.
+    const explicitCopies = parseInt(req.body?.copies || '1', 10) || 1;
+    const copies = Math.max(cups.copies, explicitCopies);
+    const printConfiguration: PrintConfiguration = {
       copies,
       paper: cups.paper,
       color: cups.color,
       sided: cups.sided,
       qualityDpi: cups.qualityDpi,
+      orientation: cups.orientation,
     };
-    const baseCost = priceOf(pageCount, printConfiguration);
+    const baseCost = await computeCost({
+      pageCount,
+      copies: printConfiguration.copies,
+      paper: printConfiguration.paper,
+      color: printConfiguration.color,
+      sided: printConfiguration.sided,
+      qualityDpi: printConfiguration.qualityDpi,
+    });
     const promo = await applyPromotion(baseCost, req.body?.promotionCode, {
       pageCount,
       perPageBw: 5,
     });
     const cost = promo.cost;
+
+    // Idempotency: if the same client retries the same print (CUPS resends
+    // on `exit 4`), we return the existing PrintJob instead of creating a
+    // duplicate. Key is bound to userId, so distinct users using the same
+    // header value can't collide.
+    const idempotencyKey =
+      req.header('idempotency-key') ||
+      (typeof req.body?.idempotencyKey === 'string' ? req.body.idempotencyKey : '') ||
+      '';
+    const jobRepo = AppDataSource.getRepository(PrintJob);
+    if (idempotencyKey) {
+      const existing = await jobRepo.findOne({
+        where: { userId: user.id, idempotencyKey },
+      });
+      if (existing) {
+        res.json({
+          success: true,
+          data: {
+            code: existing.code,
+            cost: Number(existing.cost),
+            pages: existing.totalPages,
+            copies: (existing.printConfiguration as any)?.copies ?? copies,
+            config: existing.printConfiguration,
+            message: `PrintLoop release code: ${existing.code} (₦${Number(existing.cost)})`,
+            idempotent: true,
+          },
+        });
+        return;
+      }
+    }
 
     const stored = saveBuffer(file.buffer, file.originalname || req.body?.title || 'document.pdf');
     const savedFile = await AppDataSource.getRepository(File).save(
@@ -211,16 +255,12 @@ router.post('/print', upload.single('file'), async (req: Request, res: Response)
       }),
     );
 
-    // Best-effort wallet debit — match the customer-app behaviour. Unfunded
-    // job still releases at the kiosk; collections is a separate problem.
-    const wRepo = AppDataSource.getRepository(Wallet);
-    const wallet = await wRepo.findOne({ where: { userId: user.id } });
-    if (wallet && Number(wallet.balance) >= cost) {
-      wallet.balance = Number(wallet.balance) - cost;
-      await wRepo.save(wallet);
-    }
+    // Atomic wallet debit — single conditional UPDATE, closes the
+    // read-modify-write race two concurrent CUPS submissions could hit.
+    // `debited: false` is fine (best-effort billing matches the customer
+    // app); we still create the job so the user can pay later at the kiosk.
+    await tryDebit(user.id, cost);
 
-    const jobRepo = AppDataSource.getRepository(PrintJob);
     const job = jobRepo.create();
     Object.assign(job, {
       userId: user.id,
@@ -232,6 +272,7 @@ router.post('/print', upload.single('file'), async (req: Request, res: Response)
       jobType: JobType.SINGLE,
       status: PrintJobStatus.READY,
       printConfiguration,
+      idempotencyKey: idempotencyKey || null,
       expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
     });
     const saved = await jobRepo.save(job);

@@ -12,6 +12,7 @@ import paymentsRoutes from "./routes/payments.routes.js";
 import customerAuthRoutes from "./routes/customerAuth.routes.js";
 import customerPrintRoutes from "./routes/customerPrint.routes.js";
 import cupsRoutes from "./routes/cups.routes.js";
+import publicPricingRoutes from "./routes/publicPricing.routes.js";
 import { authenticate } from "./middleware/auth.middleware.js";
 import { UPLOAD_DIR } from "./utils/fileStore.js";
 
@@ -70,6 +71,11 @@ export function createApp(): Application {
   app.use("/api/participant-upload", participantUploadRoutes);
   app.use("/api/printer", printerRoutes);
   app.use("/api/payments", paymentsRoutes);
+
+  // Public pricing matrix — readable by anonymous flows (group-participant
+  // upload, landing page). Same data the admin sets and the customer app
+  // sees, just without JWT requirement.
+  app.use("/api/pricing", publicPricingRoutes);
 
   // ── "PrintLoop as a network printer" — CUPS ingress (token-auth, no JWT).
   //    A laptop adds PrintLoop as a CUPS printer; that backend POSTs here.

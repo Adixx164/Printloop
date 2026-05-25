@@ -1,6 +1,6 @@
 import "reflect-metadata";
 import { createApp } from "./app.js";
-import { AppDataSource } from "./config/database.js";
+import { AppDataSource, runPostInitMigrations } from "./config/database.js";
 import { runSeed } from "./config/seed.js";
 import { ensureSystemSettings } from "./config/settings.js";
 
@@ -10,6 +10,10 @@ async function bootstrap() {
   try {
     await AppDataSource.initialize();
     console.log("Database connected (SQLite) & schema synchronized.");
+
+    // Data-level normalizations that schema sync can't do (e.g. uppercase
+    // legacy promotion codes so the unique-index lookup works).
+    await runPostInitMigrations();
 
     await runSeed();
     // Always reconcile the settings catalog — adds new options to an

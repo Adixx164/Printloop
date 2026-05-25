@@ -5,7 +5,9 @@ import { GroupSession, GroupSessionStatus } from '../entities/groupSession.entit
 import { GroupParticipant, ParticipantStatus } from '../entities/groupParticipant.entity';
 import { PrintJob } from '../entities/printJob.entity';
 import { File } from '../entities/file.entity';
-import { watermarkQueue } from '../workers/queues';
+// Watermarking is permanently removed from the group printing flow.
+// Participant documents are printed as-is. The watermark queue/worker
+// is no longer driven from here.
 
 const ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 function makeCode(length: number): string {
@@ -20,6 +22,9 @@ export interface SessionOptions {
   color: 'bw' | 'color';
   sided: 'single' | 'double';
   qualityDpi: 100 | 300 | 600;
+  /** Default page orientation the host picked. Participants inherit this
+   *  unless they override (in non-enforced sessions). */
+  orientation: 'portrait' | 'landscape';
   enforce: boolean;
 }
 
@@ -38,6 +43,7 @@ function normalizeOptions(raw: any): SessionOptions {
     color,
     sided,
     qualityDpi: dpi,
+    orientation: r.orientation === 'landscape' ? 'landscape' : 'portrait',
     enforce: Boolean(r.enforce ?? r.enforceSettings ?? false),
   };
 }
@@ -47,6 +53,8 @@ export interface CreateGroupSessionInput {
   groupName: string;
   deadline: Date;
   sharedSettings: any;
+  // `watermarkPrefix` accepted-and-ignored for back-compat with older
+  // hosts; watermarking is no longer applied.
   watermarkPrefix?: string;
 }
 
@@ -88,6 +96,7 @@ export class GroupSessionService {
       status: GroupSessionStatus.OPEN,
       shareUrl,
       shareId,
+      // Persisted for schema back-compat but never read at print time.
       watermarkPrefix: input.watermarkPrefix || shareId,
       defaultOptions: normalizeOptions(input.sharedSettings),
     });
@@ -132,7 +141,6 @@ export class GroupSessionService {
       }
     }
 
-    const watermarkId = `${session.watermarkPrefix || session.shareId}-${makeCode(4)}`;
     const uploadToken = crypto.randomBytes(32).toString('base64url');
 
     const participant = this.participantRepo.create({
@@ -141,7 +149,9 @@ export class GroupSessionService {
       name: input.name,
       email: input.email,
       phoneNumber: input.phoneNumber,
-      watermarkId,
+      // Watermarking removed — column kept nullable in the schema for
+      // backward compat but never populated.
+      watermarkId: null,
       uploadToken,
       status: ParticipantStatus.JOINED,
       joinedAt: new Date(),
@@ -179,12 +189,7 @@ export class GroupSessionService {
     participant.uploadedAt = new Date();
     const saved = await this.participantRepo.save(participant);
 
-    await watermarkQueue.add('watermark-pdf', {
-      fileId,
-      participantId: participant.id,
-      watermarkId: participant.watermarkId,
-      participantName: participant.name,
-    });
+    // Watermarking removed — file is printed as-is.
 
     return saved;
   }
@@ -273,7 +278,6 @@ export class GroupSessionService {
       fileId: string;
       fileURL: string;
       participantName: string;
-      watermarkId: string;
       printConfig: any;
       totalPages: number;
     }>;
@@ -299,9 +303,9 @@ export class GroupSessionService {
         if (!job || !file) return null;
         return {
           fileId: file.id,
-          fileURL: file.watermarkedUrl || file.fileURL,
+          // Watermarking is gone — always serve the original URL.
+          fileURL: file.fileURL,
           participantName: participant.name,
-          watermarkId: participant.watermarkId,
           printConfig: job.printConfiguration,
           totalPages: job.totalPages || 0,
         };
@@ -310,7 +314,6 @@ export class GroupSessionService {
       fileId: string;
       fileURL: string;
       participantName: string;
-      watermarkId: string;
       printConfig: any;
       totalPages: number;
     }>;

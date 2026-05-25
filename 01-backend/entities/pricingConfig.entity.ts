@@ -31,17 +31,42 @@ export class PricingConfig {
   @Column({ type: 'simple-enum', enum: ColorType, default: ColorType.BLACK_WHITE })
   colorType: ColorType;
 
-  // Price per single page in kobo (or smallest currency unit)
+  // Legacy fallback. Treated as the 300dpi-simplex price by `computeCost`
+  // when the per-cell columns below are NULL. Kept for backward compat
+  // with admin UIs / API clients that haven't been updated yet.
   @Column({ type: 'decimal', precision: 10, scale: 2 })
   pricePerPage: number;
 
-  // Multiplier for duplex printing (e.g., 0.9 = 10% discount)
+  // Legacy. Now ignored when per-cell prices below are populated.
   @Column({ type: 'decimal', precision: 4, scale: 2, default: 1.0 })
   duplexMultiplier: number;
-
-  // Multiplier for high resolution (e.g., 600dpi vs 300dpi)
   @Column({ type: 'decimal', precision: 4, scale: 2, default: 1.0 })
   highResolutionMultiplier: number;
+
+  // ────────────────────────────────────────────────────────────────────────
+  // Exact per-cell prices (₦ per page). 6 cells = 3 dpi × 2 sided options.
+  // When a cell is non-null, `computeCost` uses it directly as
+  //   total = cell × pages × copies
+  // (no multipliers — the dpi/duplex factor is already baked in). NULL on a
+  // cell means "fall back to the legacy multiplier path for this cell".
+  // ────────────────────────────────────────────────────────────────────────
+  @Column({ type: 'decimal', precision: 10, scale: 2, nullable: true })
+  price100Simplex: number | null;
+
+  @Column({ type: 'decimal', precision: 10, scale: 2, nullable: true })
+  price300Simplex: number | null;
+
+  @Column({ type: 'decimal', precision: 10, scale: 2, nullable: true })
+  price600Simplex: number | null;
+
+  @Column({ type: 'decimal', precision: 10, scale: 2, nullable: true })
+  price100Duplex: number | null;
+
+  @Column({ type: 'decimal', precision: 10, scale: 2, nullable: true })
+  price300Duplex: number | null;
+
+  @Column({ type: 'decimal', precision: 10, scale: 2, nullable: true })
+  price600Duplex: number | null;
 
   @Column({ type: 'boolean', default: true })
   isActive: boolean;

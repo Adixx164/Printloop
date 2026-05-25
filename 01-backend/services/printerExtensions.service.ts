@@ -106,7 +106,6 @@ export class PrinterServiceExtensions {
             fileId: f.fileId,
             fileURL: f.fileURL,
             participantName: f.participantName,
-            watermarkId: f.watermarkId,
             printConfig: f.printConfig,
           })),
         },

@@ -16,6 +16,7 @@ const { PDFDocument, StandardFonts } = require('pdf-lib');
 const sha = (b) => crypto.createHash('sha256').update(b).digest('hex');
 const B = 'http://localhost:4000/api';
 const PRINTED = path.resolve(__dirname, '..', 'data', 'printed');
+const DB_PATH = path.resolve(__dirname, '..', 'data', 'printloop.sqlite');
 
 async function jr(method, url, body, headers) {
   const r = await fetch(B + url, {
@@ -26,6 +27,51 @@ async function jr(method, url, body, headers) {
   let d;
   try { d = await r.json(); } catch { d = null; }
   return { status: r.status, data: d };
+}
+
+// --- SQLite helpers (used by the concurrency + idempotency blocks) ---
+let sqlite3;
+try { sqlite3 = require('sqlite3'); } catch { sqlite3 = null; }
+function sqlGet(sql, params) {
+  return new Promise((resolve, reject) => {
+    if (!sqlite3) return resolve(null);
+    const db = new sqlite3.Database(DB_PATH, sqlite3.OPEN_READONLY);
+    db.get(sql, params, (err, row) => { db.close(); err ? reject(err) : resolve(row); });
+  });
+}
+function sqlAll(sql, params) {
+  return new Promise((resolve, reject) => {
+    if (!sqlite3) return resolve([]);
+    const db = new sqlite3.Database(DB_PATH, sqlite3.OPEN_READONLY);
+    db.all(sql, params, (err, rows) => { db.close(); err ? reject(err) : resolve(rows); });
+  });
+}
+function sqlRun(sql, params) {
+  return new Promise((resolve, reject) => {
+    if (!sqlite3) return resolve(null);
+    const db = new sqlite3.Database(DB_PATH, sqlite3.OPEN_READWRITE);
+    db.run(sql, params, function (err) { db.close(); err ? reject(err) : resolve(this.changes); });
+  });
+}
+
+// Credit the wallet via the verified Paystack webhook — re-uses the
+// production path so we don't need an admin top-up endpoint.
+async function topUpWallet(userId, naira) {
+  const secret = process.env.PAYSTACK_WEBHOOK_SECRET || process.env.PAYSTACK_SECRET_KEY;
+  if (!secret) throw new Error('PAYSTACK_WEBHOOK_SECRET not set');
+  const ref = `TOPUP_${userId}_${Date.now()}_${Math.random().toString(36).slice(2,6)}`;
+  const payload = {
+    event: 'charge.success',
+    data: { reference: ref, amount: naira * 100, metadata: { userId, type: 'wallet_topup' } },
+  };
+  const raw = Buffer.from(JSON.stringify(payload));
+  const sig = crypto.createHmac('sha512', secret).update(raw).digest('hex');
+  const r = await fetch(B + '/payments/webhook', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-paystack-signature': sig },
+    body: raw,
+  });
+  if (r.status !== 200) throw new Error(`top-up webhook returned ${r.status}`);
 }
 
 (async () => {
@@ -106,8 +152,8 @@ async function jr(method, url, body, headers) {
   const cfgOk =
     cfg.paper === 'A4' && cfg.sided === 'double' && cfg.color === 'color' && cfg.copies === 2;
   console.log(`   parsed CUPS opts paper=${cfg.paper} sided=${cfg.sided} color=${cfg.color} copies=${cfg.copies} ${cfgOk ? 'PASS' : 'FAIL'}`);
-  // 1 page · 2 copies · ₦25/pg color · 0.85 duplex · 1.0 quality = 42.5 → 43
-  const expectCost = Math.max(5, Math.round(1 * 2 * 25 * 0.85 * 1));
+  // Matrix lookup: A4 color duplex 300dpi = ₦250/page × 1pg × 2 copies = ₦500
+  const expectCost = 250 * 1 * 2;
   console.log(`   cost ₦${body?.data?.cost} (expect ₦${expectCost}) ${body?.data?.cost === expectCost ? 'PASS' : 'FAIL'}`);
 
   // 7. The code is in the customer's job list (status=ready)
@@ -146,6 +192,81 @@ async function jr(method, url, body, headers) {
     console.log('11. ✅ BYTE-EXACT CUPS → kiosk → virtual-printer path');
   } else {
     console.error('11. ❌ HASH MISMATCH — the CUPS path mutated the bytes somewhere');
+    process.exit(1);
+  }
+
+  // ───────────────────────────────────────────────────────────────────
+  // IDEMPOTENCY: same payload, same Idempotency-Key, twice → ONE PrintJob.
+  // ───────────────────────────────────────────────────────────────────
+  console.log('\n--- Idempotency ---');
+  const idemKey = `cups-test-idem-${Date.now()}`;
+  const idemHeaders = { Authorization: `Bearer ${printToken}`, 'Idempotency-Key': idemKey };
+  const a = await fetch(B + '/cups/print', { method: 'POST', headers: idemHeaders, body: cupsForm('idem.pdf') });
+  const aBody = await a.json();
+  const b = await fetch(B + '/cups/print', { method: 'POST', headers: idemHeaders, body: cupsForm('idem.pdf') });
+  const bBody = await b.json();
+  const sameCode = aBody?.data?.code && aBody.data.code === bBody?.data?.code;
+  console.log(`12. two POSTs with same Idempotency-Key → codes ${aBody?.data?.code} / ${bBody?.data?.code} ${sameCode ? 'PASS' : 'FAIL'}`);
+  console.log(`    second response was marked idempotent=${bBody?.data?.idempotent} ${bBody?.data?.idempotent === true ? 'PASS' : 'FAIL'}`);
+  const jobsForKey = await sqlAll(
+    `SELECT id FROM print_jobs WHERE idempotencyKey = ?`,
+    [idemKey],
+  );
+  console.log(`    DB rows for that key: ${jobsForKey.length} (expect 1) ${jobsForKey.length === 1 ? 'PASS' : 'FAIL'}`);
+
+  // ───────────────────────────────────────────────────────────────────
+  // WALLET RACE: fund wallet for exactly 3 prints, fire 5 in parallel,
+  // assert balance ends at zero — not negative — proving the atomic
+  // debit closed the read-modify-write race.
+  // ───────────────────────────────────────────────────────────────────
+  console.log('\n--- Wallet race ---');
+  // Fresh user so the signup bonus + previous prints don't interfere.
+  const raceEmail = `cupsrace${Date.now()}@printloop.test`;
+  const raceReg = await jr('POST', '/customer/auth/register', {
+    firstName: 'Race', lastName: 'Tester', email: raceEmail,
+    phoneNumber: '+2348000000777', password: 'Passw0rd!',
+  });
+  const raceTok = raceReg.data?.data?.tokens?.accessToken;
+  const raceUserId = raceReg.data?.data?.user?.id;
+  const raceRot = await jr('POST', '/customer/print-token/rotate', {}, { Authorization: `Bearer ${raceTok}` });
+  const racePrintToken = raceRot.data?.data?.token;
+  // Each /cups/print posted below costs ₦43 (1pg · 2 copies · color ·
+  // duplex). Fund the wallet for exactly 3 to leave clear evidence if a
+  // 4th sneaks through.
+  // Matrix: A4 color duplex 300dpi = ₦250/pg × 1pg × 2 copies = ₦500
+  const UNIT = 500;
+  // Force the wallet to exactly 3 × UNIT — the signup bonus would
+  // otherwise leave it with enough for 4+ debits and the race window
+  // we're trying to test would never get hit.
+  await sqlRun(`UPDATE wallets SET balance = ? WHERE userId = ?`, [3 * UNIT, raceUserId]);
+  const startBal = (await sqlGet(`SELECT balance FROM wallets WHERE userId = ?`, [raceUserId]))?.balance ?? 0;
+  console.log(`13. wallet pinned at ₦${startBal} (= 3 × ₦${UNIT})`);
+
+  // 5 parallel prints — only 3 should debit; the other 2 should still
+  // create PrintJob rows (best-effort billing matches the customer app)
+  // but leave the wallet at zero. The pre-fix code would have let all 5
+  // pass the balance check and double-spent.
+  const fires = Array.from({ length: 5 }, (_, i) =>
+    fetch(B + '/cups/print', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${racePrintToken}` },
+      body: cupsForm(`race-${i}.pdf`),
+    }).then((res) => res.json()),
+  );
+  const results = await Promise.all(fires);
+  const ok = results.filter((x) => x?.success).length;
+  const endBal = (await sqlGet(`SELECT balance FROM wallets WHERE userId = ?`, [raceUserId]))?.balance ?? 0;
+  const expected = startBal - 3 * UNIT;
+  console.log(`14. 5 parallel POSTs → ${ok} succeeded, wallet ₦${startBal} → ₦${endBal} (expect ₦${expected})`);
+  if (Number(endBal) === Number(expected)) {
+    console.log('15. ✅ Wallet race closed — exactly 3 debits, no overshoot');
+  } else {
+    console.error(`15. ❌ Wallet race — got ₦${endBal}, expected ₦${expected}. Overshoot = double-spend.`);
+    process.exit(1);
+  }
+  // Should never go negative.
+  if (Number(endBal) < 0) {
+    console.error('    ❌ Wallet went NEGATIVE — debit was applied without bounds check.');
     process.exit(1);
   }
 })().catch((e) => { console.error(e); process.exit(1); });

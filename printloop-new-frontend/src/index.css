@@ -11,6 +11,14 @@
   ::selection { background: #d14b2c; color: #f8f4ed; }
 }
 
+/* ───────────────────────────────────────────────────────────────────────
+   PrintLoop — canonical editorial-brutalist component layer
+   ───────────────────────────────────────────────────────────────────────
+   This matches the ui_kits exactly: hard offset shadows (NEVER blur),
+   2px ink borders, 6px / 8px radii, italic-persimmon emphasis. The
+   `ui_kits/` README is the source of truth — see colors_and_type.css.
+*/
+
 @layer components {
   .editorial-label {
     @apply uppercase tracking-editorial font-bold text-[10px];
@@ -62,21 +70,16 @@
   .pl-chip:hover { background: #1a1410; color: #f8f4ed; }
   .pl-chip-active { background: #d14b2c; color: #f8f4ed; border-color: #d14b2c; }
 
-  /* Pill: status */
+  /* Pill: status (MUST carry a text label) */
   .pl-pill { @apply inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] tracking-editorial font-bold uppercase; }
   .pl-pill-ready { @apply bg-persimmon text-paper; }
-  .pl-pill-done { @apply text-fog border border-fog; }
+  .pl-pill-done  { @apply text-fog border border-fog; }
 
-  .pl-slider {
-    accent-color: #d14b2c;
-  }
-  .pl-slider::-webkit-slider-thumb {
-    cursor: pointer;
-  }
-  .pl-slider::-moz-range-thumb {
-    cursor: pointer;
-  }
+  /* Slider — accent only */
+  .pl-slider { accent-color: #d14b2c; }
+  .pl-slider::-webkit-slider-thumb { cursor: pointer; }
+  .pl-slider::-moz-range-thumb     { cursor: pointer; }
 
-  .pl-mono { font-family: "JetBrains Mono", monospace; }
+  .pl-mono  { font-family: "JetBrains Mono", monospace; }
   .pl-serif { font-family: "Fraunces", serif; }
 }

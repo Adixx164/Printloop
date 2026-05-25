@@ -3,9 +3,11 @@ import { toast } from "sonner";
 import {
   useGetAdminKiosksQuery,
   useCreateKioskMutation,
+  useUpdateKioskMutation,
   useUpdateKioskStatusMutation,
   useDeleteKioskMutation,
   useRegenerateKioskKeyMutation,
+  useTestKioskConnectionMutation,
 } from "@/store/services/adminApi";
 
 const STATUS_COLOURS: Record<string, string> = {
@@ -44,15 +46,20 @@ export default function PrintersTab({ canManage }: { canManage: boolean }) {
     ipAddress: "",
     printerModel: "",
     notes: "",
+    mapsUrl: "",
+    isPublic: true,
   });
 
   const [revealed, setRevealed] = useState<{ name: string; key: string } | null>(null);
+  const [pingResult, setPingResult] = useState<Record<string, { ok: boolean; message: string }>>({});
 
   const { data, isLoading, refetch } = useGetAdminKiosksQuery({ status: filterStatus });
   const [createKiosk, { isLoading: creating }] = useCreateKioskMutation();
+  const [updateKiosk] = useUpdateKioskMutation();
   const [updateStatus] = useUpdateKioskStatusMutation();
   const [deleteKiosk] = useDeleteKioskMutation();
   const [regenerateKey] = useRegenerateKioskKeyMutation();
+  const [testKioskConnection, { isLoading: testing }] = useTestKioskConnectionMutation();
 
   const copyKey = (key: string) =>
     navigator.clipboard.writeText(key).then(
@@ -110,15 +117,51 @@ export default function PrintersTab({ canManage }: { canManage: boolean }) {
       return;
     }
     try {
-      const r: any = await createKiosk(form).unwrap();
+      // Empty strings are not "intent to unset" — strip them so the
+      // server doesn't store empty mapsUrl/etc.
+      const payload: Record<string, any> = {
+        name: form.name,
+        isPublic: form.isPublic,
+      };
+      (["location", "campus", "ipAddress", "printerModel", "notes", "mapsUrl"] as const).forEach((k) => {
+        const v = form[k]?.trim?.();
+        if (v) payload[k] = v;
+      });
+      const r: any = await createKiosk(payload).unwrap();
       const key = r?.data?.kiosk?.apiKey || r?.data?.apiKey;
       const name = form.name;
-      toast.success(`${name} added to fleet.`);
-      setForm({ name: "", location: "", campus: "", ipAddress: "", printerModel: "", notes: "" });
+      toast.success(`${name} added — and live on the customer Stations page.`);
+      setForm({
+        name: "", location: "", campus: "", ipAddress: "",
+        printerModel: "", notes: "", mapsUrl: "", isPublic: true,
+      });
       setShowAdd(false);
       if (key) setRevealed({ name, key });
     } catch (err: any) {
       toast.error(err?.data?.message || "Failed to create kiosk");
+    }
+  };
+
+  const handleTestConnection = async (id: string, name: string) => {
+    try {
+      const r: any = await testKioskConnection(id).unwrap();
+      const ok = r?.data?.ok;
+      const msg = r?.data?.message || (ok ? "Reachable" : "Not reachable");
+      setPingResult((p) => ({ ...p, [id]: { ok, message: msg } }));
+      ok ? toast.success(`${name}: ${msg}`) : toast.error(`${name}: ${msg}`);
+    } catch (err: any) {
+      const msg = err?.data?.message || "Test failed";
+      setPingResult((p) => ({ ...p, [id]: { ok: false, message: msg } }));
+      toast.error(`${name}: ${msg}`);
+    }
+  };
+
+  const handleTogglePublic = async (id: string, name: string, next: boolean) => {
+    try {
+      await updateKiosk({ id, isPublic: next }).unwrap();
+      toast.success(`${name} is now ${next ? "visible" : "hidden"} on customer Stations.`);
+    } catch {
+      toast.error("Failed to change visibility");
     }
   };
 
@@ -233,6 +276,32 @@ export default function PrintersTab({ canManage }: { canManage: boolean }) {
                 onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
               />
             </div>
+            <div className="col-span-2">
+              <label className="editorial-label text-[11px] block mb-1">
+                MAPS URL <span className="text-fog normal-case italic">— pasteable Google Maps / Apple Maps share link; shown on the customer Stations page as “Directions →”</span>
+              </label>
+              <input
+                className="pl-input"
+                placeholder="https://maps.google.com/?q=..."
+                value={form.mapsUrl}
+                onChange={(e) => setForm((f) => ({ ...f, mapsUrl: e.target.value }))}
+              />
+            </div>
+            <div className="col-span-2 flex items-center gap-2">
+              <input
+                id="kiosk-is-public"
+                type="checkbox"
+                checked={form.isPublic}
+                onChange={(e) => setForm((f) => ({ ...f, isPublic: e.target.checked }))}
+                className="accent-sage w-4 h-4"
+              />
+              <label htmlFor="kiosk-is-public" className="text-xs text-ink cursor-pointer">
+                <strong>Show on the customer Stations page.</strong>{" "}
+                <span className="text-fog">
+                  Uncheck if you're still commissioning this kiosk.
+                </span>
+              </label>
+            </div>
           </div>
           <button
             type="submit"
@@ -291,7 +360,7 @@ export default function PrintersTab({ canManage }: { canManage: boolean }) {
                   <th className="p-3 font-semibold">Station</th>
                   <th className="p-3 font-semibold">Status</th>
                   <th className="p-3 font-semibold">Campus</th>
-                  <th className="p-3 font-semibold">Printer</th>
+                  <th className="p-3 font-semibold">IP / Maps</th>
                   <th className="p-3 font-semibold text-right">Jobs</th>
                   <th className="p-3 font-semibold text-right">Pages</th>
                   <th className="p-3 font-semibold">Last Seen</th>
@@ -306,20 +375,46 @@ export default function PrintersTab({ canManage }: { canManage: boolean }) {
                     </td>
                   </tr>
                 )}
-                {kiosks.map((k) => (
+                {kiosks.map((k) => {
+                  const ping = pingResult[k.id];
+                  return (
                   <tr
                     key={k.id}
-                    className="border-b border-ink/10 last:border-0 hover:bg-ink/5 transition-colors"
+                    className="border-b border-ink/10 last:border-0 hover:bg-ink/5 transition-colors align-top"
                   >
                     <td className="p-3">
                       <div className="font-bold text-ink">{k.name}</div>
                       <div className="text-xs text-fog">{k.location || "—"}</div>
+                      {!k.isPublic && (
+                        <span className="pl-pill text-[10px] bg-ink/10 text-ink mt-1 inline-block">
+                          HIDDEN
+                        </span>
+                      )}
                     </td>
                     <td className="p-3">
                       <StatusBadge status={k.status} />
+                      {ping && (
+                        <div className={`mt-1 text-[10px] font-bold ${ping.ok ? "text-sage" : "text-persimmon"}`}>
+                          {ping.ok ? "● REACHABLE" : "● UNREACHABLE"}
+                        </div>
+                      )}
                     </td>
                     <td className="p-3 text-xs text-fog">{k.campus || "—"}</td>
-                    <td className="p-3 text-xs text-fog">{k.printerName || "—"}</td>
+                    <td className="p-3 text-xs whitespace-nowrap">
+                      <div className="pl-mono text-ink">{k.ipAddress || "—"}</div>
+                      {k.mapsUrl ? (
+                        <a
+                          href={k.mapsUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-[10px] text-sage hover:underline"
+                        >
+                          MAP LINK ↗
+                        </a>
+                      ) : (
+                        <span className="text-[10px] text-fog italic">No map link</span>
+                      )}
+                    </td>
                     <td className="p-3 pl-mono font-bold text-right">
                       {k.totalJobsPrinted ?? "—"}
                     </td>
@@ -330,29 +425,46 @@ export default function PrintersTab({ canManage }: { canManage: boolean }) {
                       {k.lastSeenAt ? new Date(k.lastSeenAt).toLocaleString() : "—"}
                     </td>
                     {canManage && (
-                      <td className="p-3 text-right space-x-3 whitespace-nowrap">
-                        <button
-                          onClick={() => handleStatusChange(k.id, k.status)}
-                          className="text-xs text-sage font-bold hover:underline"
-                        >
-                          CYCLE STATUS
-                        </button>
-                        <button
-                          onClick={() => handleRegenerate(k.id, k.name)}
-                          className="text-xs text-ochre font-bold hover:underline"
-                        >
-                          REGEN KEY
-                        </button>
-                        <button
-                          onClick={() => handleDelete(k.id, k.name)}
-                          className="text-xs text-persimmon font-bold hover:underline"
-                        >
-                          DISABLE
-                        </button>
+                      <td className="p-3 text-right whitespace-nowrap">
+                        <div className="flex justify-end gap-3 flex-wrap">
+                          <button
+                            onClick={() => handleTestConnection(k.id, k.name)}
+                            disabled={testing}
+                            className="text-xs text-sage font-bold hover:underline disabled:opacity-50"
+                          >
+                            {testing ? "TESTING…" : "TEST"}
+                          </button>
+                          <button
+                            onClick={() => handleTogglePublic(k.id, k.name, !k.isPublic)}
+                            className="text-xs text-ink font-bold hover:underline"
+                            title={k.isPublic ? "Hide from customer Stations page" : "Show on customer Stations page"}
+                          >
+                            {k.isPublic ? "HIDE" : "SHOW"}
+                          </button>
+                          <button
+                            onClick={() => handleStatusChange(k.id, k.status)}
+                            className="text-xs text-sage font-bold hover:underline"
+                          >
+                            CYCLE
+                          </button>
+                          <button
+                            onClick={() => handleRegenerate(k.id, k.name)}
+                            className="text-xs text-ochre font-bold hover:underline"
+                          >
+                            REGEN KEY
+                          </button>
+                          <button
+                            onClick={() => handleDelete(k.id, k.name)}
+                            className="text-xs text-persimmon font-bold hover:underline"
+                          >
+                            DISABLE
+                          </button>
+                        </div>
                       </td>
                     )}
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
           </div>

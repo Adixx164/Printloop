@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import QrBlock from "@/components/ui/QrBlock";
 import { CONFIG } from "@/constants/config";
 import PrintPreview, { parsePageRange } from "@/components/print/PrintPreview";
+import { priceFromMatrix, type PricingRow } from "@/lib/pricing";
 
 type Stage = "loading" | "closed" | "join" | "configure" | "done";
 type Cfg = {
@@ -11,19 +12,13 @@ type Cfg = {
   sided: "single" | "double";
   paper: string;
   qualityDpi: number;
+  orientation: "portrait" | "landscape";
   pages: "all" | "range";
   pageRange: string;
   copies: number;
 };
 
 const API = CONFIG.apiBaseUrl;
-
-function priceOf(pages: number, c: Cfg) {
-  const perPage = c.color === "color" ? 25 : 5;
-  const duplex = c.sided === "double" ? 0.85 : 1;
-  const quality = c.qualityDpi === 600 ? 1.2 : c.qualityDpi === 100 ? 0.8 : 1;
-  return Math.max(5, Math.round(pages * c.copies * perPage * duplex * quality));
-}
 
 /** Module-level so it keeps a stable identity across renders — defining it
  * inside the component remounted every input on each keystroke. */
@@ -51,17 +46,23 @@ export default function JoinPage() {
 
   const [form, setForm] = useState({ name: "", email: "", phone: "" });
   const [token, setToken] = useState("");
-  const [watermarkId, setWatermarkId] = useState("");
+  // Watermarking is permanently removed from the group flow.
 
   const [file, setFile] = useState<File | null>(null);
   const [docPages, setDocPages] = useState(0);
   const [rangeable, setRangeable] = useState(false);
   const [manualPages, setManualPages] = useState(1);
   const [cfg, setCfg] = useState<Cfg>({
-    color: "bw", sided: "single", paper: "A4", qualityDpi: 300, pages: "all", pageRange: "", copies: 1,
+    color: "bw", sided: "single", paper: "A4", qualityDpi: 300,
+    orientation: "portrait",
+    pages: "all", pageRange: "", copies: 1,
   });
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<{ code: string; cost: number } | null>(null);
+  // Live pricing matrix — anonymous endpoint, same source the admin
+  // edits. Without this, the preview drifts from what the server bills
+  // at upload time.
+  const [pricingRows, setPricingRows] = useState<PricingRow[] | undefined>(undefined);
 
   const enforced = !!session?.defaultOptions?.enforce;
 
@@ -83,6 +84,7 @@ export default function JoinPage() {
           sided: o.sided === "double" ? "double" : "single",
           paper: o.paper || "A4",
           qualityDpi: o.qualityDpi || 300,
+          orientation: o.orientation === "landscape" ? "landscape" : "portrait",
         }));
         setStage("join");
       } catch {
@@ -92,6 +94,20 @@ export default function JoinPage() {
     })();
   }, [shareId]);
 
+  // Public pricing fetch — no JWT needed; refetched when window focuses
+  // so a long-open join tab picks up admin price changes.
+  useEffect(() => {
+    const load = () => {
+      fetch(`${API}/pricing`)
+        .then((r) => r.json())
+        .then((j) => setPricingRows(j?.data?.configs))
+        .catch(() => undefined);
+    };
+    load();
+    window.addEventListener("focus", load);
+    return () => window.removeEventListener("focus", load);
+  }, []);
+
   const totalPages = rangeable ? docPages : manualPages;
   const selected = useMemo(() => {
     if (cfg.pages === "all" || !rangeable) return null;
@@ -99,7 +115,13 @@ export default function JoinPage() {
     return list.length ? list : null;
   }, [cfg.pages, cfg.pageRange, rangeable, docPages]);
   const printed = cfg.pages === "range" && selected ? selected.length : totalPages || 1;
-  const cost = priceOf(printed, cfg);
+  const cost = priceFromMatrix(printed, {
+    copies: cfg.copies,
+    color: cfg.color,
+    sided: cfg.sided,
+    paper: cfg.paper,
+    qualityDpi: cfg.qualityDpi as 100 | 300 | 600,
+  }, pricingRows);
 
   const join = async () => {
     if (!form.name.trim()) return toast.error("Enter your name.");
@@ -114,7 +136,6 @@ export default function JoinPage() {
       const j = await r.json();
       if (!r.ok || !j.success) throw new Error(j?.message || "Couldn't join.");
       setToken(j.data.uploadToken);
-      setWatermarkId(j.data.participant.watermarkId);
       setStage("configure");
       toast.success("You're in. Upload your document.");
     } catch (e: any) {
@@ -137,8 +158,20 @@ export default function JoinPage() {
           pageCount: printed,
           mimeType: file.type || "application/pdf",
           sizeBytes: file.size,
-          printConfiguration: enforced ? undefined : {
-            paper: cfg.paper, color: cfg.color, sided: cfg.sided, qualityDpi: cfg.qualityDpi,
+          // Copies (and the rest) always travel — the server ignores
+          // output-style overrides on enforced sessions but copies stay
+          // participant-controlled either way.
+          printConfiguration: {
+            copies: cfg.copies,
+            ...(enforced
+              ? {}
+              : {
+                  paper: cfg.paper,
+                  color: cfg.color,
+                  sided: cfg.sided,
+                  qualityDpi: cfg.qualityDpi,
+                  orientation: cfg.orientation,
+                }),
           },
         }),
       });
@@ -188,11 +221,7 @@ export default function JoinPage() {
             <div>
               <h1 className="pl-serif text-2xl font-bold mb-1">Document submitted &amp; paid.</h1>
               <p className="pl-serif italic text-ink/60 mb-3">
-                {session?.defaultOptions?.watermark?.enabled !== false && (
-                  <>Your watermark ID is <b className="not-italic pl-mono">{watermarkId}</b>. </>
-                )}
-                The host prints
-                the whole batch with one token — your pages are included.
+                The host prints the whole batch with one token — your pages are included.
               </p>
               <div className="text-sm">Paid: <b>₦{Number(result.cost).toLocaleString()}</b></div>
             </div>
@@ -246,34 +275,135 @@ export default function JoinPage() {
               </div>
             )}
 
-            {enforced ? (
-              <div className="border-2 border-ink bg-paper p-4 text-sm">
+            {enforced && (
+              <div className="border-2 border-ink bg-paper p-4 text-sm mb-3">
                 <div className="editorial-label text-persimmon mb-2">HOST-ENFORCED SETTINGS</div>
-                {cfg.paper} · {cfg.color === "color" ? "Colour" : "B&W"} · {cfg.sided === "double" ? "Duplex" : "Single"} · {cfg.qualityDpi}dpi
+                <div>
+                  {cfg.paper} · {cfg.color === "color" ? "Colour" : "B&W"} ·{" "}
+                  {cfg.sided === "double" ? "Duplex" : "Single"} · {cfg.qualityDpi}dpi ·{" "}
+                  {cfg.orientation === "landscape" ? "Landscape" : "Portrait"}
+                </div>
+                <div className="text-[11px] text-ink/55 pl-serif italic mt-1 leading-snug">
+                  You still control copies and page range below.
+                </div>
               </div>
-            ) : (
+            )}
+
+            {/* Output-style controls — locked when host enforces. */}
+            {!enforced && (
               <>
                 <div className="editorial-label mb-2">COLOUR</div>
                 <div className="flex gap-2 mb-3">
                   {(["bw", "color"] as const).map((c) => (
-                    <button key={c} onClick={() => setCfg({ ...cfg, color: c })} className={`pl-chip ${cfg.color === c ? "pl-chip-active" : ""}`}>{c === "bw" ? "B&W" : "Colour"}</button>
+                    <button
+                      key={c}
+                      onClick={() => setCfg({ ...cfg, color: c })}
+                      className={`pl-chip ${cfg.color === c ? "pl-chip-active" : ""}`}
+                    >
+                      {c === "bw" ? "B&W" : "Colour"}
+                    </button>
                   ))}
                 </div>
+
                 <div className="editorial-label mb-2">SIDES</div>
                 <div className="flex gap-2 mb-3">
                   {(["single", "double"] as const).map((s) => (
-                    <button key={s} onClick={() => setCfg({ ...cfg, sided: s })} className={`pl-chip ${cfg.sided === s ? "pl-chip-active" : ""}`}>{s === "single" ? "Single" : "Duplex"}</button>
+                    <button
+                      key={s}
+                      onClick={() => setCfg({ ...cfg, sided: s })}
+                      className={`pl-chip ${cfg.sided === s ? "pl-chip-active" : ""}`}
+                    >
+                      {s === "single" ? "Single" : "Duplex"}
+                    </button>
                   ))}
                 </div>
-                <div className="editorial-label mb-2">PAGES</div>
-                <div className="flex gap-2 mb-2">
-                  <button onClick={() => setCfg({ ...cfg, pages: "all" })} className={`pl-chip ${cfg.pages === "all" ? "pl-chip-active" : ""}`}>All</button>
-                  <button disabled={!rangeable} onClick={() => setCfg({ ...cfg, pages: "range" })} className={`pl-chip ${cfg.pages === "range" ? "pl-chip-active" : ""} ${!rangeable ? "opacity-40" : ""}`}>Range</button>
+
+                <div className="editorial-label mb-2">PAPER</div>
+                <div className="flex gap-2 mb-3 flex-wrap">
+                  {(["A4", "A3", "Letter"] as const).map((p) => (
+                    <button
+                      key={p}
+                      onClick={() => setCfg({ ...cfg, paper: p })}
+                      className={`pl-chip ${cfg.paper === p ? "pl-chip-active" : ""}`}
+                    >
+                      {p}
+                    </button>
+                  ))}
                 </div>
-                {cfg.pages === "range" && rangeable && (
-                  <input className="pl-input mb-2" placeholder="2-3, 10-20" value={cfg.pageRange} onChange={(e) => setCfg({ ...cfg, pageRange: e.target.value })} />
-                )}
+
+                <div className="editorial-label mb-2">QUALITY</div>
+                <div className="flex gap-2 mb-3 flex-wrap">
+                  {([100, 300, 600] as const).map((q) => (
+                    <button
+                      key={q}
+                      onClick={() => setCfg({ ...cfg, qualityDpi: q })}
+                      className={`pl-chip ${cfg.qualityDpi === q ? "pl-chip-active" : ""}`}
+                    >
+                      {q}dpi
+                    </button>
+                  ))}
+                </div>
+
+                <div className="editorial-label mb-2">ORIENTATION</div>
+                <div className="flex gap-2 mb-3 flex-wrap">
+                  {(["portrait", "landscape"] as const).map((o) => (
+                    <button
+                      key={o}
+                      onClick={() => setCfg({ ...cfg, orientation: o })}
+                      className={`pl-chip ${cfg.orientation === o ? "pl-chip-active" : ""}`}
+                    >
+                      {o === "portrait" ? "Portrait" : "Landscape"}
+                    </button>
+                  ))}
+                </div>
               </>
+            )}
+
+            {/* Copies + page range — ALWAYS participant-controlled, even
+                under an enforced session (host dictates output style,
+                not personal copy count). */}
+            <div className="editorial-label mb-2">COPIES</div>
+            <div className="flex items-center gap-2 mb-3">
+              <button
+                onClick={() => setCfg({ ...cfg, copies: Math.max(1, cfg.copies - 1) })}
+                className="pl-btn-ghost px-3 py-2 text-base"
+                aria-label="Decrease copies"
+              >
+                −
+              </button>
+              <span className="pl-mono text-2xl font-bold w-12 text-center">{cfg.copies}</span>
+              <button
+                onClick={() => setCfg({ ...cfg, copies: Math.min(99, cfg.copies + 1) })}
+                className="pl-btn-ghost px-3 py-2 text-base"
+                aria-label="Increase copies"
+              >
+                +
+              </button>
+            </div>
+
+            <div className="editorial-label mb-2">PAGES</div>
+            <div className="flex gap-2 mb-2">
+              <button
+                onClick={() => setCfg({ ...cfg, pages: "all" })}
+                className={`pl-chip ${cfg.pages === "all" ? "pl-chip-active" : ""}`}
+              >
+                All
+              </button>
+              <button
+                disabled={!rangeable}
+                onClick={() => setCfg({ ...cfg, pages: "range" })}
+                className={`pl-chip ${cfg.pages === "range" ? "pl-chip-active" : ""} ${!rangeable ? "opacity-40 cursor-not-allowed" : ""}`}
+              >
+                Range
+              </button>
+            </div>
+            {cfg.pages === "range" && rangeable && (
+              <input
+                className="pl-input mb-2"
+                placeholder="2-3, 10-20"
+                value={cfg.pageRange}
+                onChange={(e) => setCfg({ ...cfg, pageRange: e.target.value })}
+              />
             )}
 
             <div className="bg-ink text-paper p-4 flex justify-between items-center mt-5">
@@ -287,6 +417,7 @@ export default function JoinPage() {
 
           <div className="border-2 border-ink">
             <PrintPreview file={file} pages={selected} color={cfg.color} copies={cfg.copies}
+              orientation={cfg.orientation}
               onMeta={(m) => { setDocPages(m.pageCount); setRangeable(m.rangeable); }} />
           </div>
         </div>

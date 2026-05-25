@@ -33,11 +33,17 @@ type Props = {
   pages: number[] | null;
   color: "bw" | "color";
   copies?: number;
+  /**
+   * Page orientation. The PDF canvas is re-rendered with `rotation: 90`
+   * for landscape (pdf.js handles the geometry natively, so dimensions
+   * swap correctly). Images are rotated via CSS transform.
+   */
+  orientation?: "portrait" | "landscape";
   /** reports detected page count + whether we can parse it for range selection */
   onMeta?: (m: { pageCount: number; rangeable: boolean }) => void;
 };
 
-export default function PrintPreview({ file, pages, color, copies = 1, onMeta }: Props) {
+export default function PrintPreview({ file, pages, color, copies = 1, orientation = "portrait", onMeta }: Props) {
   const [imgs, setImgs] = useState<{ page: number; url: string }[]>([]);
   const [kind, setKind] = useState<"pdf" | "image" | "other" | "none">("none");
   const [status, setStatus] = useState<string>("");
@@ -96,7 +102,14 @@ export default function PrintPreview({ file, pages, color, copies = 1, onMeta }:
         for (const n of slice) {
           if (reqId.current !== myReq) return;
           const page = await pdf.getPage(n);
-          const viewport = page.getViewport({ scale: 1.4 });
+          // pdf.js does the geometry: rotation:90 swaps the viewport's
+          // w/h, so the canvas it draws into is landscape. The actual
+          // PDF bytes are unchanged — the kiosk prints with the IPP
+          // orientation-requested attribute we already send.
+          const viewport = page.getViewport({
+            scale: 1.4,
+            rotation: orientation === "landscape" ? 90 : 0,
+          });
           const canvas = document.createElement("canvas");
           const ctx = canvas.getContext("2d");
           if (!ctx) continue;
@@ -120,7 +133,7 @@ export default function PrintPreview({ file, pages, color, copies = 1, onMeta }:
         }
       }
     })();
-  }, [file, isPdf, isImage, JSON.stringify(pages)]);
+  }, [file, isPdf, isImage, orientation, JSON.stringify(pages)]);
 
   const gray = color === "bw";
 
@@ -137,6 +150,8 @@ export default function PrintPreview({ file, pages, color, copies = 1, onMeta }:
         <span className="editorial-label">
           {gray ? "Black &amp; White output" : "Colour output"}
           {copies > 1 ? ` · ${copies} copies` : ""}
+          {" · "}
+          {orientation === "landscape" ? "Landscape" : "Portrait"}
         </span>
         <span className="text-[10px] tracking-editorial font-bold opacity-70">
           WYSIWYG · EXACTLY WHAT PRINTS
@@ -144,12 +159,21 @@ export default function PrintPreview({ file, pages, color, copies = 1, onMeta }:
       </div>
 
       {kind === "image" && (
+        // Single-image preview: rotate 90° for landscape via CSS — the
+        // actual file bytes are unchanged; the kiosk applies orientation
+        // at print time via IPP.
         <div className="p-6 grid place-items-center">
           <img
             src={imgUrl}
             alt={file.name}
             className="max-w-full max-h-[620px] border border-ink/20 shadow"
-            style={{ filter: gray ? "grayscale(1)" : "none" }}
+            style={{
+              filter: gray ? "grayscale(1)" : "none",
+              transform: orientation === "landscape" ? "rotate(90deg)" : "none",
+              // Constrain the rotated image's overflow so it doesn't
+              // spill outside the preview frame.
+              maxHeight: orientation === "landscape" ? "440px" : "620px",
+            }}
           />
         </div>
       )}
@@ -160,7 +184,7 @@ export default function PrintPreview({ file, pages, color, copies = 1, onMeta }:
             <div className="pl-serif text-xl font-bold mb-1">{file.name}</div>
             <div className="pl-serif italic text-ink/60 text-sm max-w-md mx-auto">
               {status ||
-                "Live page-range preview is available for PDF and image files. This format will still print with your selected settings."}
+                "PrintLoop accepts PDF and image files only. Export your document to PDF and upload it here."}
             </div>
           </div>
         </div>

@@ -18,6 +18,26 @@ const printerExt = new PrinterServiceExtensions();
 const groupSvc = new GroupSessionService();
 const ipp = new IppService();
 
+/**
+ * Dispatch a print job over whichever transport the admin has selected
+ * for this PrintLoop install. Default is IPP Print-Job; admins switch
+ * to `raw9100` for printers whose IPP layer accepts envelopes but then
+ * silently drops the payload (Sharp MX-series is the canonical case).
+ */
+async function dispatchPrint(
+  printerIp: string,
+  source: any,
+  jobName: string,
+  opts: PrintOptions,
+  transport: 'ipp' | 'raw9100',
+  rawPort: number,
+): Promise<any> {
+  if (transport === 'raw9100') {
+    return ipp.rawPrint(printerIp, source, jobName, opts, rawPort);
+  }
+  return ipp.printJob(printerIp, source, jobName, opts);
+}
+
 function parsePages(cfg: any): number[] | null {
   if (!cfg || cfg.pages !== 'range' || !cfg.pageRange) return null;
   const out: number[] = [];
@@ -104,7 +124,8 @@ router.post('/complete', kioskAuth, async (req: Request, res: Response) => {
       let printed = 0;
       for (const { it, pol } of planned) {
         const f = await fileRepo.findOne({ where: { id: it.fileId } });
-        const url = f?.watermarkedUrl || f?.fileURL;
+        // Watermarking is removed — always serve the original URL.
+        const url = f?.fileURL;
         if (!url) continue;
         let src: any = { url };
         try {
@@ -130,15 +151,22 @@ router.post('/complete', kioskAuth, async (req: Request, res: Response) => {
           sided: pol.mutated.sided,
           color: pol.mutated.color,
           paper: pol.mutated.paper || 'A4',
+          // Orientation lives on the saved printConfiguration — policy
+          // doesn't mutate it, so we read it directly off the item.
+          orientation:
+            (it.printConfiguration as any)?.orientation === 'landscape'
+              ? 'landscape'
+              : 'portrait',
           collate,
           requestingUser: 'PrintLoop-Kiosk',
           secure: prefs.secure,
           port: prefs.port,
           tlsRejectUnauthorized: prefs.rejectUnauthorized,
           path: prefs.path,
+          version: prefs.version,
         };
         try {
-          await ipp.printJob(kiosk.ipAddress, src, `${job.code} · ${it.fileName}`, opts);
+          await dispatchPrint(kiosk.ipAddress, src, `${job.code} · ${it.fileName}`, opts, prefs.transport, prefs.rawPort);
           printed++;
         } catch (e: any) {
           console.error(`[printer/complete batch] IPP error for ${it.fileName}:`, e?.message);
@@ -190,7 +218,7 @@ router.post('/complete', kioskAuth, async (req: Request, res: Response) => {
       ? await AppDataSource.getRepository(File).findOne({ where: { id: job.fileId } })
       : null;
     const fileUrl =
-      file?.watermarkedUrl || file?.fileURL || `local://${encodeURIComponent(job.fileName || job.code)}.pdf`;
+      file?.fileURL || `local://${encodeURIComponent(job.fileName || job.code)}.pdf`;
 
     // ── IPP / IPPS dispatch with the (possibly mutated) options ─────────
     const prefs = await ippConnectionPrefs();
@@ -199,6 +227,7 @@ router.post('/complete', kioskAuth, async (req: Request, res: Response) => {
       sided: policy.mutated.sided,
       color: policy.mutated.color,
       paper: policy.mutated.paper || 'A4',
+      orientation: cfg.orientation === 'landscape' ? 'landscape' : 'portrait',
       collate: cfg.collate !== false,
       pages: parsePages(cfg),
       requestingUser: 'PrintLoop-Kiosk',
@@ -206,6 +235,7 @@ router.post('/complete', kioskAuth, async (req: Request, res: Response) => {
       port: prefs.port,
       tlsRejectUnauthorized: prefs.rejectUnauthorized,
       path: prefs.path,
+      version: prefs.version,
     };
 
     // Printers speak PDF — fetch the real bytes and convert if needed.
@@ -232,7 +262,7 @@ router.post('/complete', kioskAuth, async (req: Request, res: Response) => {
 
     let dispatch: any;
     try {
-      dispatch = await ipp.printJob(kiosk.ipAddress, source, job.fileName || job.code, opts);
+      dispatch = await dispatchPrint(kiosk.ipAddress, source, job.fileName || job.code, opts, prefs.transport, prefs.rawPort);
     } catch (e: any) {
       console.error(`[printer/complete] IPP error for ${code}:`, e?.message);
       res.status(502).json({
@@ -325,6 +355,8 @@ router.post('/complete-batch', kioskAuth, async (req: Request, res: Response) =>
         sided: pol.mutated.sided,
         color: pol.mutated.color,
         paper: pol.mutated.paper || 'A4',
+        orientation:
+          (f.printConfig as any)?.orientation === 'landscape' ? 'landscape' : 'portrait',
         collate: true, // a participant's own set prints collated
         requestingUser: 'PrintLoop-Kiosk',
         secure: prefs.secure,
@@ -339,18 +371,20 @@ router.post('/complete-batch', kioskAuth, async (req: Request, res: Response) =>
         let src: any = { url: f.fileURL };
         const bytes = await loadDocumentBytes(f.fileURL);
         if (bytes) {
-          const pdf = await ensurePdf(bytes, `${f.participantName || f.watermarkId}.pdf`);
+          const pdf = await ensurePdf(bytes, `${f.participantName || 'document'}.pdf`);
           src = { buffer: pdf.buffer };
         }
-        await ipp.printJob(
+        await dispatchPrint(
           kiosk.ipAddress,
           src,
           `${f.participantName} · ${data.session.groupName || 'batch'}`,
-          opts
+          opts,
+          prefs.transport,
+          prefs.rawPort,
         );
         printed++;
       } catch (e: any) {
-        console.error(`[printer/complete-batch] error for ${f.watermarkId}:`, e?.message);
+        console.error(`[printer/complete-batch] error for ${f.participantName}:`, e?.message);
       }
     }
 

@@ -1,6 +1,7 @@
 import ipp from 'ipp';
 import axios from 'axios';
 import fs from 'node:fs';
+import net from 'node:net';
 import { fileURLToPath } from 'node:url';
 
 export interface PrintOptions {
@@ -9,6 +10,9 @@ export interface PrintOptions {
   sided?: 'single' | 'double';
   color?: 'bw' | 'color';
   paper?: string; // A4 | A3 | Letter | Legal
+  /** Portrait (default) or landscape. Maps to IPP orientation-requested
+   *  (3 = portrait, 4 = landscape). */
+  orientation?: 'portrait' | 'landscape';
   collate?: boolean;
   /** 1-based pages to print, e.g. [2,3,10,11,12] */
   pages?: number[] | null;
@@ -19,8 +23,12 @@ export interface PrintOptions {
   /** verify the printer's TLS cert (false for self-signed appliances) */
   tlsRejectUnauthorized?: boolean;
   /** IPP request path. IPP Everywhere/AirPrint = /ipp/print;
-   *  CUPS queues = /printers/<queue-name>. */
+   *  CUPS queues = /printers/<queue-name>; Sharp MX-series = /ipp/lp. */
   path?: string;
+  /** IPP protocol version sent in requests. Default '2.0' (IPP-Everywhere).
+   *  Older / vendor-quirky firmwares need '1.1' — Sharp MX-series for one
+   *  rejects 2.0 with `server-error-version-not-supported`. */
+  version?: '1.0' | '1.1' | '2.0';
 }
 
 let cachedCa: Buffer | null | undefined;
@@ -38,6 +46,7 @@ function loadCa(): Buffer | undefined {
 /** Build an ipp.Printer for either IPP (http) or IPPS (https + TLS opts). */
 function buildPrinter(printerIp: string, opts: PrintOptions): any {
   const path = opts.path || '/ipp/print';
+  const version = opts.version || '2.0';
   if (opts.secure) {
     const port = opts.port || 631;
     return new ipp.Printer(
@@ -50,11 +59,11 @@ function buildPrinter(printerIp: string, opts: PrintOptions): any {
         rejectUnauthorized: opts.tlsRejectUnauthorized === true,
         ca: loadCa(),
       } as any,
-      { uri: `ipps://${printerIp}:${port}${path}` } as any
+      { uri: `ipps://${printerIp}:${port}${path}`, version } as any,
     );
   }
   const port = opts.port || 631;
-  return new ipp.Printer(`http://${printerIp}:${port}${path}`);
+  return new ipp.Printer(`http://${printerIp}:${port}${path}`, { version } as any);
 }
 
 export type PrintSource =
@@ -128,6 +137,13 @@ export class IppService {
       copies,
       sides: opts.sided === 'double' ? 'two-sided-long-edge' : 'one-sided',
       'print-color-mode': opts.color === 'color' ? 'color' : 'monochrome',
+      // IPP orientation-requested enum: 3 = portrait, 4 = landscape.
+      // Portrait is the default; we only emit the attribute when the
+      // user explicitly chose landscape so older / simpler printers
+      // don't reject the job over an unrecognised value.
+      ...(opts.orientation === 'landscape'
+        ? { 'orientation-requested': 4 }
+        : {}),
     };
     const media = MEDIA[String(opts.paper || 'A4').toUpperCase()];
     if (media) attrs.media = media;
@@ -190,6 +206,94 @@ export class IppService {
         const jobId = res?.['job-attributes-tag']?.['job-id'];
         console.log(`[IPP] Job accepted by ${printerUrl} — job-id ${jobId}`);
         resolve(res);
+      });
+    });
+  }
+
+  /**
+   * Dispatch to a raw-socket (port 9100 / "JetDirect") printer.
+   *
+   * Used when the printer's IPP layer silently drops jobs — Sharp MX-
+   * series is the canonical example: `/ipp/lp` returns
+   * `successful-ok` to anonymous Print-Job operations but the auth
+   * filter then discards the payload. Raw socket bypasses the IPP
+   * stack entirely, so anonymous jobs print.
+   *
+   * Options (copies / duplex / colour / paper / orientation) are sent
+   * as a PJL prologue ahead of the PDF bytes. Every print engine made
+   * in the last 20 years parses PJL; unrecognised commands are silently
+   * ignored, so this is safe across vendors.
+   */
+  async rawPrint(
+    printerIp: string,
+    source: PrintSource,
+    jobName: string,
+    opts: PrintOptions = {},
+    port = 9100,
+  ): Promise<any> {
+    const bytes = await this.resolveBytes(source);
+    if (!bytes) {
+      console.log(`[RAW] (dev) Would raw-print "${jobName}" → ${printerIp}:${port}`);
+      return { mock: true };
+    }
+
+    // ── PJL prologue ─────────────────────────────────────────────────
+    // UEL (Universal Exit Language) brackets the job:
+    //   ESC%-12345X  starts a PJL session
+    //   @PJL …       commands
+    //   @PJL ENTER LANGUAGE=PDF
+    //   <PDF bytes>
+    //   ESC%-12345X  end of job
+    const UEL = '\x1B%-12345X';
+    const safe = (s: string) =>
+      String(s || '').replace(/[^A-Za-z0-9 _.\-]/g, '_').slice(0, 80) || 'PrintLoop';
+    const copies = Math.max(1, Math.min(99, Number(opts.copies) || 1));
+    const sided = opts.sided === 'double';
+    const colour = opts.color === 'color';
+    const landscape = opts.orientation === 'landscape';
+    const paper = String(opts.paper || 'A4').toUpperCase();
+
+    const pjl: string[] = [
+      UEL + '@PJL',
+      `@PJL JOB NAME="${safe(jobName)}"`,
+      `@PJL SET COPIES=${copies}`,
+      `@PJL SET DUPLEX=${sided ? 'ON' : 'OFF'}`,
+      ...(sided ? [`@PJL SET BINDING=LONGEDGE`] : []),
+      `@PJL SET RENDERMODE=${colour ? 'COLOR' : 'GRAYSCALE'}`,
+      `@PJL SET PAPER=${paper}`,
+      `@PJL SET ORIENTATION=${landscape ? 'LANDSCAPE' : 'PORTRAIT'}`,
+      // Sharp + most vendors auto-detect the document language, but
+      // ENTER LANGUAGE=PDF makes intent explicit.
+      `@PJL ENTER LANGUAGE=PDF`,
+      '', // blank line then PDF body
+    ];
+    const prologue = Buffer.from(pjl.join('\r\n'));
+    const epilogue = Buffer.from('\r\n' + UEL);
+
+    const total = prologue.length + bytes.length + epilogue.length;
+    return new Promise((resolve, reject) => {
+      const sock = net.createConnection(port, printerIp);
+      sock.setTimeout(120_000);
+      sock.once('connect', () => {
+        sock.write(prologue);
+        sock.write(bytes);
+        sock.write(epilogue, () => sock.end());
+      });
+      sock.once('end', () => {
+        console.log(
+          `[RAW] Job sent to ${printerIp}:${port} — "${jobName}" ${total}B ` +
+            `(copies=${copies} sided=${opts.sided || 'single'} ` +
+            `colour=${opts.color || 'bw'} paper=${paper} orient=${opts.orientation || 'portrait'})`,
+        );
+        resolve({ raw: true, transport: 'raw9100', bytes: total });
+      });
+      sock.once('timeout', () => {
+        sock.destroy();
+        reject(new Error('Raw print timeout'));
+      });
+      sock.once('error', (e) => {
+        console.error('[RAW] socket error:', (e as any).message);
+        reject(e);
       });
     });
   }

@@ -95,18 +95,17 @@ function SessionCard({ session, hostId }: { session: any; hostId: string }) {
           </div>
 
           <div className="border-2 border-ink">
-            <div className="bg-ink text-paper grid grid-cols-[1fr_80px_90px_120px] px-3 py-2 text-[10px] tracking-editorial font-bold">
-              <div>PARTICIPANT</div><div>STATUS</div><div>PAID</div><div>WATERMARK</div>
+            <div className="bg-ink text-paper grid grid-cols-[1fr_120px_90px] px-3 py-2 text-[10px] tracking-editorial font-bold">
+              <div>PARTICIPANT</div><div>STATUS</div><div>PAID</div>
             </div>
             {participants.map((p) => (
-              <div key={p.id} className="grid grid-cols-[1fr_80px_90px_120px] px-3 py-3 border-b border-ink/10 last:border-0 items-center">
+              <div key={p.id} className="grid grid-cols-[1fr_120px_90px] px-3 py-3 border-b border-ink/10 last:border-0 items-center">
                 <div>
                   <div className="font-semibold text-sm">{p.name}</div>
                   <div className="text-xs text-fog">{p.email || p.phoneNumber || "—"}</div>
                 </div>
                 <div className="text-xs font-bold uppercase">{String(p.status).toLowerCase()}</div>
                 <div className="text-xs font-bold uppercase text-sage">{p.status === "PAID" ? "yes" : "—"}</div>
-                <div className="pl-mono text-xs font-bold">{p.watermarkId}</div>
               </div>
             ))}
             {!participants.length && (
@@ -161,9 +160,8 @@ export default function GroupPrintPage() {
     sided: "double" as "single" | "double",
     paper: "A4" as "A4" | "A3" | "Letter",
     qualityDpi: 300,
+    orientation: "portrait" as "portrait" | "landscape",
     enforce: true,
-    watermarkEnabled: true,
-    watermarkText: "",
   });
 
   useEffect(() => {
@@ -174,21 +172,18 @@ export default function GroupPrintPage() {
     if (!form.groupName.trim()) return toast.error("Name the session first.");
     if (!form.deadline) return toast.error("Set a deadline.");
     try {
-      const wmText = form.watermarkEnabled
-        ? form.watermarkText.trim() || form.groupName.trim()
-        : "";
+      // Watermarking is permanently removed — no watermark fields sent.
       await createSession({
         groupName: form.groupName.trim(),
         deadline: new Date(form.deadline).toISOString(),
         hostId,
-        watermarkPrefix: wmText,
         defaultOptions: {
           paper: form.paper,
           color: form.color,
           sided: form.sided,
           qualityDpi: form.qualityDpi,
+          orientation: form.orientation,
           enforce: form.enforce,
-          watermark: { enabled: form.watermarkEnabled, text: wmText },
         },
       }).unwrap();
       toast.success("Group link created — share it with your group.");
@@ -249,31 +244,40 @@ export default function GroupPrintPage() {
               </button>
             ))}
           </div>
+
+          <div className="editorial-label mb-2">QUALITY</div>
+          <div className="flex flex-wrap gap-2 mb-3">
+            {([100, 300, 600] as const).map((q) => (
+              <button
+                key={q}
+                onClick={() => setForm({ ...form, qualityDpi: q })}
+                className={`pl-chip ${form.qualityDpi === q ? "pl-chip-active" : ""}`}
+              >
+                {q}dpi
+              </button>
+            ))}
+          </div>
+
+          <div className="editorial-label mb-2">ORIENTATION</div>
+          <div className="flex flex-wrap gap-2 mb-3">
+            {(["portrait", "landscape"] as const).map((o) => (
+              <button
+                key={o}
+                onClick={() => setForm({ ...form, orientation: o })}
+                className={`pl-chip ${form.orientation === o ? "pl-chip-active" : ""}`}
+              >
+                {o === "portrait" ? "Portrait" : "Landscape"}
+              </button>
+            ))}
+          </div>
+
           <label className="flex items-center gap-2 mt-2 text-sm font-semibold">
             <input type="checkbox" checked={form.enforce} onChange={(e) => setForm({ ...form, enforce: e.target.checked })} />
             Enforce these settings on every upload
           </label>
-
-          <div className="mt-4 border-t border-ink/15 pt-4">
-            <label className="flex items-center gap-2 text-sm font-semibold mb-2">
-              <input type="checkbox" checked={form.watermarkEnabled}
-                onChange={(e) => setForm({ ...form, watermarkEnabled: e.target.checked })} />
-              Watermark each document
-            </label>
-            {form.watermarkEnabled && (
-              <>
-                <input
-                  value={form.watermarkText}
-                  onChange={(e) => setForm({ ...form, watermarkText: e.target.value })}
-                  className="pl-input"
-                  placeholder={form.groupName.trim() || "Watermark word (defaults to session name)"}
-                  maxLength={40}
-                />
-                <div className="text-xs text-ink/55 pl-serif italic mt-1">
-                  Any word — stamped with a per-participant id for tracking.
-                </div>
-              </>
-            )}
+          <div className="text-[11px] text-ink/55 pl-serif italic mt-1.5 leading-snug">
+            Enforce locks paper, colour, sides, and quality. Each participant
+            still picks their own copies + page range.
           </div>
 
           <Button variant="primary" arrow className="w-full mt-5" loading={isCreating} onClick={submit}>

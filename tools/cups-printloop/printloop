@@ -22,6 +22,14 @@
 
 set -u
 
+# Hard prerequisite — without curl this script can't POST anywhere, and
+# the failure would otherwise surface as the confusing HTTP_CODE=000 path
+# below. Check up front so the error is unambiguous.
+command -v curl >/dev/null 2>&1 || {
+  echo "ERROR: 'curl' is not installed — required by the PrintLoop CUPS backend." 1>&2
+  exit 1
+}
+
 # Discover mode (`./printloop` with no args) — print a single line CUPS uses
 # to populate `lpinfo -v`. The "direct" class lets you choose this backend
 # from the printer-setup wizard.
@@ -117,11 +125,19 @@ HTTP_OUT=$(mktemp -t printloop-out.XXXXXX) || exit 4
 HTTP_BODY=$(mktemp -t printloop-body.XXXXXX) || { rm -f "$HTTP_OUT"; exit 4; }
 trap 'rm -f "$HTTP_OUT" "$HTTP_BODY"; cleanup' EXIT INT TERM
 
+# Idempotency-Key: stable per CUPS job-attempt. CUPS resubmits the same
+# job on `exit 4`; if our 200 response was lost over the network we'd
+# otherwise create a duplicate PrintJob + double-charge the wallet. The
+# server keys idempotency on (userId, idempotencyKey), so the hour bucket
+# keeps unrelated prints from colliding while grouping a retry storm.
+IDEMPOTENCY_KEY="cups-${JOB_ID}-${JOB_USER}-$(date -u +%Y%m%dT%H)"
+
 HTTP_CODE=$(curl --silent --show-error \
   --output "$HTTP_BODY" \
   --write-out '%{http_code}' \
   --max-time 120 \
   --header "Authorization: Bearer $TOKEN" \
+  --header "Idempotency-Key: $IDEMPOTENCY_KEY" \
   --form "file=@$UPLOAD_FILE;filename=$UP_NAME" \
   --form "title=$JOB_TITLE" \
   --form "copies=$COPIES" \

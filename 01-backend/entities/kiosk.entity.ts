@@ -68,6 +68,24 @@ export class Kiosk extends BaseEntity {
   @Column({ type: 'text', nullable: true })
   notes: string;
 
+  /**
+   * Pasteable maps URL (Google Maps, OSM, Apple Maps share link) that the
+   * customer-facing "Find a station" page links to from each card.
+   * Optional — when null, the customer card just shows the location text
+   * without a clickable "Directions" link.
+   */
+  @Column({ type: 'varchar', length: 1024, nullable: true })
+  mapsUrl: string | null;
+
+  /**
+   * Whether this kiosk shows on the public Stations page. Admins can use
+   * this to keep a kiosk operational for queued jobs but hide it from the
+   * customer-facing directory (e.g., during commissioning or a private
+   * test site). Defaults to true so existing kiosks stay visible.
+   */
+  @Column({ type: 'boolean', default: true })
+  isPublic: boolean;
+
   @CreateDateColumn()
   createdAt: Date;
 

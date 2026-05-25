@@ -105,15 +105,24 @@ export const adminApi = apiSlice.injectEndpoints({
         method: "PATCH",
         body,
       }),
-      invalidatesTags: ["AdminPricing"],
+      // Bust the customer-side `Pricing` tag too — admin saves should
+      // propagate to the customer's New Print page on the next refetch
+      // without a hard reload.
+      invalidatesTags: ["AdminPricing", "Pricing"],
     }),
     createPricingConfig: builder.mutation<any, Record<string, any>>({
       query: (body) => ({ url: "admin/pricing", method: "POST", body }),
-      invalidatesTags: ["AdminPricing"],
+      // Bust the customer-side `Pricing` tag too — admin saves should
+      // propagate to the customer's New Print page on the next refetch
+      // without a hard reload.
+      invalidatesTags: ["AdminPricing", "Pricing"],
     }),
     deletePricingConfig: builder.mutation<any, string>({
       query: (id) => ({ url: `admin/pricing/${id}`, method: "DELETE" }),
-      invalidatesTags: ["AdminPricing"],
+      // Bust the customer-side `Pricing` tag too — admin saves should
+      // propagate to the customer's New Print page on the next refetch
+      // without a hard reload.
+      invalidatesTags: ["AdminPricing", "Pricing"],
     }),
 
     // ── Promotions ──────────────────────────────────────────────────────
@@ -200,11 +209,13 @@ export const adminApi = apiSlice.injectEndpoints({
     }),
     createKiosk: builder.mutation<any, Record<string, any>>({
       query: (body) => ({ url: "admin/kiosks", method: "POST", body }),
-      invalidatesTags: ["AdminKiosks"],
+      // Bust the customer-side Stations cache too — newly added kiosks
+      // appear on /find-a-station without a hard refresh.
+      invalidatesTags: ["AdminKiosks", "Stations"],
     }),
     updateKiosk: builder.mutation<any, { id: string; [k: string]: any }>({
       query: ({ id, ...body }) => ({ url: `admin/kiosks/${id}`, method: "PATCH", body }),
-      invalidatesTags: ["AdminKiosks"],
+      invalidatesTags: ["AdminKiosks", "Stations"],
     }),
     updateKioskStatus: builder.mutation<any, { id: string; status: string }>({
       query: ({ id, status }) => ({
@@ -212,15 +223,19 @@ export const adminApi = apiSlice.injectEndpoints({
         method: "PATCH",
         body: { status },
       }),
-      invalidatesTags: ["AdminKiosks"],
+      invalidatesTags: ["AdminKiosks", "Stations"],
     }),
     deleteKiosk: builder.mutation<any, string>({
       query: (id) => ({ url: `admin/kiosks/${id}`, method: "DELETE" }),
-      invalidatesTags: ["AdminKiosks"],
+      invalidatesTags: ["AdminKiosks", "Stations"],
     }),
     regenerateKioskKey: builder.mutation<any, string>({
       query: (id) => ({ url: `admin/kiosks/${id}/regenerate-key`, method: "POST" }),
       invalidatesTags: ["AdminKiosks"],
+    }),
+    testKioskConnection: builder.mutation<any, string>({
+      query: (id) => ({ url: `admin/kiosks/${id}/test-connection`, method: "POST" }),
+      // Don't invalidate — this is a read-only probe.
     }),
   }),
 });
@@ -257,4 +272,5 @@ export const {
   useUpdateKioskStatusMutation,
   useDeleteKioskMutation,
   useRegenerateKioskKeyMutation,
+  useTestKioskConnectionMutation,
 } = adminApi;

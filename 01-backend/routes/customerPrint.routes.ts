@@ -5,7 +5,6 @@ import { AppDataSource } from '../config/database';
 import { PrintJob, PrintJobStatus, JobType } from '../entities/printJob.entity';
 import { File } from '../entities/file.entity';
 import { PrintJobItem } from '../entities/printJobItem.entity';
-import { Wallet } from '../entities/wallet.entity';
 import { User } from '../entities/user.entity';
 import { saveBuffer } from '../utils/fileStore';
 import {
@@ -16,25 +15,14 @@ import {
 } from '../services/documentConvert.service';
 import { getUploadLimits } from '../utils/limits';
 import { applyPromotion } from '../services/promotion.service';
+import { computeCost, type PrintConfiguration } from '../services/pricing.service';
+import { PricingConfig } from '../entities/pricingConfig.entity';
+import { Kiosk, KioskStatus } from '../entities/kiosk.entity';
+import { tryDebit } from '../services/wallet.service';
+import { makeCode } from '../utils/releaseCode';
 
 const router = Router();
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 50 * 1024 * 1024 } });
-
-const ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-function makeCode(n = 6): string {
-  const b = crypto.randomBytes(n);
-  let s = '';
-  for (let i = 0; i < n; i++) s += ALPHABET[b[i] % ALPHABET.length];
-  return s;
-}
-
-function priceOf(pages: number, c: any): number {
-  const copies = Math.max(1, Number(c.copies) || 1);
-  const perPage = c.color === 'color' ? 25 : 5;
-  const duplex = c.sided === 'double' ? 0.85 : 1;
-  const quality = c.qualityDpi === 600 ? 1.2 : c.qualityDpi === 100 ? 0.8 : 1;
-  return Math.max(5, Math.round(Math.max(1, pages) * copies * perPage * duplex * quality));
-}
 
 function formatJob(j: PrintJob) {
   const title = (j.fileName || 'Document').replace(/\.[^.]+$/, '');
@@ -84,14 +72,15 @@ router.post('/print-jobs', upload.single('file'), async (req: Request, res: Resp
     } catch {
       cfg = {};
     }
-    const printConfiguration = {
+    const printConfiguration: PrintConfiguration = {
       copies: Math.max(1, Number(cfg.copies) || 1),
       paper: cfg.paper || 'A4',
       color: cfg.color === 'color' ? 'color' : 'bw',
-      sided: (cfg.sided === 'double' ? 'double' : 'single') as 'single' | 'double',
+      sided: cfg.sided === 'double' ? 'double' : 'single',
       qualityDpi: ([100, 300, 600].includes(Number(cfg.qualityDpi))
         ? Number(cfg.qualityDpi)
         : 300) as 100 | 300 | 600,
+      orientation: cfg.orientation === 'landscape' ? 'landscape' : 'portrait',
     };
     // Authoritative limits + page count (never trust the client — it sets price).
     const limits = await getUploadLimits();
@@ -125,7 +114,14 @@ router.post('/print-jobs', upload.single('file'), async (req: Request, res: Resp
     const jobType =
       req.body.jobType === 'personal_batch' ? JobType.PERSONAL_BATCH : JobType.SINGLE;
     const paymentMethod = req.body.paymentMethod === 'paystack' ? 'paystack' : 'wallet';
-    const baseCost = priceOf(pageCount, printConfiguration);
+    const baseCost = await computeCost({
+      pageCount,
+      copies: printConfiguration.copies,
+      paper: printConfiguration.paper,
+      color: printConfiguration.color,
+      sided: printConfiguration.sided,
+      qualityDpi: printConfiguration.qualityDpi,
+    });
     const promo = await applyPromotion(baseCost, req.body.promotionCode, {
       pageCount,
       perPageBw: 5,
@@ -144,14 +140,10 @@ router.post('/print-jobs', upload.single('file'), async (req: Request, res: Resp
       })
     );
 
-    // Best-effort real wallet debit (real settlement = Paystack item, later).
+    // Atomic wallet debit — closes the read-modify-write race that two
+    // concurrent prints on the same account could hit.
     if (paymentMethod === 'wallet') {
-      const wRepo = AppDataSource.getRepository(Wallet);
-      const wallet = await wRepo.findOne({ where: { userId: user.id } });
-      if (wallet && Number(wallet.balance) >= cost) {
-        wallet.balance = Number(wallet.balance) - cost;
-        await wRepo.save(wallet);
-      }
+      await tryDebit(user.id, cost);
     }
 
     const jobRepo = AppDataSource.getRepository(PrintJob);
@@ -277,9 +269,12 @@ router.post('/print-jobs/batch', upload.array('files', 50), async (req: Request,
         qualityDpi: ([100, 300, 600].includes(Number(meta.printConfiguration?.qualityDpi))
           ? Number(meta.printConfiguration?.qualityDpi)
           : 300) as 100 | 300 | 600,
+        orientation: (meta.printConfiguration?.orientation === 'landscape'
+          ? 'landscape'
+          : 'portrait') as 'portrait' | 'landscape',
       };
       const pages = perFile[i].pages; // authoritative (server-derived)
-      const cost = priceOf(pages, cfg);
+      const cost = await computeCost({ pageCount: pages, ...cfg });
       totalCost += cost;
       totalPages += pages;
 
@@ -317,12 +312,7 @@ router.post('/print-jobs/batch', upload.array('files', 50), async (req: Request,
     await jobRepo.save(savedJob);
 
     if (paymentMethod === 'wallet') {
-      const wRepo = AppDataSource.getRepository(Wallet);
-      const wallet = await wRepo.findOne({ where: { userId: user.id } });
-      if (wallet && Number(wallet.balance) >= promo.cost) {
-        wallet.balance = Number(wallet.balance) - promo.cost;
-        await wRepo.save(wallet);
-      }
+      await tryDebit(user.id, promo.cost);
     }
 
     res.status(201).json({
@@ -397,7 +387,143 @@ router.post('/print-token/rotate', async (req: Request, res: Response) => {
   }
 });
 
-/** GET /api/customer/print-jobs/options — pricing/options for the UI. */
+/**
+ * GET /api/customer/pricing
+ * Live pricing matrix the customer UI uses to show prices. Same data
+ * the admin edits — single source of truth. Each row carries the
+ * per-cell prices (₦/page for {100,300,600}dpi × {simplex,duplex}) and
+ * the legacy multiplier fields so a client can fall back when a cell is
+ * blank. The /api/customer/print-jobs/quote endpoint below is the
+ * authoritative calc for any displayed total.
+ */
+router.get('/pricing', async (_req: Request, res: Response) => {
+  try {
+    const rows = await AppDataSource.getRepository(PricingConfig).find({
+      where: { isActive: true },
+    });
+    res.json({
+      success: true,
+      data: {
+        currency: 'NGN',
+        floor: 5,
+        configs: rows.map((r) => ({
+          paperSize: r.paperSize,
+          colorType: r.colorType,
+          pricePerPage: Number(r.pricePerPage),
+          duplexMultiplier: Number(r.duplexMultiplier),
+          highResolutionMultiplier: Number(r.highResolutionMultiplier),
+          price100Simplex: r.price100Simplex == null ? null : Number(r.price100Simplex),
+          price300Simplex: r.price300Simplex == null ? null : Number(r.price300Simplex),
+          price600Simplex: r.price600Simplex == null ? null : Number(r.price600Simplex),
+          price100Duplex: r.price100Duplex == null ? null : Number(r.price100Duplex),
+          price300Duplex: r.price300Duplex == null ? null : Number(r.price300Duplex),
+          price600Duplex: r.price600Duplex == null ? null : Number(r.price600Duplex),
+        })),
+      },
+    });
+  } catch (err) {
+    console.error('Customer pricing read error:', err);
+    res.status(500).json({ success: false, message: 'Failed to read pricing' });
+  }
+});
+
+/**
+ * POST /api/customer/print-jobs/quote
+ * Authoritative server-side price quote — same `computeCost` the job-
+ * creation path uses, so the number the customer sees here is the
+ * number that will be debited. Promotional code is optional; an
+ * invalid code returns the un-discounted price + a `reason` flag.
+ */
+router.post('/print-jobs/quote', async (req: Request, res: Response) => {
+  try {
+    const b = req.body || {};
+    const pageCount = Math.max(1, Number(b.pageCount) || 1);
+    const copies = Math.max(1, Number(b.copies) || 1);
+    const paper = b.paper || 'A4';
+    const color: 'bw' | 'color' = b.color === 'color' ? 'color' : 'bw';
+    const sided: 'single' | 'double' = b.sided === 'double' ? 'double' : 'single';
+    const qualityDpi: 100 | 300 | 600 = [100, 300, 600].includes(Number(b.qualityDpi))
+      ? (Number(b.qualityDpi) as 100 | 300 | 600)
+      : 300;
+    const baseCost = await computeCost({ pageCount, copies, paper, color, sided, qualityDpi });
+    const promo = await applyPromotion(baseCost, b.promotionCode, {
+      pageCount,
+      perPageBw: 5,
+    });
+    res.json({
+      success: true,
+      data: {
+        baseCost,
+        cost: promo.cost,
+        discount: promo.discount,
+        promoCode: promo.code || null,
+        promoReason: promo.reason || null,
+        config: { paper, color, sided, qualityDpi, copies },
+        pageCount,
+      },
+    });
+  } catch (err) {
+    console.error('Quote error:', err);
+    res.status(500).json({ success: false, message: 'Failed to compute quote' });
+  }
+});
+
+/**
+ * GET /api/customer/stations
+ * The customer-facing "Find a station" directory. Real `Kiosk` rows
+ * filtered by `isPublic = true`, ordered by name. Replaces the legacy
+ * mock array under /api/stations so admin-added kiosks immediately
+ * appear on the customer site.
+ *
+ * `status` is derived from the persisted Kiosk.status (ACTIVE / OFFLINE
+ * / MAINTENANCE / DISABLED) AND a freshness check on lastSeenAt — a
+ * kiosk that hasn't pinged in 5+ minutes is reported "offline" to the
+ * customer even if its persisted status is still ACTIVE.
+ */
+router.get('/stations', async (_req: Request, res: Response) => {
+  try {
+    const rows = await AppDataSource.getRepository(Kiosk).find({
+      where: { isPublic: true },
+      order: { name: 'ASC' },
+    });
+    const now = Date.now();
+    const fiveMin = 5 * 60 * 1000;
+    res.json({
+      success: true,
+      data: {
+        stations: rows.map((k) => {
+          const fresh = k.lastSeenAt && now - new Date(k.lastSeenAt).getTime() < fiveMin;
+          const status =
+            k.status === KioskStatus.ACTIVE && fresh
+              ? 'online'
+              : k.status === KioskStatus.MAINTENANCE
+                ? 'maintenance'
+                : 'offline';
+          return {
+            id: k.id,
+            name: k.name,
+            area: k.location || k.campus || '',
+            campus: k.campus || null,
+            status,
+            mapsUrl: k.mapsUrl || null,
+            queue: 0, // populated by a future per-kiosk queue endpoint
+            lastSeenAt: k.lastSeenAt,
+          };
+        }),
+      },
+    });
+  } catch (err) {
+    console.error('Customer stations read error:', err);
+    res.status(500).json({ success: false, message: 'Failed to read stations' });
+  }
+});
+
+/**
+ * GET /api/customer/print-jobs/options — UI metadata.
+ * Kept for backward compat. Static pricing was removed (it lied — the
+ * admin matrix is the source of truth); UIs should read the live matrix
+ * from GET /api/customer/pricing instead.
+ */
 router.get('/print-jobs/options', (_req: Request, res: Response) => {
   res.json({
     success: true,
@@ -407,7 +533,6 @@ router.get('/print-jobs/options', (_req: Request, res: Response) => {
       sides: ['single', 'double'],
       qualityOptions: [100, 300, 600],
       paymentMethods: ['wallet', 'paystack'],
-      pricing: { bwPerPage: 5, colorPerPage: 25, duplexDiscount: 0.85 },
     },
   });
 });

@@ -6,9 +6,10 @@ import { Button } from "@/components/ui/Button";
 import QrBlock from "@/components/ui/QrBlock";
 import { ROUTES } from "@/constants/routes";
 import PrintPreview, { parsePageRange } from "@/components/print/PrintPreview";
-import { useCreateJobMutation } from "@/store/services/jobsApi";
+import { useCreateJobMutation, useGetPricingQuery } from "@/store/services/jobsApi";
 import { useGetWalletQuery, useTopUpMutation } from "@/store/services/walletApi";
 import { extractError } from "@/lib/errors";
+import { priceFromMatrix, type PricingRow } from "@/lib/pricing";
 
 type Step = 1 | 2 | 3 | 4;
 type QualityDpi = 100 | 300 | 600;
@@ -22,6 +23,7 @@ type Config = {
   sided: "single" | "double";
   paper: "A4" | "A3" | "Letter";
   qualityDpi: QualityDpi;
+  orientation: "portrait" | "landscape";
   paymentMethod: PaymentMethod;
 };
 
@@ -33,12 +35,10 @@ const paymentOptions = [
   { key: "paystack" as const, label: "Paystack", icon: CreditCard, note: "Card · transfer · USSD · bank" },
 ];
 
-function priceOf(pages: number, c: Config) {
-  const perPage = c.color === "color" ? 25 : 5;
-  const duplex = c.sided === "double" ? 0.85 : 1;
-  const quality = c.qualityDpi === 600 ? 1.2 : c.qualityDpi === 100 ? 0.8 : 1;
-  return Math.max(5, Math.round(pages * c.copies * perPage * duplex * quality));
-}
+// `priceOf` was previously hardcoded to ₦5/₦25/0.85 multipliers, which
+// silently diverged from the admin pricing matrix. Live calc now lives in
+// `priceFromMatrix` above and is fed by `useGetPricingQuery` inside the
+// component.
 
 function formatExpiry(value?: string) {
   if (!value) return "24 hours";
@@ -65,8 +65,14 @@ export default function NewPrintPage() {
 
   const [config, setConfig] = useState<Config>({
     copies: 1, pages: "all", pageRange: "", color: "bw",
-    sided: "single", paper: "A4", qualityDpi: 300, paymentMethod: "wallet",
+    sided: "single", paper: "A4", qualityDpi: 300,
+    orientation: "portrait",
+    paymentMethod: "wallet",
   });
+  // Live pricing matrix — refetches whenever admin pricing changes (the
+  // admin's save invalidates the `Pricing` tag).
+  const { data: pricingData } = useGetPricingQuery();
+  const pricingRows: PricingRow[] | undefined = pricingData?.configs;
 
   const totalDocPages = rangeable ? docPages : manualPages;
   const selectedPages = useMemo(() => {
@@ -77,9 +83,36 @@ export default function NewPrintPage() {
 
   const printedPageCount =
     config.pages === "range" && selectedPages ? selectedPages.length : totalDocPages || 1;
-  const total = priceOf(printedPageCount, config);
+  const total = priceFromMatrix(printedPageCount, config, pricingRows);
   const walletBalance = Number(wallet?.balance || 0);
   const walletShortfall = Math.max(0, total - walletBalance);
+
+  // Per-page rate and the actual simplex↔duplex delta — both derived from
+  // the same matrix the server bills against, so the review panel can
+  // never lie about "₦5/page" while charging matrix prices.
+  const ratePerPage = priceFromMatrix(1, { ...config, copies: 1 }, pricingRows);
+  const simplexRate = priceFromMatrix(
+    1,
+    { ...config, copies: 1, sided: "single" },
+    pricingRows,
+  );
+  const duplexRate = priceFromMatrix(
+    1,
+    { ...config, copies: 1, sided: "double" },
+    pricingRows,
+  );
+  const duplexDeltaPct =
+    simplexRate > 0 ? Math.round(((duplexRate - simplexRate) / simplexRate) * 100) : 0;
+  // Positive => duplex more expensive; negative => duplex cheaper. Both
+  // legitimate depending on the admin's pricing model.
+  const duplexLabel =
+    config.sided !== "double"
+      ? "—"
+      : duplexDeltaPct === 0
+        ? "Same as single"
+        : duplexDeltaPct > 0
+          ? `+${duplexDeltaPct}% vs single`
+          : `${Math.abs(duplexDeltaPct)}% off single`;
 
   useEffect(() => {
     setStep(1);
@@ -190,7 +223,7 @@ export default function NewPrintPage() {
 
             {/* Hidden detector: parses page count without showing the preview yet */}
             <div className="hidden">
-              <PrintPreview file={file} pages={null} color="color"
+              <PrintPreview file={file} pages={null} color="color" orientation={config.orientation}
                 onMeta={(m) => { setDocPages(m.pageCount); setRangeable(m.rangeable); }} />
             </div>
 
@@ -255,6 +288,21 @@ export default function NewPrintPage() {
                     className={`pl-chip ${config.pages === "range" ? "pl-chip-active" : ""} ${!rangeable ? "opacity-40 cursor-not-allowed" : ""}`}>Range</button>
                 </div>
               </div>
+
+              <div>
+                <div className="editorial-label mb-2">ORIENTATION</div>
+                <div className="flex gap-2 flex-wrap">
+                  {(["portrait", "landscape"] as const).map((o) => (
+                    <button
+                      key={o}
+                      onClick={() => setConfig({ ...config, orientation: o })}
+                      className={`pl-chip ${config.orientation === o ? "pl-chip-active" : ""}`}
+                    >
+                      {o === "portrait" ? "Portrait" : "Landscape"}
+                    </button>
+                  ))}
+                </div>
+              </div>
             </div>
 
             {config.pages === "range" && rangeable && (
@@ -292,10 +340,13 @@ export default function NewPrintPage() {
             <h2 className="pl-serif text-2xl font-bold mb-5">No surprises later.</h2>
             {[
               ["FILE", file?.name || "-"],
-              ["RATE", config.color === "color" ? "₦25/page" : "₦5/page"],
+              // Per-page rate matches what the matrix charges for this exact
+              // (paper, colour, dpi, sided) cell — no more lying about ₦5/page
+              // while billing ₦70.
+              ["RATE", `₦${ratePerPage.toLocaleString()}/page`],
               ["QUALITY", `${config.qualityDpi}dpi`],
               ["PAGES", `${printedPageCount} x ${config.copies} cop${config.copies === 1 ? "y" : "ies"}`],
-              ["DUPLEX", config.sided === "double" ? "15% discount" : "No discount"],
+              ["DUPLEX", duplexLabel],
             ].map(([k, v]) => (
               <div key={k} className="flex justify-between border-b border-ink/15 py-2.5 gap-4">
                 <span className="editorial-label">{k}</span>
@@ -352,12 +403,13 @@ export default function NewPrintPage() {
               </div>
               <div className="pl-mono text-3xl font-bold">₦{total.toLocaleString()}</div>
             </div>
-            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 divide-x divide-ink/15 border-b-2 border-ink">
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 divide-x divide-ink/15 border-b-2 border-ink">
               {[
                 ["Document", file?.name || "-"],
                 ["Pages", pagesLabel],
                 ["Copies", String(config.copies)],
                 ["Paper", config.paper],
+                ["Orientation", config.orientation === "landscape" ? "Landscape" : "Portrait"],
                 ["Colour", config.color === "color" ? "Colour" : "B&W"],
                 ["Sides", config.sided === "double" ? "Duplex" : "Single"],
                 ["Quality", `${config.qualityDpi}dpi`],
@@ -393,6 +445,7 @@ export default function NewPrintPage() {
               pages={selectedPages}
               color={config.color}
               copies={config.copies}
+              orientation={config.orientation}
               onMeta={(m) => { setDocPages(m.pageCount); setRangeable(m.rangeable); }}
             />
           </div>

@@ -1,10 +1,8 @@
-import crypto from 'crypto';
 import { Request, Response, Router } from 'express';
 import { GroupSessionService } from '../services/groupSession.service';
 import { AppDataSource } from '../config/database';
 import { PrintJob, PrintJobStatus, JobType } from '../entities/printJob.entity';
 import { File } from '../entities/file.entity';
-import { PricingConfig, PaperSize, ColorType } from '../entities/pricingConfig.entity';
 import { GroupSessionStatus } from '../entities/groupSession.entity';
 import { saveBase64 } from '../utils/fileStore.js';
 import {
@@ -15,57 +13,11 @@ import {
 } from '../services/documentConvert.service';
 import { getUploadLimits } from '../utils/limits';
 import { applyPromotion } from '../services/promotion.service';
+import { computeCost } from '../services/pricing.service';
+import { makeCode } from '../utils/releaseCode';
 
 const router = Router();
 const groupService = new GroupSessionService();
-
-const ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-function makeCode(length: number): string {
-  const bytes = crypto.randomBytes(length);
-  let out = '';
-  for (let i = 0; i < length; i++) out += ALPHABET[bytes[i] % ALPHABET.length];
-  return out;
-}
-
-function mapPaper(paper: string): PaperSize {
-  const p = String(paper || 'A4').toUpperCase();
-  if (p === 'A3') return PaperSize.A3;
-  if (p === 'LETTER') return PaperSize.LETTER;
-  if (p === 'LEGAL') return PaperSize.LEGAL;
-  return PaperSize.A4;
-}
-
-/** Cost from the DB pricing config, with a sane flat-rate fallback. */
-async function computeCost(opts: {
-  pageCount: number;
-  paper: string;
-  color: 'bw' | 'color';
-  sided: 'single' | 'double';
-  qualityDpi: number;
-}): Promise<number> {
-  const pages = Math.max(1, Number(opts.pageCount) || 1);
-  const colorType = opts.color === 'color' ? ColorType.COLOR : ColorType.BLACK_WHITE;
-  const repo = AppDataSource.getRepository(PricingConfig);
-  const cfg = await repo.findOne({
-    where: { paperSize: mapPaper(opts.paper), colorType, isActive: true },
-  });
-
-  let perPage: number;
-  let duplexMult = 0.85;
-  let hiResMult = 1.2;
-  if (cfg) {
-    perPage = Number(cfg.pricePerPage);
-    duplexMult = Number(cfg.duplexMultiplier);
-    hiResMult = Number(cfg.highResolutionMultiplier);
-  } else {
-    perPage = opts.color === 'color' ? 25 : 5;
-  }
-
-  let total = perPage * pages;
-  if (opts.sided === 'double') total *= duplexMult;
-  if (Number(opts.qualityDpi) === 600) total *= hiResMult;
-  return Math.max(5, Math.ceil(total));
-}
 
 /**
  * POST /api/participant-upload/upload
@@ -159,10 +111,36 @@ router.post('/upload', async (req: Request, res: Response) => {
     const effectiveFileURL = stored ? stored.url : fileURL;
     const effectiveSize = stored ? stored.sizeBytes : Number(sizeBytes) || 0;
 
-    // Enforced sessions force the host's settings; otherwise the participant
-    // may override, falling back to the session defaults.
+    // Enforced sessions force the host's OUTPUT STYLE settings (paper,
+    // colour, sides, quality). Copies and page range are *always*
+    // participant-controlled — the host enforcing "everyone duplex A4
+    // colour" shouldn't also dictate how many copies of your own doc
+    // you want. So we layer: enforced fields come from `opts`; copies
+    // (and range) come from the participant's `printConfiguration`.
     const opts = session.defaultOptions;
-    const effective = opts.enforce ? opts : { ...opts, ...(printConfiguration || {}) };
+    const styleOverride = opts.enforce
+      ? {}
+      : {
+          paper: (printConfiguration as any)?.paper,
+          color: (printConfiguration as any)?.color,
+          sided: (printConfiguration as any)?.sided,
+          qualityDpi: (printConfiguration as any)?.qualityDpi,
+          orientation: (printConfiguration as any)?.orientation,
+        };
+    const effective = {
+      paper: styleOverride.paper ?? opts.paper,
+      color: styleOverride.color ?? opts.color,
+      sided: styleOverride.sided ?? opts.sided,
+      qualityDpi: styleOverride.qualityDpi ?? opts.qualityDpi,
+      orientation:
+        (styleOverride.orientation ?? (opts as any).orientation) === 'landscape'
+          ? 'landscape'
+          : 'portrait',
+    };
+    const requestedCopies = Math.max(
+      1,
+      Math.min(99, Number((printConfiguration as any)?.copies) || 1),
+    );
 
     const baseCost = await computeCost({
       pageCount: authoritativePages,
@@ -170,6 +148,7 @@ router.post('/upload', async (req: Request, res: Response) => {
       color: effective.color,
       sided: effective.sided,
       qualityDpi: effective.qualityDpi,
+      copies: requestedCopies,
     });
     const promo = await applyPromotion(baseCost, req.body?.promotionCode, {
       pageCount: authoritativePages,
@@ -196,14 +175,18 @@ router.post('/upload', async (req: Request, res: Response) => {
         userId: participant.userId ?? null,
         jobType: JobType.GROUP_BATCH,
         groupSessionId: session.id,
-        watermarkId: participant.watermarkId,
+        // Watermarking removed from group printing.
+        watermarkId: null,
         fileId: savedFile.id,
         printConfiguration: {
-          copies: 1,
+          // Copies honour the participant's chosen count (default 1) —
+          // the host only dictates output style, not how many to print.
+          copies: requestedCopies,
           paper: effective.paper,
           color: effective.color,
           sided: effective.sided,
           qualityDpi: effective.qualityDpi,
+          orientation: effective.orientation as 'portrait' | 'landscape',
         },
         totalPages: authoritativePages,
         cost,

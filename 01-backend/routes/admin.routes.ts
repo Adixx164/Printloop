@@ -190,12 +190,32 @@ router.patch(
         res.status(404).json({ success: false, message: 'Pricing config not found' });
         return;
       }
-      const { pricePerPage, duplexMultiplier, highResolutionMultiplier, isActive, notes } = req.body;
+      const {
+        pricePerPage,
+        duplexMultiplier,
+        highResolutionMultiplier,
+        isActive,
+        notes,
+        // per-cell prices (nullable — sending `null` clears a cell so it
+        // falls back to the legacy multiplier path)
+        price100Simplex,
+        price300Simplex,
+        price600Simplex,
+        price100Duplex,
+        price300Duplex,
+        price600Duplex,
+      } = req.body;
       if (pricePerPage !== undefined) config.pricePerPage = pricePerPage;
       if (duplexMultiplier !== undefined) config.duplexMultiplier = duplexMultiplier;
       if (highResolutionMultiplier !== undefined) config.highResolutionMultiplier = highResolutionMultiplier;
       if (isActive !== undefined) config.isActive = isActive;
       if (notes !== undefined) config.notes = notes;
+      if (price100Simplex !== undefined) config.price100Simplex = price100Simplex === null ? null : Number(price100Simplex);
+      if (price300Simplex !== undefined) config.price300Simplex = price300Simplex === null ? null : Number(price300Simplex);
+      if (price600Simplex !== undefined) config.price600Simplex = price600Simplex === null ? null : Number(price600Simplex);
+      if (price100Duplex !== undefined) config.price100Duplex = price100Duplex === null ? null : Number(price100Duplex);
+      if (price300Duplex !== undefined) config.price300Duplex = price300Duplex === null ? null : Number(price300Duplex);
+      if (price600Duplex !== undefined) config.price600Duplex = price600Duplex === null ? null : Number(price600Duplex);
       await repo.save(config);
       await writeAudit(req, 'pricing.updated', `pricing:${config.id}`, req.body);
       res.json({ success: true, data: { config } });
@@ -211,8 +231,20 @@ router.post(
   requirePermission(Permission.MANAGE_PRICING),
   async (req: Request, res: Response) => {
     try {
-      const { paperSize, colorType, pricePerPage, duplexMultiplier, highResolutionMultiplier, notes } =
-        req.body || {};
+      const {
+        paperSize,
+        colorType,
+        pricePerPage,
+        duplexMultiplier,
+        highResolutionMultiplier,
+        notes,
+        price100Simplex,
+        price300Simplex,
+        price600Simplex,
+        price100Duplex,
+        price300Duplex,
+        price600Duplex,
+      } = req.body || {};
 
       if (!Object.values(PaperSize).includes(paperSize)) {
         res.status(400).json({ success: false, message: `paperSize must be one of: ${Object.values(PaperSize).join(', ')}` });
@@ -234,12 +266,18 @@ router.post(
         paperSize,
         colorType,
         pricePerPage: Number(pricePerPage) || 0,
-        duplexMultiplier: duplexMultiplier !== undefined ? Number(duplexMultiplier) : 0.85,
+        duplexMultiplier: duplexMultiplier !== undefined ? Number(duplexMultiplier) : 1.0,
         highResolutionMultiplier:
-          highResolutionMultiplier !== undefined ? Number(highResolutionMultiplier) : 1.2,
+          highResolutionMultiplier !== undefined ? Number(highResolutionMultiplier) : 1.0,
         isActive: true,
         currency: 'NGN',
         notes: notes ?? null,
+        price100Simplex: price100Simplex != null ? Number(price100Simplex) : null,
+        price300Simplex: price300Simplex != null ? Number(price300Simplex) : null,
+        price600Simplex: price600Simplex != null ? Number(price600Simplex) : null,
+        price100Duplex: price100Duplex != null ? Number(price100Duplex) : null,
+        price300Duplex: price300Duplex != null ? Number(price300Duplex) : null,
+        price600Duplex: price600Duplex != null ? Number(price600Duplex) : null,
       });
       const saved = await repo.save(config);
       await writeAudit(req, 'pricing.created', `pricing:${saved.id}`, { paperSize, colorType, pricePerPage });
@@ -297,9 +335,13 @@ router.post(
   async (req: Request, res: Response) => {
     try {
       const repo = AppDataSource.getRepository(Promotion);
-      const promotion = repo.create(req.body as Partial<Promotion>);
+      // Normalize the code at write time so `applyPromotion` can use the
+      // unique index on `code` directly (no UPPER() functional lookup).
+      const body = { ...(req.body || {}) };
+      if (typeof body.code === 'string') body.code = body.code.trim().toUpperCase();
+      const promotion = repo.create(body as Partial<Promotion>);
       const saved = await repo.save(promotion);
-      await writeAudit(req, 'promotion.created', `promotion:${(saved as any).id}`, req.body);
+      await writeAudit(req, 'promotion.created', `promotion:${(saved as any).id}`, body);
       res.status(201).json({ success: true, data: { promotion: saved } });
     } catch (error) {
       console.error('Create promotion error:', error);
@@ -319,9 +361,11 @@ router.patch(
         res.status(404).json({ success: false, message: 'Promotion not found' });
         return;
       }
-      Object.assign(promotion, req.body);
+      const body = { ...(req.body || {}) };
+      if (typeof body.code === 'string') body.code = body.code.trim().toUpperCase();
+      Object.assign(promotion, body);
       const saved = await repo.save(promotion);
-      await writeAudit(req, 'promotion.updated', `promotion:${promotion.id}`, req.body);
+      await writeAudit(req, 'promotion.updated', `promotion:${promotion.id}`, body);
       res.json({ success: true, data: { promotion: saved } });
     } catch (error) {
       console.error('Update promotion error:', error);

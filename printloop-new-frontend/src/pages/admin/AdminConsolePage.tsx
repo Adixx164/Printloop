@@ -480,6 +480,19 @@ const COLOR_TYPES = ["BLACK_WHITE", "COLOR"];
 const money = (n: number) =>
   `₦${Number(n || 0).toLocaleString(undefined, { maximumFractionDigits: 2 })}`;
 
+// The six per-cell fields plus the legacy fallback. Editing any single
+// cell only sends that cell; the rest of the row is untouched. Values
+// stored as strings so the input can hold the empty state.
+const CELL_KEYS = [
+  "price100Simplex",
+  "price300Simplex",
+  "price600Simplex",
+  "price100Duplex",
+  "price300Duplex",
+  "price600Duplex",
+] as const;
+type CellKey = (typeof CELL_KEYS)[number];
+
 function PricingCard({
   c,
   canManage,
@@ -491,35 +504,36 @@ function PricingCard({
 }) {
   const [updateConfig, { isLoading: saving }] = useUpdatePricingConfigMutation();
   const [deleteConfig] = useDeletePricingConfigMutation();
-  const [form, setForm] = useState({
-    pricePerPage: String(c.pricePerPage),
-    duplexMultiplier: String(c.duplexMultiplier),
-    highResolutionMultiplier: String(c.highResolutionMultiplier),
+
+  const initCells = (): Record<CellKey, string> => {
+    const out: any = {};
+    for (const k of CELL_KEYS) out[k] = c[k] == null ? "" : String(c[k]);
+    return out;
+  };
+  const [cells, setCells] = useState<Record<CellKey, string>>(initCells);
+  const [meta, setMeta] = useState({
     isActive: !!c.isActive,
     notes: c.notes || "",
   });
 
+  const cellsDirty = CELL_KEYS.some(
+    (k) => String(c[k] ?? "") !== String(cells[k] ?? ""),
+  );
   const dirty =
-    String(c.pricePerPage) !== form.pricePerPage ||
-    String(c.duplexMultiplier) !== form.duplexMultiplier ||
-    String(c.highResolutionMultiplier) !== form.highResolutionMultiplier ||
-    !!c.isActive !== form.isActive ||
-    (c.notes || "") !== form.notes;
-
-  const base = Number(form.pricePerPage) || 0;
-  const dup = base * (Number(form.duplexMultiplier) || 0);
-  const hi = base * (Number(form.highResolutionMultiplier) || 0);
+    cellsDirty || !!c.isActive !== meta.isActive || (c.notes || "") !== meta.notes;
 
   const save = async () => {
     try {
-      await updateConfig({
+      const payload: any = {
         id: c.id,
-        pricePerPage: Number(form.pricePerPage),
-        duplexMultiplier: Number(form.duplexMultiplier),
-        highResolutionMultiplier: Number(form.highResolutionMultiplier),
-        isActive: form.isActive,
-        notes: form.notes,
-      }).unwrap();
+        isActive: meta.isActive,
+        notes: meta.notes,
+      };
+      for (const k of CELL_KEYS) {
+        const v = cells[k].trim();
+        payload[k] = v === "" ? null : Number(v);
+      }
+      await updateConfig(payload).unwrap();
       toast.success(`${c.paperSize} · ${c.colorType} pricing saved.`);
       onSaved();
     } catch (e: any) {
@@ -537,20 +551,18 @@ function PricingCard({
     }
   };
 
-  const field = (k: keyof typeof form, label: string) => (
-    <div>
-      <label className="editorial-label text-[10px] block mb-1 text-fog">{label}</label>
-      <input
-        type="number"
-        step="0.01"
-        value={form[k] as string}
-        onChange={(e) => setForm((f) => ({ ...f, [k]: e.target.value }))}
-        disabled={!canManage}
-        className={`pl-input pl-mono text-center !py-2 !text-sm w-full ${
-          dirty ? "border-ochre" : ""
-        }`}
-      />
-    </div>
+  const cell = (k: CellKey) => (
+    <input
+      type="number"
+      step="1"
+      value={cells[k]}
+      onChange={(e) => setCells((f) => ({ ...f, [k]: e.target.value }))}
+      disabled={!canManage}
+      placeholder="—"
+      className={`pl-input pl-mono text-center !py-2 !text-sm w-full ${
+        String(c[k] ?? "") !== String(cells[k] ?? "") ? "border-ochre" : ""
+      }`}
+    />
   );
 
   return (
@@ -563,10 +575,10 @@ function PricingCard({
           </span>
           <span
             className={`pl-pill text-[10px] uppercase ${
-              form.isActive ? "bg-sage/15 text-sage" : "bg-ink/10 text-fog"
+              meta.isActive ? "bg-sage/15 text-sage" : "bg-ink/10 text-fog"
             }`}
           >
-            {form.isActive ? "active" : "inactive"}
+            {meta.isActive ? "active" : "inactive"}
           </span>
         </div>
         {canManage && (
@@ -579,17 +591,39 @@ function PricingCard({
         )}
       </div>
 
-      <div className="grid grid-cols-3 gap-3">
-        {field("pricePerPage", "₦ / PAGE")}
-        {field("duplexMultiplier", "DUPLEX ×")}
-        {field("highResolutionMultiplier", "HI-RES ×")}
+      {/* 6-cell pricing matrix. Rows: simplex/duplex; columns: 100/300/600 dpi. */}
+      <div className="overflow-x-auto">
+        <table className="w-full border-separate border-spacing-1 text-sm">
+          <thead>
+            <tr className="text-fog">
+              <th className="text-left editorial-label text-[10px] py-1 px-2">₦ / PAGE</th>
+              <th className="editorial-label text-[10px] py-1">100 DPI</th>
+              <th className="editorial-label text-[10px] py-1">300 DPI</th>
+              <th className="editorial-label text-[10px] py-1">600 DPI</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td className="editorial-label text-[10px] text-ink py-1 px-2">SIMPLEX</td>
+              <td>{cell("price100Simplex")}</td>
+              <td>{cell("price300Simplex")}</td>
+              <td>{cell("price600Simplex")}</td>
+            </tr>
+            <tr>
+              <td className="editorial-label text-[10px] text-ink py-1 px-2">DUPLEX</td>
+              <td>{cell("price100Duplex")}</td>
+              <td>{cell("price300Duplex")}</td>
+              <td>{cell("price600Duplex")}</td>
+            </tr>
+          </tbody>
+        </table>
       </div>
 
       <div>
         <label className="editorial-label text-[10px] block mb-1 text-fog">NOTES</label>
         <input
-          value={form.notes}
-          onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
+          value={meta.notes}
+          onChange={(e) => setMeta((f) => ({ ...f, notes: e.target.value }))}
           disabled={!canManage}
           placeholder="Optional internal note"
           className="pl-input text-sm w-full"
@@ -601,16 +635,16 @@ function PricingCard({
           <label className="flex items-center gap-2 cursor-pointer select-none">
             <input
               type="checkbox"
-              checked={form.isActive}
-              onChange={(e) => setForm((f) => ({ ...f, isActive: e.target.checked }))}
+              checked={meta.isActive}
+              onChange={(e) => setMeta((f) => ({ ...f, isActive: e.target.checked }))}
               disabled={!canManage}
               className="accent-sage w-4 h-4"
             />
             <span className="text-xs font-bold text-ink">Active</span>
           </label>
           <div className="text-xs text-fog">
-            <span className="font-bold text-ink">Effective cost / page:</span>{" "}
-            Single {money(base)} · Duplex {money(dup)} · Hi-res {money(hi)}
+            Per-page price. Blank cell = falls back to {money(c.pricePerPage)} ×
+            multipliers.
           </div>
         </div>
         {canManage && (
@@ -638,9 +672,13 @@ function PricingTab({ canManage }: { canManage: boolean }) {
   const [addForm, setAddForm] = useState({
     paperSize: "A4",
     colorType: "BLACK_WHITE",
-    pricePerPage: "5",
-    duplexMultiplier: "0.85",
-    highResolutionMultiplier: "1.2",
+    // Per-cell prices — blank means "use the legacy multiplier path".
+    price100Simplex: "",
+    price300Simplex: "",
+    price600Simplex: "",
+    price100Duplex: "",
+    price300Duplex: "",
+    price600Duplex: "",
   });
 
   const configs: any[] = data?.configs || [];
@@ -648,13 +686,23 @@ function PricingTab({ canManage }: { canManage: boolean }) {
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await createConfig({
+      const numericOrNull = (v: string) => (v.trim() === "" ? null : Number(v));
+      const payload: any = {
         paperSize: addForm.paperSize,
         colorType: addForm.colorType,
-        pricePerPage: Number(addForm.pricePerPage),
-        duplexMultiplier: Number(addForm.duplexMultiplier),
-        highResolutionMultiplier: Number(addForm.highResolutionMultiplier),
-      }).unwrap();
+        // pricePerPage mirrors the 300dpi-simplex cell — the existing
+        // `pricePerPage` field stays in sync for any legacy reader.
+        pricePerPage: Number(addForm.price300Simplex) || 0,
+        duplexMultiplier: 1.0,
+        highResolutionMultiplier: 1.0,
+        price100Simplex: numericOrNull(addForm.price100Simplex),
+        price300Simplex: numericOrNull(addForm.price300Simplex),
+        price600Simplex: numericOrNull(addForm.price600Simplex),
+        price100Duplex: numericOrNull(addForm.price100Duplex),
+        price300Duplex: numericOrNull(addForm.price300Duplex),
+        price600Duplex: numericOrNull(addForm.price600Duplex),
+      };
+      await createConfig(payload).unwrap();
       toast.success(`Added pricing for ${addForm.paperSize} · ${addForm.colorType}.`);
       setShowAdd(false);
     } catch (err: any) {
@@ -672,8 +720,8 @@ function PricingTab({ canManage }: { canManage: boolean }) {
           <div className="editorial-label text-persimmon mb-1">ADMIN CONSOLE</div>
           <h1 className="pl-serif text-4xl font-bold text-ink mb-1">Charging & Pricing</h1>
           <p className="pl-serif italic text-ink/60">
-            Per-page base cost, duplex discount, and high-resolution surcharge per paper &amp;
-            colour.
+            Per-page price for every (DPI × simplex/duplex) combination, per paper &amp;
+            colour. Leave a cell blank to fall back to the legacy multiplier.
           </p>
         </div>
         {canManage && (
@@ -689,7 +737,7 @@ function PricingTab({ canManage }: { canManage: boolean }) {
       {showAdd && canManage && (
         <form onSubmit={handleAdd} className="border-2 border-sage p-5 bg-sage/5 space-y-3">
           <div className="editorial-label text-sage mb-2">NEW PRICING CONFIG</div>
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+          <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="editorial-label text-[10px] block mb-1">PAPER</label>
               <select
@@ -718,40 +766,47 @@ function PricingTab({ canManage }: { canManage: boolean }) {
                 ))}
               </select>
             </div>
-            <div>
-              <label className="editorial-label text-[10px] block mb-1">₦ / PAGE</label>
-              <input
-                type="number"
-                step="0.01"
-                className="pl-input pl-mono"
-                value={addForm.pricePerPage}
-                onChange={(e) => setAddForm((f) => ({ ...f, pricePerPage: e.target.value }))}
-              />
-            </div>
-            <div>
-              <label className="editorial-label text-[10px] block mb-1">DUPLEX ×</label>
-              <input
-                type="number"
-                step="0.01"
-                className="pl-input pl-mono"
-                value={addForm.duplexMultiplier}
-                onChange={(e) =>
-                  setAddForm((f) => ({ ...f, duplexMultiplier: e.target.value }))
-                }
-              />
-            </div>
-            <div>
-              <label className="editorial-label text-[10px] block mb-1">HI-RES ×</label>
-              <input
-                type="number"
-                step="0.01"
-                className="pl-input pl-mono"
-                value={addForm.highResolutionMultiplier}
-                onChange={(e) =>
-                  setAddForm((f) => ({ ...f, highResolutionMultiplier: e.target.value }))
-                }
-              />
-            </div>
+          </div>
+          {/* 6-cell matrix — same layout as the per-row editor below. */}
+          <div className="overflow-x-auto">
+            <table className="w-full border-separate border-spacing-1 text-sm">
+              <thead>
+                <tr className="text-fog">
+                  <th className="text-left editorial-label text-[10px] py-1 px-2">
+                    ₦ / PAGE
+                  </th>
+                  <th className="editorial-label text-[10px] py-1">100 DPI</th>
+                  <th className="editorial-label text-[10px] py-1">300 DPI</th>
+                  <th className="editorial-label text-[10px] py-1">600 DPI</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(["Simplex", "Duplex"] as const).map((sided) => (
+                  <tr key={sided}>
+                    <td className="editorial-label text-[10px] text-ink py-1 px-2">
+                      {sided.toUpperCase()}
+                    </td>
+                    {(["100", "300", "600"] as const).map((dpi) => {
+                      const k = `price${dpi}${sided}` as keyof typeof addForm;
+                      return (
+                        <td key={dpi}>
+                          <input
+                            type="number"
+                            step="1"
+                            placeholder="—"
+                            className="pl-input pl-mono text-center !py-2 !text-sm w-full"
+                            value={(addForm as any)[k]}
+                            onChange={(e) =>
+                              setAddForm((f) => ({ ...f, [k]: e.target.value }))
+                            }
+                          />
+                        </td>
+                      );
+                    })}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
           <button
             type="submit"

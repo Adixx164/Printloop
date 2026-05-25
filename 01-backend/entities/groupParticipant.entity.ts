@@ -44,10 +44,13 @@ export class GroupParticipant {
   @Column({ type: 'varchar', length: 50, nullable: true })
   phoneNumber: string;
 
-  // Unique alphanumeric watermark ID - e.g., "G7-032" or "CSC301-015"
-  @Column({ type: 'varchar', length: 50, unique: true })
-  @Index('idx_watermark_id')
-  watermarkId: string;
+  /**
+   * Legacy column. Watermarking has been permanently removed from the
+   * group printing flow — the service no longer populates this. Kept
+   * nullable so existing rows survive a schema sync.
+   */
+  @Column({ type: 'varchar', length: 50, nullable: true })
+  watermarkId: string | null;
 
   // Token used by this participant to access their upload session
   @Column({ type: 'varchar', length: 255, unique: true })

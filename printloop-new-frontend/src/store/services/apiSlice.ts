@@ -43,10 +43,16 @@ export const apiSlice = createApi({
   reducerPath: "api",
   baseQuery: baseQueryWithReauth,
   tagTypes: [
-    "Auth", "Jobs", "Wallet", "Stations", "GroupSessions",
+    "Auth", "Jobs", "Wallet", "Stations", "GroupSessions", "Pricing",
     "AdminStats", "AdminJobs", "AdminUsers", "AdminKiosks", "AdminPricing",
     "AdminPromotions", "AdminTransactions", "AdminReports", "AdminSettings",
     "AdminAudit",
   ],
+  // The pricing matrix is the obvious user-visible reason to enable
+  // these: an admin saves a price change → any customer returning to a
+  // print page (window focus / network reconnect) refetches and sees
+  // the new number, no hard reload required.
+  refetchOnFocus: true,
+  refetchOnReconnect: true,
   endpoints: () => ({}),
 });

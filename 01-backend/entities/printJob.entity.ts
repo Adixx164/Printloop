@@ -6,6 +6,7 @@ import {
   UpdateDateColumn,
   ManyToOne,
   JoinColumn,
+  Index,
 } from 'typeorm';
 import { User } from './user.entity';
 import { File } from './file.entity';
@@ -28,6 +29,13 @@ export enum JobType {
 }
 
 @Entity('print_jobs')
+// Partial-unique index for CUPS idempotency: a user can only have one
+// active job per (idempotencyKey). NULL idempotency keys are ignored —
+// the web app / batch / group paths don't set one.
+@Index('print_jobs_user_idem_uniq', ['userId', 'idempotencyKey'], {
+  unique: true,
+  where: '"idempotencyKey" IS NOT NULL',
+})
 export class PrintJob {
   @PrimaryGeneratedColumn('uuid')
   id: string;
@@ -76,6 +84,8 @@ export class PrintJob {
     color: 'bw' | 'color';
     sided: 'single' | 'double';
     qualityDpi: 100 | 300 | 600;
+    /** Page orientation. Undefined = portrait (legacy default). */
+    orientation?: 'portrait' | 'landscape';
   };
 
   @ManyToOne(() => Kiosk, { nullable: true })
@@ -99,6 +109,17 @@ export class PrintJob {
 
   @Column({ type: 'int', default: 0 })
   pagesCompleted: number;
+
+  /**
+   * Deduplication key for CUPS retries. The CUPS backend script can
+   * resubmit the same job (exit code 4 → retry-current); pairing
+   * `(userId, idempotencyKey)` with a partial-unique index lets us
+   * return the existing job on resubmit instead of creating a
+   * duplicate + double-charging. NULL for any ingress path that
+   * doesn't set one (web app, batch, group).
+   */
+  @Column({ type: 'varchar', length: 128, nullable: true })
+  idempotencyKey: string | null;
 
   @Column({ type: 'datetime', nullable: true })
   expiresAt: Date;

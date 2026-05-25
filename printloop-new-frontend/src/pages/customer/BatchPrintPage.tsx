@@ -1,11 +1,13 @@
 import { useMemo, useState } from "react";
-import { Wallet, CreditCard, Pencil, Check } from "lucide-react";
+import { Wallet, CreditCard, Pencil, Check, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/Button";
 import QrBlock from "@/components/ui/QrBlock";
 import PrintPreview, { parsePageRange } from "@/components/print/PrintPreview";
-import { useCreateBatchJobMutation } from "@/store/services/jobsApi";
+import { useCreateBatchJobMutation, useGetPricingQuery } from "@/store/services/jobsApi";
 import { extractError } from "@/lib/errors";
+import { priceFromMatrix, type PricingRow } from "@/lib/pricing";
+import { detectPages } from "@/lib/pageCount";
 
 type Cfg = {
   copies: number;
@@ -13,13 +15,16 @@ type Cfg = {
   sided: "single" | "double";
   paper: "A4" | "A3" | "Letter";
   qualityDpi: 100 | 300 | 600;
+  orientation: "portrait" | "landscape";
   pages: "all" | "range";
   pageRange: string;
 };
 type Doc = { file: File; cfg: Cfg; custom: boolean; pageCount: number; rangeable: boolean };
 
 const DEFAULT_CFG: Cfg = {
-  copies: 1, color: "bw", sided: "single", paper: "A4", qualityDpi: 300, pages: "all", pageRange: "",
+  copies: 1, color: "bw", sided: "single", paper: "A4", qualityDpi: 300,
+  orientation: "portrait",
+  pages: "all", pageRange: "",
 };
 
 function printedPages(d: Doc) {
@@ -29,12 +34,12 @@ function printedPages(d: Doc) {
   }
   return d.pageCount || 1;
 }
-function costOf(d: Doc) {
-  const c = d.cfg;
-  const perPage = c.color === "color" ? 25 : 5;
-  const duplex = c.sided === "double" ? 0.85 : 1;
-  const quality = c.qualityDpi === 600 ? 1.2 : c.qualityDpi === 100 ? 0.8 : 1;
-  return Math.max(5, Math.round(printedPages(d) * c.copies * perPage * duplex * quality));
+// Cost preview for a single document in the batch. Consults the live
+// pricing matrix (same data the admin edits) instead of hardcoded rates.
+// Server-side `computeCost` in `customerPrint.routes.ts /batch` remains
+// the authoritative number at job creation.
+function costOf(d: Doc, rows: PricingRow[] | undefined) {
+  return priceFromMatrix(printedPages(d), d.cfg, rows);
 }
 
 const Chip = ({ on, children, onClick, disabled }: any) => (
@@ -52,14 +57,62 @@ export default function BatchPrintPage() {
   const [collate, setCollate] = useState(true);
   const [receipt, setReceipt] = useState<{ code: string; cost: number; qrPayload?: string } | null>(null);
   const [createBatchJob, { isLoading }] = useCreateBatchJobMutation();
+  const { data: pricingData } = useGetPricingQuery();
+  const pricingRows: PricingRow[] | undefined = pricingData?.configs;
 
-  const total = useMemo(() => docs.reduce((s, d) => s + costOf(d), 0), [docs]);
+  const total = useMemo(
+    () => docs.reduce((s, d) => s + costOf(d, pricingRows), 0),
+    [docs, pricingRows],
+  );
 
   const addFiles = (list: FileList | null) => {
-    const next = Array.from(list || []).map((file) => ({
-      file, cfg: { ...def }, custom: false, pageCount: 0, rangeable: false,
-    }));
-    setDocs((d) => [...d, ...next]);
+    const newFiles = Array.from(list || []);
+    if (!newFiles.length) return;
+    // Insert with a placeholder pageCount of 1 so cost appears immediately;
+    // then asynchronously upgrade each row to the authoritative count.
+    // This stops the bug where the batch summary read ₦210 (3 × 1 page)
+    // and then bumped to ₦3,990 (3 × 19 pages) at receipt time.
+    const start = docs.length;
+    setDocs((d) => [
+      ...d,
+      ...newFiles.map((file) => ({
+        file,
+        cfg: { ...def },
+        custom: false,
+        pageCount: 1,
+        rangeable: false,
+      })),
+    ]);
+    newFiles.forEach((file, i) => {
+      detectPages(file)
+        .then((res) => {
+          if (!res.supported) {
+            toast.error(`"${file.name}" — unsupported format. Use PDF, JPG, or PNG.`);
+            // Drop unsupported file from the list so the user isn't billed
+            // on a placeholder page count.
+            setDocs((list) => list.filter((d) => d.file !== file));
+            return;
+          }
+          setDocs((list) =>
+            list.map((d, idx) =>
+              idx === start + i
+                ? { ...d, pageCount: res.pageCount, rangeable: res.rangeable }
+                : d,
+            ),
+          );
+        })
+        .catch(() => {
+          toast.error(`"${file.name}" — could not read page count. Removed.`);
+          setDocs((list) => list.filter((d) => d.file !== file));
+        });
+    });
+  };
+
+  const removeDoc = (idx: number) => {
+    setDocs((list) => list.filter((_, i) => i !== idx));
+    // If the user was customizing this doc, drop back to the list.
+    if (editing !== null && editing === idx) setEditing(null);
+    if (editing !== null && editing > idx) setEditing(editing - 1);
   };
 
   // Editing default settings re-applies to every not-yet-customized doc
@@ -144,6 +197,11 @@ export default function BatchPrintPage() {
                 <Chip key={p} on={d.cfg.paper === p} onClick={() => patchDoc(editing, { paper: p })}>{p}</Chip>
               ))}
             </div>
+            <div className="editorial-label mb-2">ORIENTATION</div>
+            <div className="flex gap-2 mb-4">
+              <Chip on={d.cfg.orientation === "portrait"} onClick={() => patchDoc(editing, { orientation: "portrait" })}>Portrait</Chip>
+              <Chip on={d.cfg.orientation === "landscape"} onClick={() => patchDoc(editing, { orientation: "landscape" })}>Landscape</Chip>
+            </div>
             <div className="editorial-label mb-2">QUALITY</div>
             <select value={d.cfg.qualityDpi} onChange={(e) => patchDoc(editing, { qualityDpi: Number(e.target.value) as any })} className="pl-input mb-4">
               <option value={100}>100dpi draft</option>
@@ -161,7 +219,7 @@ export default function BatchPrintPage() {
             )}
             <div className="bg-ink text-paper p-4 flex justify-between items-center mt-5">
               <span className="pl-serif italic">This file</span>
-              <span className="pl-mono text-2xl font-bold">₦{costOf(d).toLocaleString()}</span>
+              <span className="pl-mono text-2xl font-bold">₦{costOf(d, pricingRows).toLocaleString()}</span>
             </div>
             <div className="flex gap-2 mt-5">
               <Button variant="ghost" onClick={() => setEditing(null)}>BACK TO LIST</Button>
@@ -172,6 +230,7 @@ export default function BatchPrintPage() {
           </section>
           <div className="border-2 border-ink">
             <PrintPreview file={d.file} pages={sel} color={d.cfg.color} copies={d.cfg.copies}
+              orientation={d.cfg.orientation}
               onMeta={(m) => setMeta(editing, m.pageCount, m.rangeable)} />
           </div>
         </div>
@@ -248,28 +307,39 @@ export default function BatchPrintPage() {
           </label>
 
           <div className="mt-6 border-2 border-ink">
-            <div className="bg-ink text-paper grid grid-cols-[34px_1fr_auto_92px] gap-2 px-3 py-2 text-[10px] tracking-editorial font-bold items-center">
-              <div>#</div><div>FILE</div><div>SETTINGS</div><div className="text-right">COST</div>
+            <div className="bg-ink text-paper grid grid-cols-[34px_1fr_auto_92px_32px] gap-2 px-3 py-2 text-[10px] tracking-editorial font-bold items-center">
+              <div>#</div><div>FILE</div><div>SETTINGS</div><div className="text-right">COST</div><div></div>
             </div>
             {docs.map((d, i) => (
-              <div key={`${d.file.name}-${i}`} className="grid grid-cols-[34px_1fr_auto_92px] gap-2 px-3 py-3 border-b border-ink/10 last:border-0 items-center">
+              <div key={`${d.file.name}-${i}`} className="grid grid-cols-[34px_1fr_auto_92px_32px] gap-2 px-3 py-3 border-b border-ink/10 last:border-0 items-center">
                 <div className="pl-serif italic text-ochre font-bold">{String(i + 1).padStart(2, "0")}</div>
                 <div className="min-w-0">
                   <div className="font-semibold text-sm truncate">{d.file.name}</div>
-                  <div className="text-[11px] mt-0.5">
+                  <div className="text-[11px] mt-0.5 flex items-center gap-2">
                     {d.custom
                       ? <span className="text-persimmon font-bold">● Customized</span>
                       : <span className="text-fog">Using default</span>}
+                    <span className="text-fog">·</span>
+                    <span className="text-fog pl-mono">{printedPages(d)}pp</span>
                   </div>
                 </div>
                 <div className="text-[11px] text-ink/70 hidden sm:block">
-                  {d.cfg.color === "color" ? "Colour" : "B&W"} · {d.cfg.sided === "double" ? "Duplex" : "Single"} · {d.cfg.paper} ·{" "}
+                  {d.cfg.color === "color" ? "Colour" : "B&W"} · {d.cfg.sided === "double" ? "Duplex" : "Single"} · {d.cfg.paper}{" "}
+                  {d.cfg.orientation === "landscape" ? "↺" : ""} ·{" "}
                   {d.cfg.pages === "range" && d.cfg.pageRange ? `p.${d.cfg.pageRange}` : "all"} · x{d.cfg.copies}
                   <button onClick={() => setEditing(i)} className="ml-3 pl-chip !py-1 !px-2 inline-flex items-center gap-1">
                     <Pencil size={12} /> Customize
                   </button>
                 </div>
-                <div className="pl-mono text-sm font-bold text-right">₦{costOf(d).toLocaleString()}</div>
+                <div className="pl-mono text-sm font-bold text-right">₦{costOf(d, pricingRows).toLocaleString()}</div>
+                <button
+                  onClick={() => removeDoc(i)}
+                  title={`Remove ${d.file.name}`}
+                  className="text-ink/40 hover:text-persimmon transition-colors p-1"
+                  aria-label={`Remove ${d.file.name}`}
+                >
+                  <X size={16} />
+                </button>
               </div>
             ))}
             {!docs.length && <div className="p-8 text-center text-ink/50 pl-serif italic">No files attached yet.</div>}
@@ -288,6 +358,9 @@ export default function BatchPrintPage() {
               {(["A4", "A3", "Letter"] as const).map((p) => (
                 <Chip key={p} on={def.paper === p} onClick={() => updateDefault({ paper: p })}>{p}</Chip>
               ))}
+              <span className="w-px bg-ink/15 mx-1" />
+              <Chip on={def.orientation === "portrait"} onClick={() => updateDefault({ orientation: "portrait" })}>Portrait</Chip>
+              <Chip on={def.orientation === "landscape"} onClick={() => updateDefault({ orientation: "landscape" })}>Landscape</Chip>
             </div>
           </div>
         </section>

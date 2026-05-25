@@ -34,10 +34,10 @@ export async function applyPromotion(
   if (!code) return { cost, discount: 0, reason: 'no_code' };
 
   const repo = AppDataSource.getRepository(Promotion);
-  const promo = await repo
-    .createQueryBuilder('p')
-    .where('UPPER(p.code) = :code', { code })
-    .getOne();
+  // Codes are normalized to uppercase at write time (admin.routes.ts on
+  // POST/PATCH + a one-shot migration in config/database.ts), so the
+  // lookup uses the unique index on `code` directly.
+  const promo = await repo.findOne({ where: { code } });
   if (!promo) return { cost, discount: 0, reason: 'not_found' };
 
   if (promo.status !== 'active') {
@@ -70,13 +70,24 @@ export async function applyPromotion(
     discount = Math.min(cost, Math.floor(Math.min(value, pages) * perPage));
   }
   discount = Math.max(0, Math.min(cost, discount));
-  const final = Math.max(0, cost - discount);
+  if (discount <= 0) return { cost, discount: 0, code: promo.code };
 
-  if (discount > 0) {
-    // Atomic increment — avoids the read-modify-write race when two uploads
-    // redeem the same code at the same instant.
-    await repo.increment({ id: promo.id }, 'usageCount', 1);
+  // Conditional UPDATE — bumps usageCount only if we're still under
+  // maxUses. The previous implementation checked then incremented in two
+  // statements, which let concurrent redemptions overshoot maxUses. We
+  // do the check + write in one statement and check the affected count.
+  const result = await repo
+    .createQueryBuilder()
+    .update(Promotion)
+    .set({ usageCount: () => 'usageCount + 1' })
+    .where('id = :id AND (maxUses IS NULL OR usageCount < maxUses)', { id: promo.id })
+    .execute();
+  if ((result.affected ?? 0) !== 1) {
+    // Lost the race — someone else took the last slot between our
+    // bounds-check above and this UPDATE.
+    return { cost, discount: 0, code: promo.code, reason: 'exhausted' };
   }
 
+  const final = Math.max(0, cost - discount);
   return { cost: final, discount, code: promo.code };
 }

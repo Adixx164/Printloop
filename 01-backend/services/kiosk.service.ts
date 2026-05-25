@@ -1,4 +1,5 @@
 import { Repository } from 'typeorm';
+import net from 'node:net';
 import { AppDataSource } from '../config/database';
 import { Kiosk, KioskStatus } from '../entities/kiosk.entity';
 import crypto from 'crypto';
@@ -31,6 +32,8 @@ export class KioskService {
     printerModel?: string;
     ipAddress?: string;
     notes?: string;
+    mapsUrl?: string | null;
+    isPublic?: boolean;
   }): Promise<Kiosk> {
     const apiKey = this.generateApiKey();
 
@@ -38,6 +41,11 @@ export class KioskService {
       ...data,
       apiKey,
       status: KioskStatus.ACTIVE,
+      // Default to public so newly-added kiosks appear on the customer
+      // "Find a station" page; admins can hide a kiosk with a PATCH if
+      // they're still commissioning it.
+      isPublic: data.isPublic ?? true,
+      mapsUrl: data.mapsUrl ?? null,
       totalJobsPrinted: 0,
       totalPagesPrinted: 0,
     });
@@ -165,6 +173,52 @@ export class KioskService {
         { cutoffTime }
       )
       .getMany();
+  }
+
+  /**
+   * Probe a kiosk's printer port to see if it's reachable. We attempt a
+   * plain TCP connect on the common print ports (IPP 631 / IPPS 6310 /
+   * raw 9100) — we don't issue a real IPP request because (a) the
+   * appliance might be IPPS-only with a self-signed cert (handled
+   * elsewhere by `ippConnectionPrefs`), and (b) a TCP connect is enough
+   * to distinguish "printer powered on + on-LAN" from "wrong IP / off".
+   * Returns the first port that connects within `timeoutMs`.
+   */
+  async testConnection(
+    ipAddress: string,
+    opts: { timeoutMs?: number; ports?: number[] } = {},
+  ): Promise<{ ok: boolean; port: number | null; message: string }> {
+    const ip = String(ipAddress || '').trim();
+    if (!ip) return { ok: false, port: null, message: 'No IP address configured' };
+    const ports = opts.ports && opts.ports.length ? opts.ports : [631, 6310, 9100];
+    const timeoutMs = opts.timeoutMs ?? 1500;
+    const tryPort = (port: number) =>
+      new Promise<{ ok: boolean; port: number }>((resolve) => {
+        const sock = new net.Socket();
+        let done = false;
+        const finish = (ok: boolean) => {
+          if (done) return;
+          done = true;
+          try { sock.destroy(); } catch { /* noop */ }
+          resolve({ ok, port });
+        };
+        sock.setTimeout(timeoutMs);
+        sock.once('connect', () => finish(true));
+        sock.once('timeout', () => finish(false));
+        sock.once('error', () => finish(false));
+        try { sock.connect(port, ip); } catch { finish(false); }
+      });
+    for (const port of ports) {
+      // Serial probe — first hit wins; total worst-case latency is
+      // bounded at ports.length × timeoutMs (~4.5s with defaults).
+      const r = await tryPort(port);
+      if (r.ok) return { ok: true, port: r.port, message: `Reachable on ${ip}:${r.port}` };
+    }
+    return {
+      ok: false,
+      port: null,
+      message: `No print port reachable on ${ip} (tried ${ports.join(', ')})`,
+    };
   }
 
   /**

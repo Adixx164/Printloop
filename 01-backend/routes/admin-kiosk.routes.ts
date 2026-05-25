@@ -8,6 +8,7 @@ import {
   regenerateApiKey,
   getOfflineKiosks,
   deleteKiosk,
+  testKioskConnection,
 } from '../controllers/kiosk.controller';
 import { Permission, requirePermission } from '../middleware/rbac.middleware';
 
@@ -29,6 +30,9 @@ router.post('/', requirePermission(Permission.MANAGE_KIOSKS), createKiosk);
 router.patch('/:id/status', requirePermission(Permission.MANAGE_KIOSKS), updateKioskStatus);
 router.patch('/:id', requirePermission(Permission.MANAGE_KIOSKS), updateKiosk);
 router.post('/:id/regenerate-key', requirePermission(Permission.MANAGE_KIOSKS), regenerateApiKey);
+// Probe printer reachability (TCP connect on common print ports). Read-
+// only operation; gated on VIEW_KIOSKS so support staff can use it.
+router.post('/:id/test-connection', requirePermission(Permission.VIEW_KIOSKS), testKioskConnection);
 router.delete('/:id', requirePermission(Permission.MANAGE_KIOSKS), deleteKiosk);
 
 export default router;

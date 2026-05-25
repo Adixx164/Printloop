@@ -22,6 +22,11 @@ function isPdf(buf: Buffer): boolean {
  * AUTHORITATIVE page count from the actual bytes — never trust a
  * client-supplied count (it drives pricing/policy). Images = 1 page;
  * PDFs are parsed. Encrypted/garbled PDFs throw UnsupportedDocumentError.
+ *
+ * Office formats (DOCX/PPTX/etc.) are not supported. Their page counts
+ * can't be derived deterministically without rendering through Word /
+ * PowerPoint (which we don't run), so accepting them would mean trusting
+ * a number we can't verify. Users export to PDF first.
  */
 export async function countPages(input: Buffer, fileName: string): Promise<number> {
   const ext = extOf(fileName);

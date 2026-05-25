@@ -73,14 +73,22 @@ DEVICE_URI="printloop://$PRINTLOOP_HOST/?token=$PRINTLOOP_TOKEN"
 # an actual IPP-Everywhere printer to query, so we use the generic PPD.
 PPD_ARG="-m drv:///sample.drv/generic.ppd"
 
+# Stage the device URI in a 0600 temp file so the token isn't visible on
+# the lpadmin command line (`ps auxw`) or in shell history. The `cat`
+# substitution below still appears in `ps` briefly, but a determined
+# attacker would also need to be root to read the file.
+URI_FILE=$(mktemp); chmod 0600 "$URI_FILE"
+printf '%s\n' "$DEVICE_URI" > "$URI_FILE"
+trap 'shred -u "$URI_FILE" 2>/dev/null || rm -f "$URI_FILE"' EXIT INT TERM
+
 # Create or update the queue.
 if lpstat -p "$QUEUE_NAME" >/dev/null 2>&1; then
   echo "→ Updating existing CUPS queue '$QUEUE_NAME'"
-  lpadmin -p "$QUEUE_NAME" -E -v "$DEVICE_URI"
+  lpadmin -p "$QUEUE_NAME" -E -v "$(cat "$URI_FILE")"
 else
   echo "→ Creating CUPS queue '$QUEUE_NAME'"
   # shellcheck disable=SC2086
-  lpadmin -p "$QUEUE_NAME" -E -v "$DEVICE_URI" $PPD_ARG -L "PrintLoop"
+  lpadmin -p "$QUEUE_NAME" -E -v "$(cat "$URI_FILE")" $PPD_ARG -L "PrintLoop"
 fi
 cupsaccept "$QUEUE_NAME" || true
 cupsenable "$QUEUE_NAME" || true
