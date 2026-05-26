@@ -89,4 +89,6 @@ fi
 # Tailscale's SOCKS5 proxy in the env this would race and fail. Run
 # the locally-installed tsx binary directly.
 echo "[printloop] starting Express server…"
-exec node ./node_modules/.bin/tsx server.ts
+# ./node_modules/.bin/tsx is the npm bin shim — call it directly
+# rather than via `node` (the shim is a shell script, not JS).
+exec ./node_modules/.bin/tsx server.ts
