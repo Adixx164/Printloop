@@ -12,10 +12,11 @@ builder = "NIXPACKS"
 buildCommand = "npm install"
 
 [deploy]
-# `tsx server.ts` is the same start script used in development, but
-# without --watch. SQLite + uploaded files persist to the volume mounted
-# at /app/01-backend/data (see [services.volumes]).
-startCommand = "npx tsx server.ts"
+# start.sh joins the Tailscale tailnet (when TS_AUTHKEY is set) so the
+# cloud backend can reach printers on the user's home LAN, then exec's
+# the Node app. With TS_AUTHKEY unset it skips Tailscale and runs the
+# app unconnected — the dev / e2e path.
+startCommand = "bash start.sh"
 healthcheckPath = "/health"
 healthcheckTimeout = 30
 restartPolicyType = "ON_FAILURE"

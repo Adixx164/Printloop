@@ -271,14 +271,22 @@ export class IppService {
     const epilogue = Buffer.from('\r\n' + UEL);
 
     const total = prologue.length + bytes.length + epilogue.length;
+    // ── SOCKS5 routing (for Tailscale userspace mode on Railway) ──────
+    // tailscaled in userspace mode doesn't intercept raw net.Socket
+    // calls — the kernel routes 192.168.x.x directly to the public
+    // internet and the printer is unreachable. When TS_SOCKS5_PROXY is
+    // set (start.sh in the Railway deploy), we open the socket via
+    // Tailscale's local SOCKS5 proxy instead so the connection
+    // actually flows through the tailnet to the user's home LAN.
+    const sock = await this.openSocket(printerIp, port);
     return new Promise((resolve, reject) => {
-      const sock = net.createConnection(port, printerIp);
       sock.setTimeout(120_000);
-      sock.once('connect', () => {
-        sock.write(prologue);
-        sock.write(bytes);
-        sock.write(epilogue, () => sock.end());
-      });
+      // `openSocket` returns an already-connected socket (direct or
+      // via SOCKS5), so write immediately rather than waiting on
+      // a 'connect' event that has already fired.
+      sock.write(prologue);
+      sock.write(bytes);
+      sock.write(epilogue, () => sock.end());
       sock.once('end', () => {
         console.log(
           `[RAW] Job sent to ${printerIp}:${port} — "${jobName}" ${total}B ` +
@@ -296,6 +304,42 @@ export class IppService {
         reject(e);
       });
     });
+  }
+
+  /**
+   * Open a raw TCP socket to (host, port). When `TS_SOCKS5_PROXY` is
+   * set (Railway + Tailscale userspace deploy), the socket is opened
+   * through Tailscale's local SOCKS5 proxy so the connection routes
+   * through the tailnet instead of the public internet — this is how
+   * the cloud backend reaches the user's home LAN printer.
+   *
+   * Without the env var, this is a plain `net.createConnection` —
+   * same behaviour the local dev backend has always had.
+   */
+  private async openSocket(host: string, port: number): Promise<net.Socket> {
+    const proxy = process.env.TS_SOCKS5_PROXY;
+    if (!proxy) {
+      // Direct connect — wait for 'connect' so callers can write
+      // immediately on return.
+      return await new Promise<net.Socket>((resolve, reject) => {
+        const s = net.createConnection(port, host);
+        s.once('connect', () => resolve(s));
+        s.once('error', reject);
+      });
+    }
+
+    // SOCKS5 connect via Tailscale's local proxy. The `socks` package
+    // does the handshake; the returned socket is a regular net.Socket.
+    const [proxyHost, proxyPortStr] = proxy.split(':');
+    const proxyPort = Number(proxyPortStr) || 1055;
+    const { SocksClient } = await import('socks');
+    const { socket } = await SocksClient.createConnection({
+      proxy: { host: proxyHost || 'localhost', port: proxyPort, type: 5 },
+      command: 'connect',
+      destination: { host, port },
+      timeout: 30_000,
+    });
+    return socket as net.Socket;
   }
 
   /** Query printer attributes / state (online, idle, stopped…). */
