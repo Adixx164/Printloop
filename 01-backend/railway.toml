@@ -18,7 +18,11 @@ buildCommand = "npm install"
 # app unconnected — the dev / e2e path.
 startCommand = "bash start.sh"
 healthcheckPath = "/health"
-healthcheckTimeout = 30
+# First boot installs Tailscale (~15s download + extract) and brings up
+# the tailnet link (~5-10s); only after that does the Express app
+# start. Allow up to 180s — subsequent boots with cached binaries on
+# the persistent volume return to ~10s startup.
+healthcheckTimeout = 180
 restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 3
 
