@@ -45,8 +45,8 @@ if [ -n "$TS_AUTHKEY" ]; then
     --tun=userspace-networking \
     --state="$DATA_DIR/tailscaled.state" \
     --socket="$TS_SOCKET" \
-    --socks5-server=localhost:1055 \
-    --outbound-http-proxy-listen=localhost:1055 \
+    --socks5-server=127.0.0.1:1055 \
+    --outbound-http-proxy-listen=127.0.0.1:1055 \
     --port=0 \
     > "$DATA_DIR/tailscaled.log" 2>&1 &
   TS_PID=$!
@@ -79,7 +79,7 @@ if [ -n "$TS_AUTHKEY" ]; then
   # breaks npm's registry calls in this container and b) isn't what
   # we want (the cloud backend's other outbound traffic should go
   # direct to the public internet, not through the home tailnet).
-  export TS_SOCKS5_PROXY="localhost:1055"
+  export TS_SOCKS5_PROXY="127.0.0.1:1055"
 else
   echo "[tailscale] TS_AUTHKEY unset — skipping Tailscale (running unconnected)"
 fi
