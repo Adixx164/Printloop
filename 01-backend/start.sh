@@ -71,20 +71,22 @@ if [ -n "$TS_AUTHKEY" ]; then
   "$TS_DIR/tailscale" --socket="$TS_SOCKET" status || true
   "$TS_DIR/tailscale" --socket="$TS_SOCKET" ip -4 || true
 
-  # ── 4. Hint the Node app to use Tailscale's SOCKS5 proxy ───────────
-  # The `ipp` library uses Node's http module; setting these makes
-  # node-fetch / Node's global agent route through Tailscale. Raw
-  # net.Socket calls (the raw9100 transport) need an explicit
-  # SOCKS-aware dialer, wired in ipp.service.ts.
-  export ALL_PROXY="socks5://localhost:1055"
-  export HTTP_PROXY="http://localhost:1055"
-  export HTTPS_PROXY="http://localhost:1055"
-  export NO_PROXY="localhost,127.0.0.1,${NO_PROXY}"
+  # ── 4. Hint our SOCKS5-aware code to route through Tailscale ───────
+  # The raw9100 transport in ipp.service.ts checks TS_SOCKS5_PROXY and
+  # opens its socket via tailscale's local SOCKS5 listener when set.
+  # We deliberately DON'T export HTTP_PROXY / HTTPS_PROXY — that would
+  # also route npm + axios + node-fetch through tailscale, which a)
+  # breaks npm's registry calls in this container and b) isn't what
+  # we want (the cloud backend's other outbound traffic should go
+  # direct to the public internet, not through the home tailnet).
   export TS_SOCKS5_PROXY="localhost:1055"
 else
   echo "[tailscale] TS_AUTHKEY unset — skipping Tailscale (running unconnected)"
 fi
 
 # ── 5. Start the actual app ────────────────────────────────────────────
+# Bypass `npx` because it does a registry probe each invocation; with
+# Tailscale's SOCKS5 proxy in the env this would race and fail. Run
+# the locally-installed tsx binary directly.
 echo "[printloop] starting Express server…"
-exec npx tsx server.ts
+exec node ./node_modules/.bin/tsx server.ts
