@@ -1,0 +1,25 @@
+# Railway deployment config for the PrintLoop backend.
+# This sits in `01-backend/` so Railway knows how to build and run the
+# Express + TypeORM server. Pair with Railway's "Root Directory" setting
+# pointed at `01-backend`, or with `railway up --service printloop-api`
+# from this directory.
+
+[build]
+builder = "NIXPACKS"
+# Nixpacks auto-detects Node + npm. We just need to ensure tsx is on
+# the path at runtime; it's a regular dependency so `npm install` covers
+# it.
+buildCommand = "npm install"
+
+[deploy]
+# `tsx server.ts` is the same start script used in development, but
+# without --watch. SQLite + uploaded files persist to the volume mounted
+# at /app/01-backend/data (see [services.volumes]).
+startCommand = "npx tsx server.ts"
+healthcheckPath = "/health"
+healthcheckTimeout = 30
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 3
+
+[experimental]
+configAsCode = true
