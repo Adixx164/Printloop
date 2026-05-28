@@ -1,0 +1,21 @@
+{
+  "name": "printloop-agent",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "On-site bridge that polls the PrintLoop cloud backend for ready jobs and dispatches them to the local LAN printer.",
+  "scripts": {
+    "start": "tsx agent.ts",
+    "dev": "tsx watch agent.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@types/ipp": "^2.0.5",
+    "@types/node": "^20.14.10",
+    "axios": "^1.16.1",
+    "dotenv": "^16.4.5",
+    "ipp": "^1.1.0",
+    "tsx": "^4.22.3",
+    "typescript": "^5.5.3"
+  }
+}

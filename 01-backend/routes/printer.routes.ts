@@ -5,9 +5,9 @@ import { heartbeat, updateProgress, validateCode, getJob } from '../controllers/
 import { PrinterServiceExtensions } from '../services/printerExtensions.service';
 import { GroupSessionService } from '../services/groupSession.service';
 import { IppService, type PrintOptions } from '../services/ipp.service';
-import { evaluatePrintPolicy, ippConnectionPrefs } from '../services/printPolicy.service';
+import { evaluatePrintPolicy, ippConnectionPrefs, printDispatchMode } from '../services/printPolicy.service';
 import { AppDataSource } from '../config/database';
-import { PrintJob } from '../entities/printJob.entity';
+import { PrintJob, PrintJobStatus } from '../entities/printJob.entity';
 import { PrintJobItem } from '../entities/printJobItem.entity';
 import { File } from '../entities/file.entity';
 import { loadDocumentBytes } from '../utils/fileStore';
@@ -69,7 +69,12 @@ router.post('/complete', kioskAuth, async (req: Request, res: Response) => {
       res.status(400).json({ success: false, message: 'code is required' });
       return;
     }
-    if (!kiosk?.ipAddress) {
+
+    // In kiosk-pull mode the agent — not the backend — opens the socket to
+    // the printer, so the kiosk row needs no `ipAddress`. Only enforce it
+    // for cloud-push, where this process literally dials the printer's LAN IP.
+    const dispatchMode = await printDispatchMode();
+    if (dispatchMode === 'cloud-push' && !kiosk?.ipAddress) {
       res.status(409).json({
         success: false,
         message: 'This kiosk has no printer address configured.',
@@ -86,6 +91,107 @@ router.post('/complete', kioskAuth, async (req: Request, res: Response) => {
     }
 
     const cfg: any = job.printConfiguration || {};
+
+    // ── Kiosk-pull short-circuit ────────────────────────────────────────
+    // Mark the job RELEASING + bind it to this kiosk so its on-site agent
+    // can claim it via /api/agent/jobs/ready, download the bytes, and
+    // dispatch over its own LAN. We still run policy here so the agent
+    // can't print something the admin has blocked — mutations get
+    // persisted onto printConfiguration before the agent sees the job.
+    if (dispatchMode === 'kiosk-pull') {
+      const items = await AppDataSource.getRepository(PrintJobItem).find({
+        where: { printJobId: job.id },
+        order: { order: 'ASC' },
+      });
+
+      // Per-document policy evaluation (single + batch alike). On a block
+      // we abort the whole release exactly like cloud-push does.
+      if (items.length) {
+        for (const it of items) {
+          const ic: any = it.printConfiguration || {};
+          const pol = await evaluatePrintPolicy({
+            totalPages: it.totalPages || 1,
+            copies: ic.copies || 1,
+            color: ic.color === 'color' ? 'color' : 'bw',
+            sided: ic.sided === 'double' ? 'double' : 'single',
+            paper: ic.paper || 'A4',
+            fileName: it.fileName,
+            jobType: job.jobType,
+          });
+          if (!pol.allow) {
+            res.status(403).json({
+              success: false,
+              message: `${it.fileName}: ${pol.deniedReason || 'Blocked by print policy.'}`,
+              code: 'PRINT_POLICY_DENIED',
+            });
+            return;
+          }
+          // Persist any mutations so the agent fetches the corrected config.
+          it.printConfiguration = {
+            ...ic,
+            copies: pol.mutated.copies,
+            sided: pol.mutated.sided,
+            color: pol.mutated.color,
+            paper: pol.mutated.paper || ic.paper || 'A4',
+          };
+        }
+        await AppDataSource.getRepository(PrintJobItem).save(items);
+      } else {
+        const pol = await evaluatePrintPolicy({
+          totalPages: job.totalPages || Number(totalPages) || 1,
+          copies: cfg.copies || 1,
+          color: cfg.color === 'color' ? 'color' : 'bw',
+          sided: cfg.sided === 'double' ? 'double' : 'single',
+          paper: cfg.paper || 'A4',
+          fileName: job.fileName,
+          jobType: job.jobType,
+        });
+        if (!pol.allow) {
+          res.status(403).json({
+            success: false,
+            message: pol.deniedReason || 'Blocked by print policy.',
+            code: 'PRINT_POLICY_DENIED',
+          });
+          return;
+        }
+        job.printConfiguration = {
+          ...cfg,
+          copies: pol.mutated.copies,
+          sided: pol.mutated.sided,
+          color: pol.mutated.color,
+          paper: pol.mutated.paper || cfg.paper || 'A4',
+        };
+      }
+
+      // Atomic transition READY → RELEASING. The conditional update means
+      // two kiosks racing on the same code can't both win.
+      const upd = await jobRepo
+        .createQueryBuilder()
+        .update(PrintJob)
+        .set({ status: PrintJobStatus.RELEASING, kioskId: kiosk.id, printConfiguration: job.printConfiguration })
+        .where('id = :id AND status = :ready', { id: job.id, ready: PrintJobStatus.READY })
+        .execute();
+      if ((upd.affected ?? 0) !== 1) {
+        res.status(409).json({
+          success: false,
+          message: 'Job is no longer releasable (already in flight or completed).',
+          code: 'JOB_NOT_RELEASABLE',
+        });
+        return;
+      }
+
+      res.json({
+        success: true,
+        message: 'Released to on-site agent. The kiosk will dispatch to the printer shortly.',
+        data: {
+          mode: 'kiosk-pull',
+          status: PrintJobStatus.RELEASING,
+          batch: !!items.length,
+          total: items.length || 1,
+        },
+      });
+      return;
+    }
 
     // ── Personal batch: ONE code → many documents, each its own settings ─
     const items = await AppDataSource.getRepository(PrintJobItem).find({
@@ -309,6 +415,21 @@ router.post('/complete-batch', kioskAuth, async (req: Request, res: Response) =>
       res.status(400).json({ success: false, message: 'code is required' });
       return;
     }
+
+    // Group-batch is a fan-out across participant uploads; the kiosk-pull
+    // pipeline only supports single PrintJob rows today. Tell the caller
+    // up-front rather than silently failing inside the dispatch loop.
+    const dispatchMode = await printDispatchMode();
+    if (dispatchMode === 'kiosk-pull') {
+      res.status(501).json({
+        success: false,
+        message:
+          'Group-batch release is not yet supported in kiosk-pull mode. Switch printDispatchMode to "cloud-push" for group sessions.',
+        code: 'GROUP_BATCH_PULL_UNSUPPORTED',
+      });
+      return;
+    }
+
     if (!kiosk?.ipAddress) {
       res.status(409).json({ success: false, message: 'This kiosk has no printer address configured.', code: 'KIOSK_NO_PRINTER' });
       return;

@@ -3,6 +3,11 @@ node_modules/
 dist/
 build/
 *.tsbuildinfo
+# Exception: the kiosk Electron app has a build/ folder that holds
+# the app icon + the icon generator script. Those are SOURCE, not
+# generated, so they must ship with the repo.
+!printloop-kiosk-app/build/
+!printloop-kiosk-app/build/**
 
 # ── Local secrets (never commit) ─────────────────────────────────────
 .env
@@ -38,3 +43,5 @@ Thumbs.db
 # ── Archives / large binaries ────────────────────────────────────────
 *.tar
 *.zip
+
+.vercel

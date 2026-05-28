@@ -1,18 +1,24 @@
 #!/usr/bin/env bash
 # PrintLoop backend start script for Railway (or any container host).
 #
-# Brings Tailscale up so the backend can reach printers that live on a
-# private LAN (i.e. the Sharp MX-5112N at 192.168.0.111 — which is on
-# the user's home network, not Railway's). The user installs Tailscale
-# as a subnet router at home advertising 192.168.0.0/24; this script
-# joins the same tailnet from the Railway container.
+# Tailscale is OPTIONAL and only used for the `cloud-push` dispatch
+# mode (where the cloud backend itself opens the socket to a LAN
+# printer). For the recommended `kiosk-pull` mode — an on-site agent
+# (printloop-agent/) fetches each ready job and dispatches it
+# locally — Tailscale is unnecessary: leave TS_AUTHKEY UNSET on the
+# Railway env vars.
 #
-# Required env var:
+# Tailscale, when used:
+#   - The user runs Tailscale as a subnet router at home advertising
+#     192.168.0.0/24 (or whatever their LAN is).
+#   - The Railway container joins the same tailnet via the auth key
+#     below, then dials the printer's LAN IP through the tailnet.
+#
+# Optional env var:
 #   TS_AUTHKEY   reusable, ephemeral Tailscale auth key
 #                (https://login.tailscale.com/admin/settings/keys)
-#
-# Falls back to running without Tailscale if TS_AUTHKEY is unset —
-# useful for local builds + the e2e test scripts.
+#                Leave UNSET to skip Tailscale entirely (kiosk-pull
+#                mode, local dev, e2e test scripts).
 set -e
 
 DATA_DIR="${DATA_DIR:-/app/data}"
@@ -81,7 +87,10 @@ if [ -n "$TS_AUTHKEY" ]; then
   # direct to the public internet, not through the home tailnet).
   export TS_SOCKS5_PROXY="127.0.0.1:1055"
 else
-  echo "[tailscale] TS_AUTHKEY unset — skipping Tailscale (running unconnected)"
+  echo "[tailscale] TS_AUTHKEY unset — skipping Tailscale."
+  echo "[printloop] Cloud has no LAN bridge → printer dispatch must use kiosk-pull"
+  echo "[printloop]   mode (an on-site agent fetches each job). Switch with:"
+  echo "[printloop]     Admin → Settings → printDispatchMode = kiosk-pull"
 fi
 
 # ── 5. Start the actual app ────────────────────────────────────────────

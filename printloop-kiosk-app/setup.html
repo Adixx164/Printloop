@@ -1,0 +1,398 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>PrintLoop Kiosk — Setup</title>
+<style>
+  :root {
+    --ink:#1A1410; --paper:#F8F4ED; --paper-light:#FFFEFA;
+    --persimmon:#D14B2C; --ochre:#C7944A; --sage:#6B7A5C; --fog:#888;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { height: 100%; font-family: -apple-system, "Segoe UI", system-ui, sans-serif; }
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    padding: 32px 40px;
+    display: flex;
+    flex-direction: column;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+  h1 { font-size: 22px; font-weight: 800; letter-spacing: -0.01em; }
+  h1 .badge {
+    display: inline-block; background: var(--persimmon); color: var(--paper);
+    padding: 2px 8px; border-radius: 4px; font-size: 11px; vertical-align: 4px;
+    margin-left: 8px; font-weight: 700;
+  }
+  p.lede { color: #555; margin-top: 6px; font-size: 13px; }
+
+  form { margin-top: 22px; flex: 1; overflow-y: auto; padding-right: 6px; }
+  fieldset {
+    border: 2px solid var(--ink);
+    padding: 16px 18px 14px;
+    margin-bottom: 16px;
+    background: var(--paper-light);
+    box-shadow: 4px 4px 0 var(--ink);
+    border-radius: 2px;
+  }
+  legend {
+    padding: 0 8px; font-weight: 800; font-size: 12px;
+    letter-spacing: 0.08em; text-transform: uppercase;
+  }
+  .field { margin-bottom: 12px; }
+  .field:last-child { margin-bottom: 0; }
+  label {
+    display: block; font-size: 12px; font-weight: 700;
+    margin-bottom: 4px; color: #333;
+  }
+  input[type="text"], input[type="url"], input[type="number"], select {
+    width: 100%; padding: 9px 11px; font-size: 14px; font-family: inherit;
+    border: 2px solid var(--ink); background: white; color: var(--ink);
+    border-radius: 2px; outline: none;
+  }
+  input:focus, select:focus { box-shadow: 3px 3px 0 var(--persimmon); }
+  .hint { font-size: 11px; color: var(--fog); margin-top: 3px; }
+  .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+  .transports { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .transports label {
+    display: block; padding: 10px 12px; border: 2px solid var(--ink);
+    background: white; cursor: pointer; border-radius: 2px;
+    transition: box-shadow 0.1s ease;
+  }
+  .transports input[type="radio"] { display: none; }
+  .transports input[type="radio"]:checked + .opt {
+    color: var(--persimmon);
+  }
+  .transports label:has(input:checked) {
+    background: var(--ink); color: var(--paper); box-shadow: 3px 3px 0 var(--persimmon);
+  }
+  .opt strong { display: block; font-size: 13px; }
+  .opt span { font-size: 11px; opacity: 0.75; }
+
+  .actions {
+    display: flex; gap: 8px; margin-top: 16px; padding-top: 14px;
+    border-top: 2px solid var(--ink);
+  }
+  button {
+    padding: 10px 18px; font-size: 13px; font-weight: 800; font-family: inherit;
+    border: 2px solid var(--ink); background: white; color: var(--ink);
+    cursor: pointer; border-radius: 2px; letter-spacing: 0.04em;
+    text-transform: uppercase; transition: box-shadow 0.1s ease;
+  }
+  button:hover { box-shadow: 3px 3px 0 var(--ink); }
+  button.primary { background: var(--persimmon); color: var(--paper); border-color: var(--ink); }
+  button.primary:hover { box-shadow: 3px 3px 0 var(--ink); }
+  button:disabled { opacity: 0.4; cursor: not-allowed; box-shadow: none !important; }
+  .spacer { flex: 1; }
+
+  .test-result {
+    margin-top: 8px; padding: 6px 10px; font-size: 12px; font-weight: 600;
+    border: 2px solid; border-radius: 2px; display: none;
+  }
+  .test-result.ok { background: #E8F0DE; border-color: var(--sage); color: #3D4830; }
+  .test-result.err { background: #FBE7E1; border-color: var(--persimmon); color: #6B2818; }
+  .test-result.show { display: block; }
+
+  .scan-card {
+    border: 2px solid var(--ink); background: white; padding: 10px 12px;
+    margin-bottom: 6px; cursor: pointer; border-radius: 2px;
+    display: flex; align-items: center; gap: 12px;
+    transition: box-shadow 0.1s ease;
+  }
+  .scan-card:hover { box-shadow: 3px 3px 0 var(--persimmon); background: var(--paper); }
+  .scan-card.picked { background: var(--ink); color: var(--paper); box-shadow: 3px 3px 0 var(--persimmon); }
+  .scan-card .icon { font-size: 22px; line-height: 1; }
+  .scan-card .meta { flex: 1; }
+  .scan-card .meta strong { display: block; font-size: 13px; font-weight: 800; }
+  .scan-card .meta span { font-size: 11px; opacity: 0.8; }
+  .scan-card .badge {
+    font-size: 10px; font-weight: 800; padding: 2px 6px; border: 1.5px solid currentColor;
+    border-radius: 2px; text-transform: uppercase; letter-spacing: 0.04em;
+  }
+  .scan-status {
+    font-size: 12px; color: var(--fog); font-weight: 600; margin: 8px 0;
+  }
+  .scan-empty {
+    padding: 14px; border: 2px dashed var(--ink); border-radius: 2px;
+    font-size: 12px; color: #555; text-align: center;
+  }
+</style>
+</head>
+<body>
+
+<h1>PrintLoop Kiosk Setup<span class="badge">first-run</span></h1>
+<p class="lede">Fill in once. The kiosk app launches as soon as you save.</p>
+
+<form id="setupForm" autocomplete="off">
+
+  <fieldset>
+    <legend>Cloud</legend>
+    <div class="field">
+      <label for="baseUrl">PrintLoop backend URL</label>
+      <input id="baseUrl" type="url" placeholder="https://printloop-production.up.railway.app" required />
+      <div class="hint">Where the customer uploads land. Outbound HTTPS only.</div>
+    </div>
+    <div class="field">
+      <label for="kioskKey">Kiosk API key</label>
+      <input id="kioskKey" type="text" placeholder="KSK_…" required spellcheck="false" />
+      <div class="hint">From Admin → Kiosks → this kiosk → Regenerate key.</div>
+    </div>
+    <button type="button" id="testCloud">Test cloud connection</button>
+    <div class="test-result" id="testCloudResult"></div>
+  </fieldset>
+
+  <fieldset>
+    <legend>Printer</legend>
+
+    <!-- ── Auto-discover ── -->
+    <div class="field">
+      <button type="button" id="scanBtn" style="width:100%;background:var(--ochre);color:var(--ink);border-color:var(--ink)">🔍 Scan for printers on this network</button>
+      <div class="hint">Detects IPP-Everywhere / AirPrint printers via Bonjour + sweeps the LAN. Takes ~5 seconds.</div>
+    </div>
+    <div id="scanResults" style="display:none;margin-bottom:14px"></div>
+
+    <div class="field">
+      <label for="printerIp">Printer IP on this kiosk's LAN</label>
+      <input id="printerIp" type="text" placeholder="192.168.0.111" required spellcheck="false" />
+      <div class="hint">Auto-filled when you pick a discovered printer above, or type manually.</div>
+    </div>
+
+    <div class="field">
+      <label>Transport</label>
+      <div class="transports">
+        <label>
+          <input type="radio" name="transport" value="ipp" checked />
+          <div class="opt"><strong>IPP (default)</strong><span>HP / Brother / Canon / Epson / most modern printers</span></div>
+        </label>
+        <label>
+          <input type="radio" name="transport" value="raw9100" />
+          <div class="opt"><strong>Raw-9100 + PJL</strong><span>Sharp MX-series, older PostScript printers</span></div>
+        </label>
+      </div>
+    </div>
+
+    <div class="row" id="ippFields">
+      <div class="field">
+        <label for="printerPort">IPP port</label>
+        <input id="printerPort" type="number" value="631" />
+      </div>
+      <div class="field">
+        <label for="ippPath">IPP path</label>
+        <input id="ippPath" type="text" value="/ipp/print" spellcheck="false" />
+        <div class="hint">/ipp/lp for Sharp, /printers/&lt;name&gt; for CUPS.</div>
+      </div>
+      <div class="field">
+        <label for="ippVersion">IPP version</label>
+        <select id="ippVersion">
+          <option value="2.0">2.0 (default)</option>
+          <option value="1.1">1.1 (Sharp / older firmware)</option>
+          <option value="1.0">1.0 (very old)</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="row" id="rawFields" style="display:none">
+      <div class="field">
+        <label for="rawPort">Raw port</label>
+        <input id="rawPort" type="number" value="9100" />
+      </div>
+    </div>
+
+    <button type="button" id="testPrinter" style="margin-top:8px">Test printer reachability</button>
+    <div class="test-result" id="testPrinterResult"></div>
+  </fieldset>
+
+  <fieldset>
+    <legend>Behaviour</legend>
+    <div class="row">
+      <div class="field">
+        <label for="pollMs">Poll interval (ms)</label>
+        <input id="pollMs" type="number" value="4000" min="1000" max="60000" step="500" />
+        <div class="hint">How often this kiosk checks the cloud for new jobs.</div>
+      </div>
+      <div class="field" style="display:flex;align-items:end">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+          <input id="autoStart" type="checkbox" checked />
+          <span>Auto-start on login</span>
+        </label>
+      </div>
+    </div>
+  </fieldset>
+
+  <div class="actions">
+    <button type="button" id="cancelBtn">Cancel</button>
+    <div class="spacer"></div>
+    <button type="submit" class="primary" id="saveBtn">Save &amp; launch kiosk</button>
+  </div>
+
+</form>
+
+<script>
+  const $ = (id) => document.getElementById(id);
+  const api = window.printloopSetup;
+  if (!api) {
+    document.body.innerHTML = '<p style="padding:40px;color:#c00">Bridge not loaded — close and reopen.</p>';
+    throw new Error('preload missing');
+  }
+
+  // Hydrate from existing config (re-run wizard from menu).
+  api.getConfig().then((cfg) => {
+    if (!cfg) return;
+    $('baseUrl').value = cfg.baseUrl || '';
+    $('kioskKey').value = cfg.kioskKey || '';
+    $('printerIp').value = cfg.printerIp || '';
+    $('printerPort').value = cfg.printerPort || 631;
+    $('ippPath').value = cfg.ippPath || '/ipp/print';
+    $('ippVersion').value = cfg.ippVersion || '2.0';
+    $('rawPort').value = cfg.rawPort || 9100;
+    $('pollMs').value = cfg.pollMs || 4000;
+    $('autoStart').checked = cfg.autoStart !== false;
+    if (cfg.transport === 'raw9100') {
+      document.querySelector('input[name="transport"][value="raw9100"]').checked = true;
+      $('ippFields').style.display = 'none';
+      $('rawFields').style.display = 'grid';
+    }
+  });
+
+  // Transport toggle
+  document.querySelectorAll('input[name="transport"]').forEach((r) => {
+    r.addEventListener('change', () => {
+      const raw = document.querySelector('input[name="transport"]:checked').value === 'raw9100';
+      $('ippFields').style.display = raw ? 'none' : 'grid';
+      $('rawFields').style.display = raw ? 'grid' : 'none';
+    });
+  });
+
+  function readForm() {
+    return {
+      baseUrl: $('baseUrl').value.trim(),
+      kioskKey: $('kioskKey').value.trim(),
+      printerIp: $('printerIp').value.trim(),
+      printerPort: Number($('printerPort').value) || 631,
+      transport: document.querySelector('input[name="transport"]:checked').value,
+      ippPath: $('ippPath').value.trim() || '/ipp/print',
+      ippVersion: $('ippVersion').value,
+      rawPort: Number($('rawPort').value) || 9100,
+      pollMs: Number($('pollMs').value) || 4000,
+      autoStart: $('autoStart').checked,
+    };
+  }
+
+  function showResult(elId, ok, message) {
+    const el = $(elId);
+    el.className = 'test-result show ' + (ok ? 'ok' : 'err');
+    el.textContent = message;
+  }
+
+  // ── Auto-discovery: scan LAN + mDNS for printers ──────────────────
+  $('scanBtn').addEventListener('click', async () => {
+    const results = $('scanResults');
+    results.style.display = 'block';
+    results.innerHTML = '<div class="scan-status">Scanning the LAN + listening for Bonjour responses…</div>';
+    $('scanBtn').disabled = true;
+    $('scanBtn').textContent = 'Scanning…';
+    try {
+      const r = await api.discoverPrinters();
+      if (!r.ok) {
+        results.innerHTML = '<div class="scan-empty">Discovery failed: ' + (r.message || 'unknown') + '</div>';
+        return;
+      }
+      if (!r.printers || r.printers.length === 0) {
+        results.innerHTML =
+          '<div class="scan-empty">' +
+          'No printers found on this network.<br>' +
+          'Make sure the printer is powered on, on the same Wi-Fi/Ethernet, and not sleeping. ' +
+          'You can still type an IP manually below.' +
+          '</div>';
+        return;
+      }
+      // Render each printer as a click-to-fill card.
+      results.innerHTML =
+        '<div class="scan-status">Found ' + r.printers.length + ' printer' + (r.printers.length === 1 ? '' : 's') + '. Click one to use it:</div>';
+      for (const p of r.printers) {
+        const card = document.createElement('div');
+        card.className = 'scan-card';
+        const transportLabel = p.transport === 'raw9100' ? 'RAW-9100' : 'IPP';
+        const portText = p.transport === 'raw9100' ? p.rawPort : p.ippPort + p.ippPath;
+        card.innerHTML =
+          '<div class="icon">🖨️</div>' +
+          '<div class="meta"><strong>' + (p.model || '(unknown printer)') + '</strong>' +
+          '<span>' + p.ip + ' · ' + portText + ' · via ' + p.sources.join('+') + '</span></div>' +
+          '<div class="badge">' + transportLabel + '</div>';
+        card.addEventListener('click', () => {
+          // Fill the form
+          $('printerIp').value = p.ip;
+          $('printerPort').value = p.ippPort;
+          $('ippPath').value = p.ippPath;
+          $('ippVersion').value = p.ippVersion;
+          $('rawPort').value = p.rawPort;
+          document.querySelector('input[name="transport"][value="' + p.transport + '"]').checked = true;
+          // Trigger transport-toggle UI update
+          document.querySelector('input[name="transport"]:checked').dispatchEvent(new Event('change'));
+          // Mark which card is picked
+          for (const c of results.querySelectorAll('.scan-card')) c.classList.remove('picked');
+          card.classList.add('picked');
+        });
+        results.appendChild(card);
+      }
+    } catch (err) {
+      results.innerHTML = '<div class="scan-empty">Scan error: ' + err.message + '</div>';
+    } finally {
+      $('scanBtn').disabled = false;
+      $('scanBtn').textContent = '🔍 Scan for printers on this network';
+    }
+  });
+
+  $('testCloud').addEventListener('click', async () => {
+    const cfg = readForm();
+    if (!cfg.baseUrl || !cfg.kioskKey) {
+      return showResult('testCloudResult', false, 'Enter both the URL and the kiosk key first.');
+    }
+    $('testCloud').disabled = true;
+    $('testCloud').textContent = 'Testing…';
+    try {
+      const r = await api.testCloud(cfg.baseUrl, cfg.kioskKey);
+      showResult('testCloudResult', r.ok, r.message);
+    } finally {
+      $('testCloud').disabled = false;
+      $('testCloud').textContent = 'Test cloud connection';
+    }
+  });
+
+  $('testPrinter').addEventListener('click', async () => {
+    const cfg = readForm();
+    if (!cfg.printerIp) {
+      return showResult('testPrinterResult', false, 'Enter the printer IP first.');
+    }
+    $('testPrinter').disabled = true;
+    $('testPrinter').textContent = 'Testing…';
+    try {
+      const r = await api.testPrinter(cfg);
+      showResult('testPrinterResult', r.ok, r.message);
+    } finally {
+      $('testPrinter').disabled = false;
+      $('testPrinter').textContent = 'Test printer reachability';
+    }
+  });
+
+  $('cancelBtn').addEventListener('click', () => api.cancel());
+
+  $('setupForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const cfg = readForm();
+    $('saveBtn').disabled = true;
+    $('saveBtn').textContent = 'Saving…';
+    const result = await api.save(cfg);
+    if (!result.ok) {
+      $('saveBtn').disabled = false;
+      $('saveBtn').textContent = 'Save & launch kiosk';
+      alert('Could not save: ' + result.message);
+    }
+    // On success, main process closes this window + opens the kiosk window.
+  });
+</script>
+
+</body>
+</html>

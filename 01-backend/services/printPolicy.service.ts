@@ -146,3 +146,22 @@ export async function ippConnectionPrefs(): Promise<{
   const rawPort = num(s.ippRawPort, 0) || Number(process.env.IPP_RAW_PORT) || 9100;
   return { secure, port, rejectUnauthorized, path, version, transport, rawPort };
 }
+
+/**
+ * How the backend hands a paid+released job off to the physical printer.
+ *
+ *  - `cloud-push`  (default, legacy): the backend itself opens a socket to
+ *                  the printer's LAN IP and runs IPP / raw-9100. Requires
+ *                  the backend to have LAN reachability (Tailscale subnet
+ *                  router, on-prem deploy, etc.).
+ *  - `kiosk-pull`: the backend marks the job RELEASING and an on-site
+ *                  agent (`printloop-agent`) polls /api/agent/jobs/ready,
+ *                  downloads the bytes via signed URL, and dispatches to
+ *                  the printer over the LAN it shares with the agent. No
+ *                  inbound LAN access from the cloud needed.
+ */
+export async function printDispatchMode(): Promise<'cloud-push' | 'kiosk-pull'> {
+  const s = await settingsMap();
+  const raw = String(s.printDispatchMode || process.env.PRINT_DISPATCH_MODE || 'cloud-push').trim();
+  return raw === 'kiosk-pull' ? 'kiosk-pull' : 'cloud-push';
+}

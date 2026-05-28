@@ -68,6 +68,7 @@ export const DEFAULT_SETTINGS: DefaultSetting[] = [
   { key: 'ippVersion', value: '2.0', valueType: 'string', category: 'Printing', description: 'IPP protocol version sent in requests (1.0 / 1.1 / 2.0). Sharp MX-series needs 1.1.' },
   { key: 'ippTransport', value: 'ipp', valueType: 'string', category: 'Printing', description: 'Print transport: "ipp" (standard, default) or "raw9100" (TCP raw socket + PJL, for printers whose IPP filter drops anonymous jobs — Sharp MX-series).' },
   { key: 'ippRawPort', value: '9100', valueType: 'number', category: 'Printing', description: 'TCP port used by the raw9100 transport.' },
+  { key: 'printDispatchMode', value: 'cloud-push', valueType: 'string', category: 'Printing', description: 'How printer dispatch works: "cloud-push" (backend opens TCP to printer — needs LAN reachability or Tailscale) or "kiosk-pull" (a local agent on the kiosk box fetches each job + prints; no network bridge from cloud needed). Recommended: kiosk-pull for cloud deployments.' },
 
   // ── System ─────────────────────────────────────────────────────────────
   { key: 'maintenanceMode', value: 'false', valueType: 'boolean', category: 'System', description: 'When enabled, the user-facing app shows a maintenance banner.' },

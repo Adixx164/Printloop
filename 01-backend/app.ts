@@ -8,6 +8,7 @@ import adminKioskRoutes from "./routes/admin-kiosk.routes.js";
 import groupSessionRoutes from "./routes/groupSession.routes.js";
 import participantUploadRoutes from "./routes/participantUpload.routes.js";
 import printerRoutes from "./routes/printer.routes.js";
+import agentRoutes from "./routes/agent.routes.js";
 import paymentsRoutes from "./routes/payments.routes.js";
 import customerAuthRoutes from "./routes/customerAuth.routes.js";
 import customerPrintRoutes from "./routes/customerPrint.routes.js";
@@ -29,6 +30,7 @@ export function createApp(): Application {
     allowedHeaders: ["Content-Type", "X-Kiosk-Key", "X-Upload-Token", "Authorization"],
   });
   app.use("/api/printer", applianceCors);
+  app.use("/api/agent", applianceCors);
   app.use("/api/participant-upload", applianceCors);
 
   app.use(
@@ -70,6 +72,10 @@ export function createApp(): Application {
   app.use("/api/groups", groupSessionRoutes);
   app.use("/api/participant-upload", participantUploadRoutes);
   app.use("/api/printer", printerRoutes);
+  // Kiosk-pull agent API: on-site agent polls for RELEASING jobs, fetches
+  // bytes via signed URLs, dispatches to LAN printer, reports back. Auth
+  // is the same X-Kiosk-Key header the kiosk uses for /api/printer.
+  app.use("/api/agent", agentRoutes);
   app.use("/api/payments", paymentsRoutes);
 
   // Public pricing matrix — readable by anonymous flows (group-participant

@@ -15,6 +15,11 @@ import { Kiosk } from './kiosk.entity';
 export enum PrintJobStatus {
   PENDING = 'pending', // created, awaiting payment (e.g. group-batch participant jobs)
   READY = 'ready', // paid, awaiting release at a kiosk
+  // Kiosk-pull mode: customer typed the code at the kiosk; the cloud
+  // backend has marked the job for an on-site agent to fetch the file
+  // and dispatch to the printer. The agent claims it via /agent/start
+  // and the status moves to PRINTING.
+  RELEASING = 'releasing',
   PRINTING = 'printing',
   DONE = 'done', // printed / completed
   FAILED = 'failed',

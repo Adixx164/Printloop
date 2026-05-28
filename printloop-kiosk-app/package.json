@@ -1,0 +1,73 @@
+{
+  "name": "printloop-kiosk-app",
+  "productName": "PrintLoop Kiosk",
+  "version": "1.0.0",
+  "description": "PrintLoop self-service kiosk — Electron-wrapped touchscreen app.",
+  "private": true,
+  "main": "main.js",
+  "author": {
+    "name": "PrintLoop",
+    "email": "support@printloop.ng"
+  },
+  "scripts": {
+    "sync": "node -e \"require('node:fs').mkdirSync('renderer',{recursive:true});require('node:fs').copyFileSync('../printloop-kiosk/index.html','renderer/index.html');console.log('[sync] renderer/index.html ← printloop-kiosk/index.html');\"",
+    "prestart": "npm run sync",
+    "prebuild": "npm run sync",
+    "prebuild:portable": "npm run sync",
+    "start": "electron .",
+    "build": "electron-builder --win --x64",
+    "build:portable": "electron-builder --win portable --x64"
+  },
+  "dependencies": {
+    "axios": "^1.16.1",
+    "bonjour-service": "^1.4.0",
+    "ipp": "^1.1.0"
+  },
+  "devDependencies": {
+    "electron": "^33.2.0",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "ng.printloop.kiosk",
+    "productName": "PrintLoop Kiosk",
+    "asar": true,
+    "files": [
+      "main.js",
+      "agent.js",
+      "discovery.js",
+      "setup.html",
+      "setup-preload.js",
+      "renderer/**/*",
+      "build/icon.*",
+      "node_modules/**/*"
+    ],
+    "directories": {
+      "output": "dist"
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "build/icon.png",
+      "publisherName": "PrintLoop"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": true,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "PrintLoop Kiosk",
+      "uninstallDisplayName": "PrintLoop Kiosk",
+      "deleteAppDataOnUninstall": false
+    },
+    "extraMetadata": {
+      "main": "main.js"
+    }
+  }
+}
