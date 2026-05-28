@@ -25,14 +25,20 @@ const API = CONFIG.apiBaseUrl;
 function Shell({ children }: { children: ReactNode }) {
   return (
     <div className="min-h-screen bg-paper text-ink flex flex-col">
-      <header className="bg-ink text-paper border-b-[3px] border-persimmon px-8 py-4 flex justify-between items-baseline">
-        <div className="pl-serif font-extrabold text-2xl">PrintLoop<span className="text-persimmon">.</span></div>
-        <div className="editorial-label text-paper/60">GROUP UPLOAD</div>
+      <header className="bg-ink text-paper border-b-[3px] border-persimmon px-4 sm:px-6 lg:px-8 py-3 sm:py-4 flex justify-between items-baseline gap-3">
+        <div className="pl-serif font-extrabold text-xl sm:text-2xl">
+          PrintLoop<span className="text-persimmon">.</span>
+        </div>
+        <div className="editorial-label text-paper/60 text-right">GROUP UPLOAD</div>
       </header>
-      <main className="flex-1 max-w-3xl w-full mx-auto px-6 py-10">{children}</main>
-      <footer className="bg-ink text-paper px-8 py-4 flex justify-between items-center">
-        <span className="pl-serif italic text-sm opacity-80">Yours faithfully — PrintLoop.</span>
-        <span className="text-[11px] tracking-editorial">VOL. I · ©2026 <span className="text-ochre ml-2">❦</span></span>
+      <main className="flex-1 max-w-3xl w-full mx-auto px-4 sm:px-6 py-6 sm:py-10">{children}</main>
+      <footer className="bg-ink text-paper px-4 sm:px-6 lg:px-8 py-3 sm:py-4 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1">
+        <span className="pl-serif italic text-xs sm:text-sm opacity-80">
+          Yours faithfully — PrintLoop.
+        </span>
+        <span className="text-[11px] tracking-editorial">
+          VOL. I · ©2026 <span className="text-ochre ml-2">❦</span>
+        </span>
       </footer>
     </div>
   );
@@ -195,7 +201,7 @@ export default function JoinPage() {
       <Shell>
         <div className="border-2 border-ink p-10 text-center">
           <div className="text-5xl mb-3">❦</div>
-          <h1 className="pl-serif text-3xl font-bold mb-2">Session unavailable</h1>
+          <h1 className="pl-serif text-2xl sm:text-3xl font-bold mb-2">Session unavailable</h1>
           <p className="pl-serif italic text-ink/60">{err}</p>
         </div>
       </Shell>
@@ -219,7 +225,7 @@ export default function JoinPage() {
               />
             </div>
             <div>
-              <h1 className="pl-serif text-2xl font-bold mb-1">Document submitted &amp; paid.</h1>
+              <h1 className="pl-serif text-xl sm:text-2xl font-bold mb-1">Document submitted &amp; paid.</h1>
               <p className="pl-serif italic text-ink/60 mb-3">
                 The host prints the whole batch with one token — your pages are included.
               </p>
@@ -234,15 +240,15 @@ export default function JoinPage() {
   return (
     <Shell>
       <div className="editorial-label text-persimmon mb-1">GROUP SESSION</div>
-      <h1 className="pl-serif text-3xl font-bold mb-1">{session?.groupName}</h1>
+      <h1 className="pl-serif text-2xl sm:text-3xl font-bold mb-1">{session?.groupName}</h1>
       <p className="pl-serif italic text-ink/60 mb-6">
         Closes {new Date(session?.deadline).toLocaleString()} ·{" "}
         {enforced ? "host settings are enforced" : "you can configure your own settings"}
       </p>
 
       {stage === "join" && (
-        <div className="border-2 border-ink p-7 max-w-md">
-          <h2 className="pl-serif text-2xl font-bold mb-4">Join the group.</h2>
+        <div className="border-2 border-ink p-4 sm:p-7 max-w-md">
+          <h2 className="pl-serif text-xl sm:text-2xl font-bold mb-4">Join the group.</h2>
           <div className="editorial-label mb-1">YOUR NAME</div>
           <input className="pl-input mb-3" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Full name" />
           <div className="editorial-label mb-1">EMAIL</div>
@@ -257,7 +263,7 @@ export default function JoinPage() {
 
       {stage === "configure" && (
         <div className="grid grid-cols-1 lg:grid-cols-[340px_1fr] gap-4">
-          <section className="border-2 border-ink p-6 bg-paper-light h-fit">
+          <section className="border-2 border-ink p-4 sm:p-6 bg-paper-light h-fit">
             <label htmlFor="gf" className="block border-2 border-dashed border-ink/40 p-6 text-center cursor-pointer hover:bg-paper transition-colors mb-5">
               <div className="pl-serif font-bold">{file ? file.name : "Choose your document"}</div>
               <div className="pl-serif italic text-ink/60 text-xs mt-1">PDF · JPG · PNG</div>

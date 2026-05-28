@@ -16,7 +16,7 @@ export default function SettingsPage() {
   return (
     <div>
       <div className="editorial-label text-persimmon mb-1">▸ SETTINGS</div>
-      <h1 className="pl-serif text-4xl font-bold tracking-tight mb-1">
+      <h1 className="pl-serif text-3xl sm:text-4xl font-bold tracking-tight mb-1">
         Your <em className="italic text-persimmon font-semibold">account</em>.
       </h1>
       <p className="pl-serif italic text-ink/60 mb-7">Keep your details current.</p>
@@ -32,12 +32,12 @@ export default function SettingsPage() {
           </ul>
         </aside>
 
-        <div className="md:col-span-2 border-2 border-ink p-6">
-          <h2 className="pl-serif text-2xl font-bold mb-4 tracking-tight">Profile.</h2>
+        <div className="md:col-span-2 border-2 border-ink p-4 sm:p-6">
+          <h2 className="pl-serif text-xl sm:text-2xl font-bold mb-4 tracking-tight">Profile.</h2>
 
           <Input label="EMAIL" value={user?.email || ""} disabled />
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <Input label="FIRST NAME" value={profile.firstName} onChange={(e) => setProfile({ ...profile, firstName: e.target.value })} />
             <Input label="LAST NAME" value={profile.lastName} onChange={(e) => setProfile({ ...profile, lastName: e.target.value })} />
           </div>

@@ -28,12 +28,12 @@ export default function StationsPage() {
   return (
     <div>
       <div className="editorial-label text-persimmon mb-1">STATIONS</div>
-      <h1 className="pl-serif text-4xl font-bold tracking-tight mb-1">
+      <h1 className="pl-serif text-3xl sm:text-4xl font-bold tracking-tight mb-1">
         {stations.length > 0 ? `${stations.length} ${stations.length === 1 ? "station" : "stations"}` : "Stations"}
         ,{" "}
         <em className="italic text-persimmon font-semibold">always ready</em>.
       </h1>
-      <p className="pl-serif italic text-ink/60 mb-7">
+      <p className="pl-serif italic text-ink/60 mb-6 sm:mb-7 text-sm sm:text-base">
         Live directory — updated as soon as new kiosks are added in the admin console.
       </p>
 

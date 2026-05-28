@@ -172,51 +172,89 @@ export default function NewPrintPage() {
   return (
     <div className="animate-fadein">
       <div className="editorial-label text-persimmon mb-1">NEW PRINT</div>
-      <h1 className="pl-serif text-4xl font-bold tracking-tight mb-1">
+      <h1 className="pl-serif text-3xl sm:text-4xl font-bold tracking-tight mb-1">
         Upload, price, preview, <em className="italic text-persimmon font-semibold">release</em>.
       </h1>
-      <p className="pl-serif italic text-ink/60 mb-7">
+      <p className="pl-serif italic text-ink/60 mb-6 sm:mb-7 text-sm sm:text-base">
         Print codes stay valid for 24 hours. Unprinted jobs are auto-refunded to your wallet.
       </p>
 
-      <div className="grid grid-cols-4 gap-2 mb-7">
+      <div className="grid grid-cols-4 gap-1.5 sm:gap-2 mb-6 sm:mb-7">
         {stepLabels.map((label, index) => {
           const n = (index + 1) as Step;
           const active = n === step;
           const done = n < step;
           return (
-            <div key={label} className={`p-3 border-2 transition-all ${
-              active ? "border-ink bg-persimmon text-paper animate-pulse-ring"
-              : done ? "border-ink bg-ink text-paper" : "border-ink/30 bg-paper text-ink/60"}`}>
-              <div className="pl-serif italic font-bold text-sm opacity-80">0{n}</div>
-              <div className="text-[11px] font-bold tracking-editorial mt-0.5">{label}</div>
+            <div
+              key={label}
+              className={`p-2 sm:p-3 border-2 transition-all ${
+                active
+                  ? "border-ink bg-persimmon text-paper animate-pulse-ring"
+                  : done
+                  ? "border-ink bg-ink text-paper"
+                  : "border-ink/30 bg-paper text-ink/60"
+              }`}
+            >
+              <div className="pl-serif italic font-bold text-xs sm:text-sm opacity-80">0{n}</div>
+              <div className="text-[10px] sm:text-[11px] font-bold tracking-editorial mt-0.5 leading-tight">
+                {label}
+              </div>
             </div>
           );
         })}
       </div>
 
       {step === 1 && (
-        <div className="border-2 border-ink p-7 animate-fadein">
-          <h2 className="pl-serif text-2xl font-bold mb-4">Submit your document.</h2>
-          <label htmlFor="filein" className="block border-2 border-dashed border-ink/40 p-10 text-center cursor-pointer hover:bg-paper-light transition-colors rounded">
-            <div className="pl-serif text-xl font-semibold mb-1">Drop a file, or click to browse.</div>
-            <div className="pl-serif italic text-ink/60 text-sm mb-4">PDF · JPG · PNG · up to 50MB</div>
-            {file && <div className="inline-block bg-ink text-paper px-3 py-1.5 text-xs font-semibold">{file.name}</div>}
-            <input id="filein" type="file"
+        <div className="border-2 border-ink p-4 sm:p-7 animate-fadein">
+          <h2 className="pl-serif text-xl sm:text-2xl font-bold mb-4">Submit your document.</h2>
+          <label
+            htmlFor="filein"
+            className="block border-2 border-dashed border-ink/40 p-6 sm:p-10 text-center cursor-pointer hover:bg-paper-light transition-colors rounded"
+          >
+            <div className="pl-serif text-base sm:text-xl font-semibold mb-1">
+              Drop a file, or click to browse.
+            </div>
+            <div className="pl-serif italic text-ink/60 text-xs sm:text-sm mb-4">
+              PDF · JPG · PNG · up to 50MB
+            </div>
+            {file && (
+              <div className="inline-block bg-ink text-paper px-3 py-1.5 text-xs font-semibold break-all max-w-full">
+                {file.name}
+              </div>
+            )}
+            <input
+              id="filein"
+              type="file"
               accept="application/pdf,image/png,image/jpeg"
-              hidden onChange={(e) => { setFile(e.target.files?.[0] || null); setDocPages(0); setRangeable(false); }} />
+              hidden
+              onChange={(e) => {
+                setFile(e.target.files?.[0] || null);
+                setDocPages(0);
+                setRangeable(false);
+              }}
+            />
           </label>
-          <div className="flex justify-end mt-6 gap-2">
-            <Button variant="ghost" onClick={() => navigate(ROUTES.APP.DASHBOARD)}>CANCEL</Button>
-            <Button variant="primary" arrow disabled={!file} onClick={() => file && setStep(2)}>CONTINUE</Button>
+          <div className="flex flex-col sm:flex-row sm:justify-end mt-6 gap-2">
+            <Button variant="ghost" onClick={() => navigate(ROUTES.APP.DASHBOARD)} className="w-full sm:w-auto">
+              CANCEL
+            </Button>
+            <Button
+              variant="primary"
+              arrow
+              disabled={!file}
+              onClick={() => file && setStep(2)}
+              className="w-full sm:w-auto"
+            >
+              CONTINUE
+            </Button>
           </div>
         </div>
       )}
 
       {step === 2 && (
         <div className="grid grid-cols-1 lg:grid-cols-[1.15fr_0.85fr] gap-4 animate-fadein">
-          <section className="border-2 border-ink p-7">
-            <h2 className="pl-serif text-2xl font-bold mb-1">Configure the print.</h2>
+          <section className="border-2 border-ink p-4 sm:p-7">
+            <h2 className="pl-serif text-xl sm:text-2xl font-bold mb-1">Configure the print.</h2>
             <p className="pl-serif italic text-ink/55 text-sm mb-5">
               Pages are read from your document automatically — choose a range to print only part of it.
             </p>
@@ -335,9 +373,9 @@ export default function NewPrintPage() {
             </div>
           </section>
 
-          <aside className="border-2 border-ink p-7 bg-paper-light">
+          <aside className="border-2 border-ink p-4 sm:p-7 bg-paper-light">
             <div className="editorial-label text-persimmon mb-2">REVIEW PRICING</div>
-            <h2 className="pl-serif text-2xl font-bold mb-5">No surprises later.</h2>
+            <h2 className="pl-serif text-xl sm:text-2xl font-bold mb-5">No surprises later.</h2>
             {[
               ["FILE", file?.name || "-"],
               // Per-page rate matches what the matrix charges for this exact
@@ -384,7 +422,7 @@ export default function NewPrintPage() {
               </div>
             )}
 
-            <div className="flex justify-end gap-2 mt-7">
+            <div className="flex flex-col sm:flex-row sm:justify-end gap-2 mt-6 sm:mt-7">
               <Button variant="ghost" onClick={() => setStep(1)}>BACK</Button>
               <Button variant="primary" arrow onClick={() => setStep(3)}>SUMMARY &amp; PREVIEW</Button>
             </div>
@@ -399,7 +437,7 @@ export default function NewPrintPage() {
             <div className="bg-ink text-paper px-6 py-4 flex justify-between items-center">
               <div>
                 <div className="editorial-label text-persimmon mb-1">ORDER SUMMARY</div>
-                <h2 className="pl-serif text-2xl font-bold">Confirm before you pay.</h2>
+                <h2 className="pl-serif text-xl sm:text-2xl font-bold">Confirm before you pay.</h2>
               </div>
               <div className="pl-mono text-3xl font-bold">₦{total.toLocaleString()}</div>
             </div>

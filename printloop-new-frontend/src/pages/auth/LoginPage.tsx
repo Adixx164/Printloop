@@ -51,22 +51,22 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="px-8 py-16 flex justify-center relative">
+    <div className="px-4 sm:px-6 lg:px-8 py-8 sm:py-12 lg:py-16 flex justify-center relative overflow-hidden">
       <Link
         to={ROUTES.ADMIN.LOGIN}
-        className="absolute right-8 top-6 z-20 text-[10px] font-bold tracking-editorial border-2 border-ink px-3 py-1.5 bg-paper hover:bg-ink hover:text-paper transition-all"
+        className="absolute right-4 sm:right-8 top-4 sm:top-6 z-20 text-[10px] font-bold tracking-editorial border-2 border-ink px-2.5 sm:px-3 py-1.5 bg-paper hover:bg-ink hover:text-paper transition-all"
       >
         ADMIN →
       </Link>
-      <div className="absolute right-12 top-10 w-36 h-36 rounded-full bg-persimmon/10" />
-      <div className="absolute left-12 bottom-10 w-32 h-32 rounded-full bg-ochre/15" />
+      <div className="absolute -right-4 top-10 w-24 h-24 sm:w-36 sm:h-36 rounded-full bg-persimmon/10 pointer-events-none" />
+      <div className="absolute -left-4 bottom-10 w-24 h-24 sm:w-32 sm:h-32 rounded-full bg-ochre/15 pointer-events-none" />
 
       <div className="relative z-10 w-full max-w-md py-4">
         <div className="editorial-label text-persimmon mb-2">▸ WELCOME BACK</div>
-        <h1 className="pl-serif font-extrabold text-[42px] leading-[0.98] tracking-tight mb-2">
+        <h1 className="pl-serif font-extrabold text-[32px] sm:text-[38px] lg:text-[42px] leading-[1.02] sm:leading-[0.98] tracking-tight mb-2">
           Sign in to your <em className="italic text-persimmon font-semibold">loop</em>.
         </h1>
-        <p className="pl-serif italic text-sm text-ink/70 mb-7">
+        <p className="pl-serif italic text-sm text-ink/70 mb-6 sm:mb-7">
           Three jobs printed last week. Welcome back to the dispatch.
         </p>
 
@@ -88,6 +88,10 @@ export default function LoginPage() {
             type="email"
             name="email"
             placeholder="you@example.com"
+            autoComplete="email"
+            inputMode="email"
+            autoCapitalize="none"
+            spellCheck={false}
             value={formik.values.email}
             onChange={formik.handleChange}
             onBlur={formik.handleBlur}
@@ -108,6 +112,7 @@ export default function LoginPage() {
               type="password"
               name="password"
               placeholder="••••••••"
+              autoComplete="current-password"
               value={formik.values.password}
               onChange={formik.handleChange}
               onBlur={formik.handleBlur}

@@ -61,7 +61,7 @@ function SessionCard({ session, hostId }: { session: any; hostId: string }) {
       <div className="bg-ink text-paper px-5 py-3 flex justify-between gap-3 items-center flex-wrap">
         <div>
           <div className="editorial-label text-persimmon mb-1">{isOpen ? "OPEN" : "CLOSED"}</div>
-          <h2 className="pl-serif text-2xl font-bold">{session.groupName}</h2>
+          <h2 className="pl-serif text-xl sm:text-2xl font-bold">{session.groupName}</h2>
         </div>
         <div className="flex gap-2">
           <button onClick={() => copy(joinUrl, "Share link")} className="pl-btn-primary py-2 px-3 text-[11px]">
@@ -196,7 +196,7 @@ export default function GroupPrintPage() {
   return (
     <div className="animate-fadein">
       <div className="editorial-label text-persimmon mb-1">GROUP PRINTING</div>
-      <h1 className="pl-serif text-4xl font-bold tracking-tight mb-1">
+      <h1 className="pl-serif text-3xl sm:text-4xl font-bold tracking-tight mb-1">
         Name it, set a deadline, <em className="italic text-persimmon font-semibold">share the link</em>.
       </h1>
       <p className="pl-serif italic text-ink/60 mb-7">
@@ -204,7 +204,7 @@ export default function GroupPrintPage() {
       </p>
 
       <div className="grid grid-cols-1 lg:grid-cols-[380px_1fr] gap-4">
-        <aside className="border-2 border-ink p-6 bg-paper-light h-fit">
+        <aside className="border-2 border-ink p-4 sm:p-6 bg-paper-light h-fit">
           <div className="editorial-label text-persimmon mb-3">CREATE A SESSION</div>
 
           <div className="editorial-label mb-2">SESSION NAME</div>

@@ -980,8 +980,48 @@ export default function AdminConsolePage() {
   }, [tab, canManageAdmins, isSuperAdmin, privs.join(",")]);
 
   return (
-    <div className="flex h-screen">
-      <aside className="w-64 bg-sage text-paper flex-shrink-0 flex flex-col overflow-y-auto">
+    <div className="flex flex-col lg:flex-row lg:h-screen">
+      {/* ── Mobile / tablet top bar ─────────────────────────────────
+         The desktop sidebar (lg:) is hidden, replaced by:
+           - a compact bg-sage header with admin name + sign out
+           - a horizontally-scrollable tab strip directly below */}
+      <header className="lg:hidden bg-sage text-paper px-4 sm:px-5 py-3 flex items-center justify-between gap-3">
+        <div className="min-w-0">
+          <div className="editorial-label text-paper/50 text-[9px]">PRINTLOOP ADMIN</div>
+          <div className="pl-serif text-base font-bold leading-tight truncate">
+            {currentUser?.firstName || "System"} {currentUser?.lastName || "Admin"}
+          </div>
+        </div>
+        <button
+          onClick={handleSignOut}
+          className="text-[10px] font-bold tracking-editorial px-3 py-1.5 border border-persimmon/40 text-persimmon bg-paper/10 hover:bg-persimmon hover:text-paper transition-colors flex-shrink-0"
+        >
+          SIGN OUT
+        </button>
+      </header>
+      <nav
+        className="lg:hidden bg-sage text-paper overflow-x-auto border-t border-paper/10"
+        aria-label="Admin sections"
+      >
+        <div className="flex">
+          {tabs.map((item) => (
+            <button
+              key={item.key}
+              onClick={() => setTab(item.key)}
+              className={`px-4 py-3 text-[11px] font-bold tracking-editorial uppercase whitespace-nowrap transition-colors flex-shrink-0 ${
+                tab === item.key
+                  ? "bg-paper text-sage"
+                  : "text-paper/80 hover:bg-ink/20 hover:text-paper"
+              }`}
+            >
+              {item.label}
+            </button>
+          ))}
+        </div>
+      </nav>
+
+      {/* ── Desktop sidebar ─────────────────────────────────────── */}
+      <aside className="hidden lg:flex w-64 bg-sage text-paper flex-shrink-0 flex-col overflow-y-auto">
         <div className="px-5 py-6 border-b border-paper/10">
           <div className="editorial-label text-paper/50 mb-1">PRINTLOOP ADMIN</div>
           <div className="pl-serif text-xl font-bold leading-tight">
@@ -1020,7 +1060,8 @@ export default function AdminConsolePage() {
         </div>
       </aside>
 
-      <main className="flex-1 bg-paper overflow-y-auto p-8 animate-fadein">{content}</main>
+      {/* ── Main content area ──────────────────────────────────── */}
+      <main className="flex-1 bg-paper overflow-y-auto p-4 sm:p-6 lg:p-8 animate-fadein">{content}</main>
     </div>
   );
 }

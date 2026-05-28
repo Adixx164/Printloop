@@ -243,10 +243,10 @@ export default function BatchPrintPage() {
     return (
       <div className="animate-fadein">
         <div className="editorial-label text-persimmon mb-1">BATCH READY</div>
-        <h1 className="pl-serif text-4xl font-bold tracking-tight mb-1">
+        <h1 className="pl-serif text-3xl sm:text-4xl font-bold tracking-tight mb-1">
           One code, <em className="italic text-persimmon font-semibold">{docs.length} documents</em>.
         </h1>
-        <p className="pl-serif italic text-ink/60 mb-7">
+        <p className="pl-serif italic text-ink/60 mb-6 sm:mb-7 text-sm sm:text-base">
           A single 24-hour code releases the whole set at the kiosk — printed in order
           {collate ? ", collated" : ""}.
         </p>
@@ -289,15 +289,15 @@ export default function BatchPrintPage() {
   return (
     <div className="animate-fadein">
       <div className="editorial-label text-persimmon mb-1">PERSONAL BATCH PRINTING</div>
-      <h1 className="pl-serif text-4xl font-bold tracking-tight mb-1">
+      <h1 className="pl-serif text-3xl sm:text-4xl font-bold tracking-tight mb-1">
         Many files, each <em className="italic text-persimmon font-semibold">your way</em>.
       </h1>
-      <p className="pl-serif italic text-ink/60 mb-7">
+      <p className="pl-serif italic text-ink/60 mb-6 sm:mb-7 text-sm sm:text-base">
         Set a default, then fine-tune any document individually. Files left untouched use the default.
       </p>
 
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-4">
-        <section className="border-2 border-ink p-7">
+        <section className="border-2 border-ink p-4 sm:p-7">
           <label htmlFor="bf" className="block border-2 border-dashed border-ink/40 p-8 text-center cursor-pointer hover:bg-paper-light transition-colors">
             <div className="pl-serif text-xl font-bold">Attach documents</div>
             <div className="pl-serif italic text-ink/60 text-sm mt-1">PDF · JPG · PNG — add as many as you like</div>
@@ -365,7 +365,7 @@ export default function BatchPrintPage() {
           </div>
         </section>
 
-        <aside className="border-2 border-ink p-7 bg-paper-light h-fit">
+        <aside className="border-2 border-ink p-4 sm:p-7 bg-paper-light h-fit">
           <div className="editorial-label text-persimmon mb-2">BATCH SUMMARY</div>
           <div className="pl-serif text-4xl font-bold mb-1">₦{total.toLocaleString()}</div>
           <div className="text-sm text-ink/60 mb-5">

@@ -50,18 +50,18 @@ export default function AdminLoginPage() {
       </div>
 
       {/* Right form panel */}
-      <div className="flex-1 flex items-center justify-center p-8 bg-paper">
+      <div className="flex-1 flex items-center justify-center p-4 sm:p-6 lg:p-8 bg-paper">
         <div className="w-full max-w-md">
           {/* Mobile logo */}
-          <div className="md:hidden mb-8">
+          <div className="md:hidden mb-6">
             <div className="editorial-label text-persimmon mb-1">PRINTLOOP ADMIN</div>
           </div>
 
           <div className="editorial-label text-persimmon mb-1">RESTRICTED ACCESS</div>
-          <h1 className="pl-serif text-4xl font-bold text-ink mb-1">
+          <h1 className="pl-serif text-3xl sm:text-4xl font-bold text-ink mb-1">
             Admin Sign In
           </h1>
-          <p className="pl-serif italic text-ink/60 mb-8">
+          <p className="pl-serif italic text-ink/60 mb-6 sm:mb-8 text-sm sm:text-base">
             Enter your administrative credentials to continue.
           </p>
 
