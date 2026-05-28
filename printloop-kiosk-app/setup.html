@@ -131,8 +131,9 @@
     <legend>Cloud</legend>
     <div class="field">
       <label for="baseUrl">PrintLoop backend URL</label>
-      <input id="baseUrl" type="url" placeholder="https://printloop-production.up.railway.app" required />
-      <div class="hint">Where the customer uploads land. Outbound HTTPS only.</div>
+      <input id="baseUrl" type="text" autocomplete="off" spellcheck="false"
+             placeholder="printloop-production.up.railway.app" required />
+      <div class="hint">Hostname or full URL. We auto-add <code>https://</code> if you skip it.</div>
     </div>
     <div class="field">
       <label for="kioskKey">Kiosk API key</label>
@@ -256,6 +257,16 @@
     }
   });
 
+  // Show the auto-prefixed URL back to the user the moment they leave
+  // the field, so they know we're talking to https://… not their raw
+  // input. Avoids confusion later when the test runs.
+  $('baseUrl').addEventListener('blur', () => {
+    const normalized = normalizeBaseUrl($('baseUrl').value);
+    if (normalized && normalized !== $('baseUrl').value.trim()) {
+      $('baseUrl').value = normalized;
+    }
+  });
+
   // Transport toggle
   document.querySelectorAll('input[name="transport"]').forEach((r) => {
     r.addEventListener('change', () => {
@@ -265,9 +276,27 @@
     });
   });
 
+  /**
+   * Normalize a user-typed URL: if they entered just a hostname
+   * (`printloop-production.up.railway.app`) or `//host`, auto-prefix
+   * `https://`. Strip trailing slashes. Reject anything that's not a
+   * plausible http(s) URL by leaving it as-is — the cloud-test button
+   * will then surface a clearer error than a silent ENOTFOUND.
+   */
+  function normalizeBaseUrl(raw) {
+    let v = String(raw || '').trim();
+    if (!v) return '';
+    if (/^http:\/\//i.test(v) || /^https:\/\//i.test(v)) {
+      return v.replace(/\/+$/, '');
+    }
+    // Bare hostname or protocol-relative — assume HTTPS.
+    v = v.replace(/^\/\//, '');
+    return 'https://' + v.replace(/\/+$/, '');
+  }
+
   function readForm() {
     return {
-      baseUrl: $('baseUrl').value.trim(),
+      baseUrl: normalizeBaseUrl($('baseUrl').value),
       kioskKey: $('kioskKey').value.trim(),
       printerIp: $('printerIp').value.trim(),
       printerPort: Number($('printerPort').value) || 631,

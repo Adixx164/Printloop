@@ -64,6 +64,20 @@ let stopAgent = null;
 
 const CONFIG_PATH = () => path.join(app.getPath('userData'), 'config.json');
 
+/**
+ * Normalize a stored baseUrl — defence against hand-edited config files
+ * that omit the scheme (e.g. just `printloop-production.up.railway.app`).
+ * Axios / Node's URL parser silently treats schemeless strings as
+ * relative paths, which causes ENOTFOUND / weird routing. Always force
+ * a valid absolute URL before handing it to the agent.
+ */
+function normalizeBaseUrl(raw) {
+  let v = String(raw || '').trim();
+  if (!v) return '';
+  if (/^https?:\/\//i.test(v)) return v.replace(/\/+$/, '');
+  return 'https://' + v.replace(/^\/+/, '').replace(/\/+$/, '');
+}
+
 // ── Config persistence ──────────────────────────────────────────────
 function readConfig() {
   try {
@@ -71,7 +85,11 @@ function readConfig() {
     // Strip UTF-8 BOM if present — Notepad / PowerShell `Out-File -Encoding utf8`
     // both write it, and JSON.parse rejects strings starting with U+FEFF.
     if (raw.charCodeAt(0) === 0xFEFF) raw = raw.slice(1);
-    return JSON.parse(raw);
+    const cfg = JSON.parse(raw);
+    if (cfg && typeof cfg === 'object' && cfg.baseUrl) {
+      cfg.baseUrl = normalizeBaseUrl(cfg.baseUrl);
+    }
+    return cfg;
   } catch (e) {
     console.warn('[main] readConfig failed:', e && e.message);
     return null;
@@ -226,7 +244,7 @@ ipcMain.handle('setup:getConfig', () => readConfig());
 
 ipcMain.handle('setup:testCloud', async (_e, { baseUrl, kioskKey }) => {
   try {
-    const url = String(baseUrl || '').replace(/\/+$/, '') + '/api/printer/heartbeat';
+    const url = normalizeBaseUrl(baseUrl) + '/api/printer/heartbeat';
     const r = await axios.get(url, {
       headers: { 'X-Kiosk-Key': kioskKey },
       timeout: 10_000,
@@ -260,6 +278,9 @@ ipcMain.handle('setup:testPrinter', async (_e, cfg) => {
 
 ipcMain.handle('setup:save', async (_e, cfg) => {
   try {
+    // Normalize the URL one more time at the trust boundary, so a
+    // bypassed wizard / hand-edited input still lands a clean URL on disk.
+    if (cfg && cfg.baseUrl) cfg.baseUrl = normalizeBaseUrl(cfg.baseUrl);
     writeConfig(cfg);
 
     // Auto-start on login is a per-config preference, not a build-time
