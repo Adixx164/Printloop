@@ -1,0 +1,15 @@
+# Nixpacks build config for the PrintLoop backend on Railway.
+#
+# We need the Ghostscript CLI available at runtime: the agent-pull
+# download endpoint (routes/agent.routes.ts -> /jobs/:id/file) shells out
+# to `gs` to force-convert a PDF to grayscale when the customer picked
+# black & white. The Sharp MX-5112N ignores PJL color directives for PDF
+# input, so this server-side conversion is the only firmware-proof way to
+# guarantee a B&W print.
+#
+# `aptPkgs` under [phases.setup] is APPENDED to the Node toolchain that
+# Nixpacks auto-detects (the `"..."` spread preserves whatever the
+# auto-plan put here) — it does not replace it. Build/deploy commands
+# stay in railway.toml.
+[phases.setup]
+aptPkgs = ["...", "ghostscript"]

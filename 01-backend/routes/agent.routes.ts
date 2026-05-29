@@ -11,6 +11,7 @@ import {
   ensurePdf,
   extractPages,
   parsePageRange,
+  toGrayscale,
   UnsupportedDocumentError,
 } from '../services/documentConvert.service';
 import { PrinterServiceExtensions } from '../services/printerExtensions.service';
@@ -268,6 +269,18 @@ router.get('/jobs/:id/file', async (req: Request, res: Response) => {
         // counter advances, which surfaces to the operator.
         console.warn('[agent] page-range slice failed, sending full document:', e?.message);
       }
+    }
+
+    // ── 3. Force grayscale if the customer chose B&W. ───────────────
+    // The Sharp ignores our PJL color directives for PDF input, so the
+    // only firmware-proof way to honor a B&W selection is to strip the
+    // color from the bytes here via Ghostscript. No-op passthrough that
+    // returns the original (color) bytes if gs isn't installed (logs a
+    // warning) — a color print beats a failed print. Only triggers on
+    // an explicit non-'color' value, so jobs without a color setting
+    // print unchanged.
+    if (cfg && cfg.color && cfg.color !== 'color') {
+      pdfBytes = await toGrayscale(pdfBytes);
     }
 
     res.setHeader('Content-Type', 'application/pdf');

@@ -1,4 +1,12 @@
 import { PDFDocument } from 'pdf-lib';
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
+import { promises as fs } from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import crypto from 'node:crypto';
+
+const execFileAsync = promisify(execFile);
 
 /** Thrown when an upload/job is not a PDF or supported image. */
 export class UnsupportedDocumentError extends Error {
@@ -167,4 +175,107 @@ export async function extractPages(input: Buffer, pageNumbers: number[]): Promis
   const copied = await out.copyPages(source, indices);
   for (const page of copied) out.addPage(page);
   return Buffer.from(await out.save());
+}
+
+// ── Ghostscript grayscale enforcement ─────────────────────────────────
+//
+// Why this exists: the Sharp MX-5112N (like many office MFPs) ignores
+// the PJL color directives the agent emits (@PJL SET RENDERMODE=GRAYSCALE
+// and 5 sibling hints) for PDF input — it prints whatever color space
+// the PDF carries. The ONLY firmware-proof way to honor a customer's
+// "black & white" choice is to strip the color from the bytes before
+// they ever reach the printer. Ghostscript's pdfwrite device with
+// `-sColorConversionStrategy=Gray` remaps every color object to
+// DeviceGray in a single pass, vector and raster alike.
+
+/**
+ * Candidate Ghostscript executables by platform. Linux/macOS expose the
+ * binary as `gs`; Windows ships `gswin64c` / `gswin32c` (the `c` suffix
+ * is the console build — the non-`c` ones pop a GUI window). An explicit
+ * GHOSTSCRIPT_BIN env var wins so a deploy can pin an absolute path.
+ */
+function gsCandidates(): string[] {
+  const override = process.env.GHOSTSCRIPT_BIN;
+  if (override) return [override];
+  if (process.platform === 'win32') return ['gswin64c', 'gswin32c'];
+  return ['gs'];
+}
+
+// Probe result is cached for the life of the process: undefined = not
+// yet probed, string = the working binary, null = none found.
+let cachedGsBin: string | null | undefined;
+
+async function resolveGsBinary(): Promise<string | null> {
+  if (cachedGsBin !== undefined) return cachedGsBin;
+  for (const bin of gsCandidates()) {
+    try {
+      await execFileAsync(bin, ['--version'], { timeout: 5000 });
+      cachedGsBin = bin;
+      return bin;
+    } catch {
+      // Try the next candidate name.
+    }
+  }
+  cachedGsBin = null;
+  return null;
+}
+
+/** True iff a Ghostscript binary is callable on this host. */
+export async function ghostscriptAvailable(): Promise<boolean> {
+  return (await resolveGsBinary()) !== null;
+}
+
+/**
+ * Force a PDF to grayscale via Ghostscript, returning the converted
+ * bytes. Page count and dimensions are preserved (so the SNMP
+ * physical-print confirmation's expected-page math is unchanged).
+ *
+ * Graceful by design: if Ghostscript isn't installed, or the conversion
+ * errors for ANY reason, we return the ORIGINAL bytes and log a warning.
+ * A color print is a far better failure mode than a failed print — the
+ * customer still gets their document and the operator sees the warning
+ * and installs gs. We run with `-dSAFER` because the input is an
+ * untrusted user-supplied PDF.
+ */
+export async function toGrayscale(pdfBytes: Buffer): Promise<Buffer> {
+  const bin = await resolveGsBinary();
+  if (!bin) {
+    console.warn(
+      '[documentConvert] Ghostscript not found — cannot force grayscale; ' +
+        'sending original (color) PDF. Install ghostscript to enable B&W enforcement.',
+    );
+    return pdfBytes;
+  }
+
+  const stamp = crypto.randomBytes(8).toString('hex');
+  const inPath = path.join(os.tmpdir(), `pl-gs-${stamp}-in.pdf`);
+  const outPath = path.join(os.tmpdir(), `pl-gs-${stamp}-out.pdf`);
+
+  try {
+    await fs.writeFile(inPath, pdfBytes);
+    await execFileAsync(
+      bin,
+      [
+        '-sDEVICE=pdfwrite',
+        '-sColorConversionStrategy=Gray',
+        '-dProcessColorModel=/DeviceGray',
+        '-dNOPAUSE',
+        '-dBATCH',
+        '-dSAFER',
+        '-dQUIET',
+        `-sOutputFile=${outPath}`,
+        inPath,
+      ],
+      { timeout: 120000, maxBuffer: 64 * 1024 * 1024 },
+    );
+    const out = await fs.readFile(outPath);
+    if (!out || out.length === 0) throw new Error('Ghostscript produced an empty file');
+    return out;
+  } catch (e: any) {
+    console.warn('[documentConvert] grayscale conversion failed, sending original:', e?.message);
+    return pdfBytes;
+  } finally {
+    fs.unlink(inPath).catch(() => {});
+    fs.unlink(outPath).catch(() => {});
+  }
 }

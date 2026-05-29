@@ -762,6 +762,83 @@ counter actually advances.
 
 ---
 
+## Phase 18 — Bullet-proof grayscale via Ghostscript (2026-05-29)
+
+**Prompted by:** "wire up Ghostscript" — the green light to do the
+v2 fix that Phase 17 documented as deferred. The six PJL color
+hints from Phase 17 are best-effort; the Sharp MX-5112N ignores
+them for PDF input. The only firmware-proof way to guarantee a
+black-and-white print is to remove the color from the bytes before
+they reach the printer.
+
+### Where it runs
+
+In `services/documentConvert.service.ts`, a new `toGrayscale(buf)`
+shells out to Ghostscript (`gs` on Linux/Railway, `gswin64c` /
+`gswin32c` on Windows; override with `GHOSTSCRIPT_BIN`) with the
+exact command Phase 17 documented:
+
+```sh
+gs -sDEVICE=pdfwrite -sColorConversionStrategy=Gray \
+   -dProcessColorModel=/DeviceGray \
+   -dNOPAUSE -dBATCH -dSAFER -dQUIET \
+   -sOutputFile=out.pdf in.pdf
+```
+
+`-dSAFER` because the input is an untrusted user PDF. The binary is
+probed once (`gs --version`) and the result cached for the process.
+
+The call site is `routes/agent.routes.ts` → `/jobs/:id/file`, right
+after the page-range slice and before the response is sent:
+
+```ts
+if (cfg && cfg.color && cfg.color !== 'color') {
+  pdfBytes = await toGrayscale(pdfBytes);
+}
+```
+
+So the transform pipeline at the signed-download endpoint is now
+`ensurePdf` (image→PDF) → `extractPages` (page range) → `toGrayscale`
+(B&W) → send. Grayscale preserves page count, so the SNMP
+physical-print confirmation math (`effectivePages × copies`) is
+unchanged.
+
+### Graceful degradation
+
+If `gs` isn't installed, or the conversion errors for any reason,
+`toGrayscale` returns the **original** (color) bytes and logs a
+warning. A color print is a far better failure mode than a failed
+print — the customer still gets their document and the operator
+sees the warning. Local Windows dev has no `gs` installed, so the
+dev backend falls back to color; production has it.
+
+### Railway gets the binary at build time
+
+New `01-backend/nixpacks.toml`:
+
+```toml
+[phases.setup]
+aptPkgs = ["...", "ghostscript"]
+```
+
+The `"..."` spread appends `ghostscript` to the Node toolchain
+Nixpacks auto-detects rather than replacing it. Build/deploy
+commands stay in `railway.toml`.
+
+### Not done here (DPI)
+
+`qualityDpi` is still printer-side / cosmetic-for-pricing (see the
+Phase 17 DPI note). Re-rendering through gs at a chosen DPI is the
+same hammer but rasterizes vector content (lossy) and the reported
+bug was about color, not DPI — left out to keep scope tight. The
+PJL `SET RESOLUTION` hint remains the lever the printer may honor.
+
+**Commit `_pending_`** — backend only. Typecheck clean. The kiosk
+.exe does NOT need rebuilding (the conversion is entirely
+server-side at the download endpoint).
+
+---
+
 ## Phase 17 — Images print + page range + B/W (2026-05-29)
 
 **Prompted by:** "i just realized that images dont print compared
@@ -845,8 +922,8 @@ gs -sDEVICE=pdfwrite -sColorConversionStrategy=Gray \
 
 That guarantees mono regardless of the printer's PJL behaviour.
 Adds a system dependency to the Railway container (apt-get
-ghostscript) but is the industry-standard answer. Documented as
-a deferred follow-up.
+ghostscript) but is the industry-standard answer. ~~Documented as
+a deferred follow-up.~~ **→ Shipped in Phase 18 below.**
 
 ### Known limitation — DPI / `qualityDpi`
 

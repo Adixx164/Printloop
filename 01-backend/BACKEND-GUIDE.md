@@ -708,6 +708,18 @@ host's `enforced` flag.
   order) so the printer keeps seeing byte-exact bytes.
 - `isPrintableDocument(fileName, mime?)` — upload-gate
   predicate.
+- `toGrayscale(bytes)` — shells out to Ghostscript (`gs` /
+  `gswin64c` / `gswin32c`, or `GHOSTSCRIPT_BIN`) to force the PDF
+  to DeviceGray (`-sColorConversionStrategy=Gray`). This is the
+  firmware-proof B&W path: the Sharp ignores PJL color directives
+  for PDF input, so the only guarantee is to strip color from the
+  bytes. Returns the **original** bytes (with a warning) if gs is
+  absent or conversion fails — a color print beats a failed print.
+  Page count is preserved (SNMP confirm math unchanged). Added
+  Phase 18; needs `ghostscript` on the host (Railway gets it via
+  `01-backend/nixpacks.toml`).
+- `ghostscriptAvailable()` — probe helper (cached) for whether a
+  `gs` binary is callable.
 - `UnsupportedDocumentError` class + `ALLOWED_LABEL` constant.
 
 Used by:
