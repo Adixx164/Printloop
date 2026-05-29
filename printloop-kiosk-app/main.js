@@ -222,15 +222,31 @@ function bootAgent(cfg) {
     stopAgent = null;
   }
   try {
-    stopAgent = startAgent(cfg, (ev) => {
-      console.log('[agent:event]', ev);
-      // Forward selected events to the kiosk window so the UI can
-      // show a "last job" pill if/when we add one. Renderer just
-      // listens on window.postMessage from us — see below.
-      if (kioskWin && !kioskWin.isDestroyed()) {
-        kioskWin.webContents.send('agent:event', ev);
-      }
-    });
+    stopAgent = startAgent(
+      cfg,
+      (ev) => {
+        console.log('[agent:event]', ev);
+        // Forward selected events to the kiosk window so the UI can
+        // show a "last job" pill if/when we add one. Renderer just
+        // listens on window.postMessage from us — see below.
+        if (kioskWin && !kioskWin.isDestroyed()) {
+          kioskWin.webContents.send('agent:event', ev);
+        }
+      },
+      // persist(patch) — the agent calls this when it self-heals a
+      // printer IP change or captures the printer's MAC. We merge the
+      // patch into the on-disk config so the adopted IP / MAC survives
+      // a kiosk restart and the operator never has to re-run setup.
+      (patch) => {
+        try {
+          const current = readConfig() || {};
+          writeConfig({ ...current, ...patch });
+          console.log('[main] persisted agent config patch:', Object.keys(patch).join(', '));
+        } catch (e) {
+          console.warn('[main] persist patch failed:', e && e.message);
+        }
+      },
+    );
   } catch (err) {
     console.error('[agent] failed to start:', err && err.message);
   }

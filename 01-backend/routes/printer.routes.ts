@@ -11,7 +11,7 @@ import { PrintJob, PrintJobStatus } from '../entities/printJob.entity';
 import { PrintJobItem } from '../entities/printJobItem.entity';
 import { File } from '../entities/file.entity';
 import { loadDocumentBytes } from '../utils/fileStore';
-import { ensurePdf, UnsupportedDocumentError } from '../services/documentConvert.service';
+import { ensurePdf, toGrayscale, UnsupportedDocumentError } from '../services/documentConvert.service';
 
 const router = Router();
 const printerExt = new PrinterServiceExtensions();
@@ -36,6 +36,19 @@ async function dispatchPrint(
     return ipp.rawPrint(printerIp, source, jobName, opts, rawPort);
   }
   return ipp.printJob(printerIp, source, jobName, opts);
+}
+
+/**
+ * Force grayscale on the cloud-push path when the (policy-resolved)
+ * colour isn't 'color'. The printer's PJL colour directives are
+ * unreliable for PDF input — the Sharp ignores them and prints the
+ * PDF's own colour space — so we strip the colour from the bytes
+ * server-side via Ghostscript, the same guarantee the kiosk-pull
+ * download endpoint applies. No-op (returns the original bytes) if
+ * Ghostscript isn't installed on the host.
+ */
+async function maybeGrayscale(buffer: Buffer, color: string | undefined): Promise<Buffer> {
+  return color && color !== 'color' ? toGrayscale(buffer) : buffer;
 }
 
 function parsePages(cfg: any): number[] | null {
@@ -238,7 +251,7 @@ router.post('/complete', kioskAuth, async (req: Request, res: Response) => {
           const b = await loadDocumentBytes(url);
           if (b) {
             const pdf = await ensurePdf(b, f?.fileName || it.fileName || 'doc.pdf');
-            src = { buffer: pdf.buffer };
+            src = { buffer: await maybeGrayscale(pdf.buffer, pol.mutated.color) };
           }
         } catch (e: any) {
           if (e instanceof UnsupportedDocumentError) {
@@ -350,7 +363,7 @@ router.post('/complete', kioskAuth, async (req: Request, res: Response) => {
       const bytes = await loadDocumentBytes(fileUrl);
       if (bytes) {
         const pdf = await ensurePdf(bytes, file?.fileName || job.fileName || `${job.code}.pdf`);
-        source = { buffer: pdf.buffer };
+        source = { buffer: await maybeGrayscale(pdf.buffer, policy.mutated.color) };
       }
     } catch (e: any) {
       if (e instanceof UnsupportedDocumentError) {
@@ -493,7 +506,7 @@ router.post('/complete-batch', kioskAuth, async (req: Request, res: Response) =>
         const bytes = await loadDocumentBytes(f.fileURL);
         if (bytes) {
           const pdf = await ensurePdf(bytes, `${f.participantName || 'document'}.pdf`);
-          src = { buffer: pdf.buffer };
+          src = { buffer: await maybeGrayscale(pdf.buffer, pol.mutated.color) };
         }
         await dispatchPrint(
           kiosk.ipAddress,

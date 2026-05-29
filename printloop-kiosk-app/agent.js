@@ -17,6 +17,8 @@ const ipp = require('ipp');
 const net = require('node:net');
 const os = require('node:os');
 const dgram = require('node:dgram');
+const { execFile } = require('node:child_process');
+const { discoverAll } = require('./discovery.js');
 
 /**
  * Interfaces whose names match these patterns are VPN / overlay tunnels
@@ -53,6 +55,127 @@ function pickSourceAddress(destIp) {
   if (physical) return physical.addr;
   // Fall back to anything — better some attempt than none.
   return all[0]?.addr;
+}
+
+// ── Self-healing printer location ─────────────────────────────────────
+// DHCP can hand the printer a new IP at any lease renewal. Rather than
+// make the operator re-run the setup wizard, the agent re-discovers the
+// printer on the LAN and adopts the new IP automatically — identifying
+// "the same printer" by its MAC address (captured on first contact),
+// falling back to its model name, then to "the only printer on the LAN".
+
+/** One-shot TCP connect probe. Resolves true if the port accepts. */
+function tcpProbe(host, port, timeoutMs = 800) {
+  return new Promise((resolve) => {
+    if (!host || !port) return resolve(false);
+    const sock = new net.Socket();
+    let done = false;
+    const finish = (ok) => { if (done) return; done = true; try { sock.destroy(); } catch {} resolve(ok); };
+    sock.setTimeout(timeoutMs);
+    sock.once('connect', () => finish(true));
+    sock.once('timeout', () => finish(false));
+    sock.once('error', () => finish(false));
+    try { sock.connect({ host, port, localAddress: pickSourceAddress(host) }); }
+    catch { finish(false); }
+  });
+}
+
+/**
+ * Resolve an IP's MAC from the OS ARP table. The IP must have been
+ * contacted recently (a TCP probe populates the cache). Cross-platform
+ * `arp -a <ip>`: we take the line mentioning the IP and pull the first
+ * MAC-shaped token. Returns lower-case colon form, or null.
+ */
+function arpMac(ip) {
+  return new Promise((resolve) => {
+    execFile('arp', ['-a', ip], { timeout: 4000, windowsHide: true }, (_err, stdout) => {
+      const text = String(stdout || '');
+      const macRx = /([0-9a-f]{2}[:-]){5}[0-9a-f]{2}/i;
+      const norm = (m) => m.replace(/-/g, ':').toLowerCase();
+      for (const line of text.split(/\r?\n/)) {
+        if (line.includes(ip)) {
+          const m = line.match(macRx);
+          if (m) return resolve(norm(m[0]));
+        }
+      }
+      const any = text.match(macRx);
+      resolve(any ? norm(any[0]) : null);
+    });
+  });
+}
+
+let _lastRescanAt = 0;
+/**
+ * Re-discover the configured printer and adopt a new IP if it moved.
+ * Debounced to once / 90 s so a printer that's merely powered off doesn't
+ * trigger a /24 scan on every keep-alive tick. Mutates `cfg` in place and
+ * calls `cfg._persist` (if wired) so the new IP survives a restart.
+ * Returns true iff the IP actually changed.
+ */
+async function relocateIfMoved(cfg, emit, reason) {
+  const now = Date.now();
+  if (now - _lastRescanAt < 90_000) return false;
+  _lastRescanAt = now;
+
+  console.warn(`[agent] printer ${cfg.printerIp} unreachable (${reason}) — rescanning LAN to re-resolve…`);
+  let list;
+  try { list = await discoverAll({ enrich: true }); }
+  catch (e) { console.warn('[agent] rescan failed:', e && e.message); return false; }
+
+  const wantRaw = cfg.transport === 'raw9100';
+  const candidates = (list || []).filter((p) => (wantRaw ? p.rawPort : p.ippPort));
+  if (!candidates.length) { console.warn('[agent] rescan: no printers found on the LAN'); return false; }
+
+  let match = null;
+  // 1. MAC — the only identity that survives a DHCP change unambiguously.
+  if (cfg.printerMac) {
+    for (const c of candidates) {
+      await tcpProbe(c.ip, wantRaw ? c.rawPort : c.ippPort, 700); // warm the ARP entry
+      const mac = await arpMac(c.ip);
+      if (mac && mac === cfg.printerMac) { match = c; break; }
+    }
+  }
+  // 2. Model — if we know it and it's unique among the candidates.
+  if (!match && cfg.printerModel && cfg.printerModel !== '(unknown)') {
+    const byModel = candidates.filter((c) => c.model && c.model === cfg.printerModel);
+    if (byModel.length === 1) match = byModel[0];
+  }
+  // 3. Last resort — exactly one printer on the LAN, so it must be ours.
+  if (!match && candidates.length === 1) match = candidates[0];
+
+  if (!match) {
+    console.warn(`[agent] rescan: ${candidates.length} candidate(s), none uniquely identify the printer — keeping ${cfg.printerIp}`);
+    return false;
+  }
+  if (match.ip === cfg.printerIp) return false; // found at same IP → just asleep, not moved
+
+  const from = cfg.printerIp;
+  cfg.printerIp = match.ip;
+  if (wantRaw && match.rawPort) cfg.rawPort = match.rawPort;
+  if (!wantRaw && match.ippPort) cfg.printerPort = match.ippPort;
+  if (match.ippPath) cfg.ippPath = match.ippPath;
+  if ((!cfg.printerModel || cfg.printerModel === '(unknown)') && match.model && match.model !== '(unknown)') {
+    cfg.printerModel = match.model;
+  }
+  if (!cfg.printerMac) {
+    const mac = await arpMac(cfg.printerIp);
+    if (mac) cfg.printerMac = mac;
+  }
+  console.log(`[agent] printer relocated ${from} → ${cfg.printerIp} (${cfg.printerModel || match.model || 'match'})`);
+  if (typeof cfg._persist === 'function') {
+    try {
+      cfg._persist({
+        printerIp: cfg.printerIp,
+        rawPort: cfg.rawPort,
+        printerPort: cfg.printerPort,
+        ippPath: cfg.ippPath,
+        printerMac: cfg.printerMac,
+        printerModel: cfg.printerModel,
+      });
+    } catch (e) { console.warn('[agent] persist relocation failed:', e && e.message); }
+  }
+  emit && emit({ kind: 'printer-relocated', from, to: cfg.printerIp, model: cfg.printerModel || null, reason });
+  return true;
 }
 
 const MEDIA = {
@@ -355,6 +478,17 @@ async function dispatchAndConfirm(cfg, bytes, jobName, opts, expectedPages, emit
   // a 50-page job has 3 min — generous, but not "give up forever."
   const perAttemptTimeoutMs = 30_000 + 3_000 * Math.max(1, expectedPages);
 
+  // Proactive relocation — before we even read the counter, make sure
+  // the configured IP still answers. DHCP may have moved the printer
+  // while the kiosk sat idle; if so, adopt the new IP NOW so attempt #1
+  // already targets the right box instead of burning a whole attempt
+  // (and its multi-minute timeout) on a dead address.
+  const wantRaw = cfg.transport === 'raw9100';
+  const wantPort = wantRaw ? cfg.rawPort : cfg.printerPort;
+  if (!(await tcpProbe(cfg.printerIp, wantPort, 1200))) {
+    await relocateIfMoved(cfg, emit, 'pre-dispatch unreachable');
+  }
+
   let lastReason = '';
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     // 1. Read the page counter BEFORE we send. If SNMP isn't reachable
@@ -372,6 +506,10 @@ async function dispatchAndConfirm(cfg, bytes, jobName, opts, expectedPages, emit
     } catch (err) {
       lastReason = `dispatch failed: ${(err && err.message) || String(err)}`;
       console.warn(`[agent] ${lastReason}`);
+      // The send itself failed (timeout / refused / unreachable). The
+      // printer may have moved — rescan and adopt a new IP so the NEXT
+      // attempt hits the right box. Debounced internally to 1/90s.
+      await relocateIfMoved(cfg, emit, 'dispatch error');
       emit && emit({ kind: 'attempt-timeout', code, item: itemName, attempt, reason: lastReason });
       continue; // retry
     }
@@ -533,7 +671,7 @@ async function pollOnce(cfg, api, emit) {
  * timer, so the agent keeps the printer warm and dispatch never has
  * to wake it from scratch.
  */
-function startAgent(config, emit) {
+function startAgent(config, emit, persist) {
   const cfg = {
     baseUrl: String(config.baseUrl || '').replace(/\/+$/, ''),
     kioskKey: String(config.kioskKey || ''),
@@ -550,6 +688,14 @@ function startAgent(config, emit) {
     // Default 2 — first try is usually instant; second covers a
     // transient queue hiccup. Capped to 5 so a bad job can't loop.
     maxPrintAttempts: Math.max(1, Math.min(5, Number(config.maxPrintAttempts) || 2)),
+    // Self-healing identity — used to re-find the printer if DHCP moves
+    // its IP. MAC is the DHCP-stable identity (captured on first contact
+    // via the OS ARP table); model is the human-readable fallback.
+    printerMac: config.printerMac ? String(config.printerMac).toLowerCase() : null,
+    printerModel: config.printerModel || null,
+    // Callback that writes a patch back to the persisted config so an
+    // adopted IP / captured MAC survives a kiosk restart. Wired by main.js.
+    _persist: typeof persist === 'function' ? persist : null,
   };
   if (!cfg.baseUrl || !cfg.kioskKey || !cfg.printerIp) {
     throw new Error('agent config missing baseUrl, kioskKey, or printerIp');
@@ -586,6 +732,21 @@ function startAgent(config, emit) {
     sock.once('error', () => finish(false));
     sock.connect({ host: cfg.printerIp, port, localAddress: pickSourceAddress(cfg.printerIp) });
   });
+  // Capture the printer's MAC once (idempotent). A successful tap above
+  // has just opened a TCP connection to cfg.printerIp, so the OS ARP
+  // cache holds a fresh entry — we read it and persist it as the
+  // DHCP-stable identity used by relocateIfMoved().
+  const captureMacOnce = async () => {
+    if (cfg.printerMac) return;
+    const mac = await arpMac(cfg.printerIp);
+    if (!mac) return;
+    cfg.printerMac = mac;
+    console.log(`[agent] captured printer MAC ${mac} for ${cfg.printerIp} (DHCP-stable identity)`);
+    if (typeof cfg._persist === 'function') {
+      try { cfg._persist({ printerMac: mac }); } catch (e) { console.warn('[agent] persist MAC failed:', e && e.message); }
+    }
+  };
+
   const keepAliveTimer = setInterval(async () => {
     if (stopped) return;
     const ports = [80, 631, cfg.rawPort];
@@ -593,16 +754,22 @@ function startAgent(config, emit) {
     for (const p of ports) {
       if (await tap(p)) { alive = true; break; }
     }
-    if (!alive) {
-      // Silent in normal operation; only log when the printer falls off.
-      console.warn(`[agent] keep-alive: ${cfg.printerIp} not responding on 80/631/${cfg.rawPort}`);
+    if (alive) {
+      await captureMacOnce();
+    } else {
+      // Printer fell off its known IP. Could be powered down, or DHCP
+      // moved it. Rescan the LAN and adopt a new IP if we can identify
+      // the same box (MAC → model → only-printer). Debounced to 1/90s
+      // internally, so this is safe to call on every missed tick.
+      console.warn(`[agent] keep-alive: ${cfg.printerIp} not responding on 80/631/${cfg.rawPort} — checking for IP change…`);
+      await relocateIfMoved(cfg, emit, 'keep-alive miss');
     }
   }, cfg.keepAliveMs);
   // Fire one immediately so the printer is warm before the first
-  // poll picks up a job.
+  // poll picks up a job — and grab the MAC on the way.
   setImmediate(async () => {
     for (const p of [80, 631, cfg.rawPort]) {
-      if (await tap(p)) break;
+      if (await tap(p)) { await captureMacOnce(); break; }
     }
   });
 

@@ -762,6 +762,94 @@ counter actually advances.
 
 ---
 
+## Phase 19 — Self-healing printer IP + grayscale on every path (2026-05-29)
+
+**Prompted by:** "always scan to re-adjust printer information incase
+of ip changes / it should always be done without asking or wait for
+the user to change it / apply ghostscript where necessary."
+
+Two distinct asks, both about removing manual intervention:
+
+### 1. The agent re-finds the printer when DHCP moves it
+
+The Sharp is on Wi-Fi/DHCP. Every lease renewal can hand it a new IP,
+and until now that meant the operator had to re-run the setup wizard —
+the agent just kept hammering the dead address and every job failed
+SNMP confirmation. Now the agent **re-discovers and adopts the new IP
+on its own**, no prompt.
+
+How "the same printer" is identified across an IP change, in order:
+
+1. **MAC address** — the only identity that survives DHCP unambiguously.
+   Captured on first contact from the OS ARP table (`arp -a <ip>`,
+   parsed for the first MAC-shaped token on the line mentioning the IP,
+   normalized to lower-case colon form). A TCP connect to the printer
+   warms the ARP cache, so the keep-alive tap that already runs every
+   30 s gives us a free MAC read. Persisted to `config.json` so it
+   survives restarts.
+2. **Model name** — if we know it and exactly one discovered printer
+   matches it.
+3. **Only printer on the LAN** — last resort; if there's exactly one
+   candidate it must be ours.
+
+Mechanism (`printloop-kiosk-app/agent.js`):
+- New helpers after `pickSourceAddress`: `tcpProbe(host, port, ms)`
+  (one-shot connect test), `arpMac(ip)` (ARP-table → MAC), and
+  `relocateIfMoved(cfg, emit, reason)` — rescans via `discovery.js`'s
+  `discoverAll({ enrich: true })`, matches by the ladder above, and on
+  a hit mutates `cfg` in place (`printerIp`, `rawPort`/`printerPort`,
+  `ippPath`, fills `printerModel`/`printerMac` if blank) and calls
+  `cfg._persist(patch)`. Debounced to **once per 90 s** so a printer
+  that's merely powered off doesn't trigger a /24 scan every tick.
+- Wired in three places:
+  - **`dispatchAndConfirm`** — a proactive `tcpProbe` before the first
+    attempt; if the configured IP is dead, relocate *now* so attempt #1
+    targets the right box instead of burning a full multi-minute
+    timeout on a stale address. Also relocate in the dispatch-failure
+    catch so the retry hits the new IP.
+  - **`startAgent`** keep-alive timer — on a missed tap (printer didn't
+    answer on 80/631/raw), call `relocateIfMoved`. On a successful tap,
+    `captureMacOnce()` grabs+persists the MAC.
+  - **warm-up `setImmediate`** — captures the MAC on the very first tap.
+- `startAgent(config, emit)` → `startAgent(config, emit, persist)`. New
+  cfg fields: `printerMac`, `printerModel`, `_persist`.
+
+`printloop-kiosk-app/main.js` — `bootAgent` now passes a third
+`persist(patch)` arg that merges the patch into `config.json` via the
+existing `readConfig`/`writeConfig`. So an adopted IP or captured MAC
+is written to disk and the operator never re-runs setup. Also emits a
+`printer-relocated` event the kiosk window can surface later.
+
+### 2. Ghostscript grayscale on the cloud-push path too
+
+Phase 18 put `toGrayscale` only at the kiosk-pull signed-download
+endpoint (`agent.routes.ts → /jobs/:id/file`). But the **cloud-push**
+path (`routes/printer.routes.ts`, where the backend dispatches straight
+to a printer) had none — a B&W job sent that way would still print in
+color on the Sharp. Fixed:
+- Imported `toGrayscale` and added a `maybeGrayscale(buffer, color)`
+  helper (`color && color !== 'color' ? toGrayscale(buffer) : buffer`).
+- Applied at all **three** dispatch sites: personal batch, single job,
+  and group batch — each now grayscales the bytes (per the policy's
+  `mutated.color`) before `dispatchPrint`.
+
+Same graceful degradation as Phase 18: no `gs` → original color bytes
++ a warning. Page count preserved, so SNMP confirmation math is
+unchanged.
+
+### Verification
+
+- `node --check agent.js` / `node --check main.js` → both OK.
+- `cd 01-backend && npm run typecheck` → 0 errors.
+- The agent change is bundled in the .exe, so this **requires a kiosk
+  rebuild** (`npm run build`) + reinstall. The backend grayscale change
+  is server-side (Railway auto-deploys on push).
+
+**Commit `_pending_`** — agent.js + main.js (kiosk) + printer.routes.ts
+(backend).
+
+---
+
 ## Phase 18 — Bullet-proof grayscale via Ghostscript (2026-05-29)
 
 **Prompted by:** "wire up Ghostscript" — the green light to do the
