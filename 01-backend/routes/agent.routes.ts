@@ -99,7 +99,13 @@ router.get('/jobs/ready', kioskAuth, async (req: Request, res: Response) => {
     const base = publicBaseUrl(req);
     const out = await Promise.all(
       jobs.map(async (job) => {
-        let items: Array<{ fileId: string; fileName: string; downloadUrl: string; printConfiguration: any }>;
+        let items: Array<{
+          fileId: string;
+          fileName: string;
+          downloadUrl: string;
+          printConfiguration: any;
+          totalPages: number;
+        }>;
         if (job.jobType === 'personal_batch') {
           const rows = await AppDataSource.getRepository(PrintJobItem).find({
             where: { printJobId: job.id },
@@ -112,6 +118,9 @@ router.get('/jobs/ready', kioskAuth, async (req: Request, res: Response) => {
               it.id,
             )}&t=${encodeURIComponent(buildFileToken(job.id, kiosk.id))}`,
             printConfiguration: it.printConfiguration,
+            // Page count for the agent's SNMP-based physical-print confirm.
+            // expectedPages = totalPages × printConfiguration.copies.
+            totalPages: Math.max(1, Number(it.totalPages) || 1),
           }));
         } else {
           items = [
@@ -122,6 +131,7 @@ router.get('/jobs/ready', kioskAuth, async (req: Request, res: Response) => {
                 buildFileToken(job.id, kiosk.id),
               )}`,
               printConfiguration: job.printConfiguration,
+              totalPages: Math.max(1, Number(job.totalPages) || 1),
             },
           ];
         }

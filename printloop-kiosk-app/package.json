@@ -37,6 +37,7 @@
       "discovery.js",
       "setup.html",
       "setup-preload.js",
+      "kiosk-preload.js",
       "renderer/**/*",
       "build/icon.*",
       "node_modules/**/*"

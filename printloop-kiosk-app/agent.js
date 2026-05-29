@@ -16,6 +16,7 @@ const axios = require('axios');
 const ipp = require('ipp');
 const net = require('node:net');
 const os = require('node:os');
+const dgram = require('node:dgram');
 
 /**
  * Interfaces whose names match these patterns are VPN / overlay tunnels
@@ -210,6 +211,204 @@ async function dispatchToPrinter(cfg, bytes, jobName, opts) {
   return ippDispatch(cfg, bytes, jobName, opts);
 }
 
+// ── SNMP physical-print confirmation ────────────────────────────────
+/**
+ * Read the printer's lifetime impression counter via SNMPv1.
+ *
+ * OID: `1.3.6.1.2.1.43.10.2.1.4.1.1` (prtMarkerLifeCount.1.1 — the
+ * standard Printer-MIB lifetime mark counter). On every printer that
+ * supports SNMP (essentially every networked office printer made in
+ * the last 25 years, including the Sharp MX-5112N this was built for),
+ * this counter increments by 1 per side actually marked.
+ *
+ * Returns the integer counter value, or null on timeout / parse
+ * failure / printer doesn't expose the OID.
+ *
+ * Implementation: hand-rolled BER GetRequest packet sent over UDP/161,
+ * response parsed by walking primitive ASN.1 tags and returning the
+ * last integer-like value (Counter32 0x41 / Gauge32 0x42 / Integer
+ * 0x02 / TimeTicks 0x43). The OID's own request-id and error-status
+ * appear earlier in the packet, so the trailing integer is the value.
+ */
+function snmpReadCounter(host, communityStr = 'public', timeoutMs = 3000) {
+  return new Promise((resolve) => {
+    let sock;
+    try {
+      sock = dgram.createSocket('udp4');
+    } catch {
+      return resolve(null);
+    }
+    let done = false;
+    const finish = (val) => {
+      if (done) return;
+      done = true;
+      try { sock.close(); } catch {}
+      resolve(val);
+    };
+    const timer = setTimeout(() => finish(null), timeoutMs);
+
+    // BER-encoded SNMPv1 GetRequest for prtMarkerLifeCount.1.1.
+    // OID bytes (after 0x06 type + 0x0c length):
+    //   2b 06 01 02 01 2b 0a 02 01 04 01 01  →  1.3.6.1.2.1.43.10.2.1.4.1.1
+    const packet = Buffer.from([
+      0x30, 0x2d,                          // SEQUENCE, len=45
+      0x02, 0x01, 0x00,                    // version 0 (SNMPv1)
+      0x04, 0x06, 0x70, 0x75, 0x62, 0x6c, 0x69, 0x63, // community "public"
+      0xa0, 0x20,                          // GetRequest PDU, len=32
+      0x02, 0x04, 0x12, 0x34, 0x56, 0x78,  // requestID
+      0x02, 0x01, 0x00,                    // errStatus
+      0x02, 0x01, 0x00,                    // errIndex
+      0x30, 0x12,                          // VarBindList SEQUENCE, len=18
+      0x30, 0x10,                          // VarBind SEQUENCE, len=16
+      0x06, 0x0c, 0x2b, 0x06, 0x01, 0x02, 0x01, 0x2b, 0x0a, 0x02, 0x01, 0x04, 0x01, 0x01,
+      0x05, 0x00,                          // NULL value (we're reading)
+    ]);
+
+    // Override community string if caller supplied a non-default one.
+    if (communityStr !== 'public') {
+      const c = Buffer.from(communityStr);
+      const head = Buffer.from([0x30, 45 - 8 + 2 + c.length]);
+      const ver = Buffer.from([0x02, 0x01, 0x00]);
+      const comm = Buffer.concat([Buffer.from([0x04, c.length]), c]);
+      const rest = packet.slice(15); // PDU onwards from the static packet
+      const built = Buffer.concat([head, ver, comm, rest]);
+      // We can fall back to the static packet if reassembly looks wrong.
+      // For now keep it simple — community-string customization is rare
+      // and we hard-coded "public" as per plan.
+      if (built.length === packet.length + (c.length - 6)) {
+        return sendAndParse(sock, built, host, finish, timer);
+      }
+    }
+    sendAndParse(sock, packet, host, finish, timer);
+  });
+}
+
+function sendAndParse(sock, packet, host, finish, timer) {
+  sock.once('message', (msg) => {
+    clearTimeout(timer);
+    // Walk through the response collecting primitive integer-like values.
+    // The last one we encounter is prtMarkerLifeCount's value
+    // (request-id / error-status / error-index appear before the
+    // VarBind's value).
+    let i = 0;
+    let last = null;
+    while (i < msg.length - 1) {
+      const tag = msg[i];
+      const len = msg[i + 1];
+      if (i + 2 + len > msg.length) break;
+      if (tag === 0x30 || tag === 0xa0 || tag === 0xa1 || tag === 0xa2) {
+        // SEQUENCE / GetRequest / GetNextRequest / GetResponse — recurse
+        // by advancing past the header without skipping the body.
+        i += 2;
+        continue;
+      }
+      if (tag === 0x02 || tag === 0x41 || tag === 0x42 || tag === 0x43) {
+        // Integer / Counter32 / Gauge32 / TimeTicks — read big-endian.
+        let v = 0;
+        for (let k = 0; k < len; k++) v = v * 256 + msg[i + 2 + k];
+        last = v;
+      }
+      i += 2 + len;
+    }
+    finish(last);
+  });
+  sock.once('error', () => finish(null));
+  sock.send(packet, 0, packet.length, 161, host);
+}
+
+/**
+ * Dispatch + confirm a print job with retry. Returns:
+ *   { ok: true,  attempts, pages }  on confirmed delivery
+ *   { ok: false, attempts, reason } if all attempts time out without
+ *                                   the printer's page counter
+ *                                   advancing by `expectedPages`.
+ *
+ * The SNMP counter MUST move by at least `expectedPages` within the
+ * per-attempt window. If the very first counter read returns null, we
+ * still proceed (the printer might just be slow to respond once) but
+ * if every subsequent poll also returns null we fail with a clear
+ * "SNMP unreachable" reason — the operator either enables SNMP or
+ * picks a printer that exposes it.
+ */
+async function dispatchAndConfirm(cfg, bytes, jobName, opts, expectedPages, emit, code, itemName) {
+  const maxAttempts = Math.max(1, Number(cfg.maxPrintAttempts) || 2);
+  const pollMs = 3000;
+  // Per-plan: 30s base + 3s per expected page. A 1-page job has 33s,
+  // a 50-page job has 3 min — generous, but not "give up forever."
+  const perAttemptTimeoutMs = 30_000 + 3_000 * Math.max(1, expectedPages);
+
+  let lastReason = '';
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    // 1. Read the page counter BEFORE we send. If SNMP isn't reachable
+    //    we can't meaningfully verify — record `null` and let the
+    //    polling loop decide whether to bail.
+    let before = await snmpReadCounter(cfg.printerIp);
+    console.log(`[agent] attempt ${attempt}/${maxAttempts} for ${jobName}: counter before=${before}, expected +${expectedPages}`);
+
+    emit && emit({ kind: 'dispatching', code, item: itemName, attempt, of: maxAttempts });
+
+    // 2. Send the bytes (existing dispatch path — same code that
+    //    earlier in the session printed byte-exact on the real Sharp).
+    try {
+      await dispatchToPrinter(cfg, bytes, jobName, opts);
+    } catch (err) {
+      lastReason = `dispatch failed: ${(err && err.message) || String(err)}`;
+      console.warn(`[agent] ${lastReason}`);
+      emit && emit({ kind: 'attempt-timeout', code, item: itemName, attempt, reason: lastReason });
+      continue; // retry
+    }
+
+    // 3. Poll the counter. We need it to reach `before + expected` to
+    //    confirm physical delivery. Other people printing concurrently
+    //    can only push the counter ABOVE that threshold, never below,
+    //    so the inequality is safe.
+    emit && emit({ kind: 'awaiting-confirmation', code, item: itemName, expected: expectedPages, before });
+    const deadline = Date.now() + perAttemptTimeoutMs;
+    let confirmed = false;
+    let lastCounter = before;
+    let snmpDead = before === null;
+    while (Date.now() < deadline) {
+      await new Promise((r) => setTimeout(r, pollMs));
+      const cur = await snmpReadCounter(cfg.printerIp);
+      if (cur != null) {
+        snmpDead = false;
+        // If we never got a `before`, the first successful read becomes
+        // our baseline. (This can happen if the printer's SNMP daemon
+        // takes a few seconds to warm up after a sleep cycle.)
+        if (before == null) {
+          before = cur;
+          lastCounter = cur;
+          emit && emit({ kind: 'awaiting-confirmation', code, item: itemName, expected: expectedPages, before });
+          continue;
+        }
+        lastCounter = cur;
+        const printed = Math.max(0, cur - before);
+        emit && emit({ kind: 'progress', code, item: itemName, printed, expected: expectedPages });
+        if (printed >= expectedPages) {
+          confirmed = true;
+          break;
+        }
+      }
+    }
+
+    if (confirmed) {
+      const pages = lastCounter - before;
+      console.log(`[agent] confirmed ${jobName} after attempt ${attempt}: counter advanced by ${pages}`);
+      emit && emit({ kind: 'confirmed', code, item: itemName, pages, attempt });
+      return { ok: true, attempts: attempt, pages };
+    }
+
+    // 4. Attempt failed (either counter never moved or SNMP is dead).
+    lastReason = snmpDead
+      ? `printer never responded to SNMP on UDP/161 — enable SNMP in the printer's network settings or check community string`
+      : `printer received the job but only printed ${lastCounter - (before || 0)} of ${expectedPages} pages within ${Math.round(perAttemptTimeoutMs / 1000)}s`;
+    console.warn(`[agent] attempt ${attempt} failed: ${lastReason}`);
+    emit && emit({ kind: 'attempt-timeout', code, item: itemName, attempt, reason: lastReason });
+  }
+
+  return { ok: false, attempts: maxAttempts, reason: lastReason };
+}
+
 function cloudApi(cfg) {
   return axios.create({
     baseURL: cfg.baseUrl,
@@ -240,11 +439,34 @@ async function processJob(cfg, api, job, emit) {
       const bytes = Buffer.from(fileResp.data);
       const jobName =
         job.items.length === 1 ? `${job.code}` : `${job.code} · ${item.fileName}`;
-      await dispatchToPrinter(cfg, bytes, jobName, item.printConfiguration || {});
-      printed++;
+
+      // Compute the expected impression delta. The Printer-MIB counter
+      // ticks once per side actually marked, so single-sided N pages
+      // and double-sided N pages both add N impressions. Page-range
+      // printing isn't honoured at the agent (the page-range field is
+      // stored but not threaded into PJL/IPP), so the printer renders
+      // every page in the PDF — `totalPages × copies` is what shows up
+      // on the counter.
+      const cfgOpts = item.printConfiguration || {};
+      const copies = Math.max(1, Number(cfgOpts.copies) || 1);
+      const itemPages = Math.max(1, Number(item.totalPages) || 1);
+      const expectedPages = copies * itemPages;
+
+      const result = await dispatchAndConfirm(
+        cfg, bytes, jobName, cfgOpts, expectedPages, emit, job.code, item.fileName,
+      );
+
+      if (result.ok) {
+        printed++;
+      } else {
+        lastError = `${item.fileName}: ${result.reason}`;
+        console.error(`[agent] item failed — ${lastError}`);
+        emit && emit({ kind: 'verify-failed', code: job.code, item: item.fileName, reason: result.reason, attempts: result.attempts });
+      }
     } catch (err) {
       lastError = `${item.fileName}: ${(err && err.message) || String(err)}`;
       console.error(`[agent] item failed — ${lastError}`);
+      emit && emit({ kind: 'verify-failed', code: job.code, item: item.fileName, reason: lastError });
     }
   }
 
@@ -258,6 +480,7 @@ async function processJob(cfg, api, job, emit) {
     printed,
     total: job.items.length,
     reportStatus: report.status,
+    reason: allFailed ? lastError : undefined,
   });
 }
 
@@ -304,6 +527,11 @@ function startAgent(config, emit) {
     ippVersion: ['1.0', '1.1', '2.0'].includes(config.ippVersion) ? config.ippVersion : '2.0',
     pollMs: Math.max(1000, Number(config.pollMs) || 4000),
     keepAliveMs: Math.max(10_000, Number(config.keepAliveMs) || 30_000),
+    // Max attempts to send a job and confirm via SNMP page-counter.
+    // Each attempt resends the PJL+PDF stream and polls the counter.
+    // Default 2 — first try is usually instant; second covers a
+    // transient queue hiccup. Capped to 5 so a bad job can't loop.
+    maxPrintAttempts: Math.max(1, Math.min(5, Number(config.maxPrintAttempts) || 2)),
   };
   if (!cfg.baseUrl || !cfg.kioskKey || !cfg.printerIp) {
     throw new Error('agent config missing baseUrl, kioskKey, or printerIp');

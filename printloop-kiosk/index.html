@@ -242,6 +242,11 @@
       <div class="mark work">⎙</div>
       <h1 class="big" style="font-size:clamp(34px,4.6vw,54px)">Releasing to printer.</h1>
       <div class="lede">Please wait at the tray.</div>
+      <!-- Live agent-event status sub-line. The bundled agent sends
+           dispatching / awaiting-confirmation / progress / attempt-timeout
+           events via the Electron preload bridge; we surface them here so
+           the operator and customer see what stage we're in. -->
+      <div class="lede" id="dispatchStatus" style="font-size:14px;margin-top:10px;opacity:0.75;letter-spacing:0.03em"></div>
     </section>
 
     <!-- SUCCESS -->
@@ -315,7 +320,38 @@
     state.screen=name;
     Object.keys(screens).forEach(function(k){ screens[k].classList.toggle("show", k===name); });
     if(name==="idle"){ renderCells(); }
+    // Any screen change other than `printing` invalidates the current
+    // agent subscription — we don't want a late "confirmed" event from
+    // a prior job nudging us back to the success screen.
+    if(name!=="printing"){ stopAgentSub(); }
   }
+
+  /* ── Agent event bridge (Electron-bundled mode only) ─────────────
+     The kiosk Electron wrapper installs a preload that exposes
+     window.printloopKiosk.onAgentEvent(cb). When the kiosk page is
+     served as a plain static file (npm run serve), the bridge is
+     absent and we fall back to the legacy "trust the POST" behavior
+     so the page keeps working in dev. */
+  var agentSub = null;
+  var agentSafetyTimer = null;
+  function startAgentSub(jobCode, onEvent){
+    stopAgentSub();
+    if(!window.printloopKiosk || !window.printloopKiosk.onAgentEvent) return false;
+    agentSub = window.printloopKiosk.onAgentEvent(function(ev){
+      if(!ev || ev.code !== jobCode) return;
+      try { onEvent(ev); } catch(e){ /* swallow */ }
+    });
+    return true;
+  }
+  function stopAgentSub(){
+    if(agentSub){ try { agentSub(); } catch(e){} agentSub = null; }
+    if(agentSafetyTimer){ clearTimeout(agentSafetyTimer); agentSafetyTimer = null; }
+  }
+  function setDispatchStatus(text){
+    var el = $("#dispatchStatus");
+    if(el){ el.textContent = text || ""; }
+  }
+  function plur(n, s){ return n === 1 ? s : (s + "s"); }
 
   /* ── Config ─────────────────────────────────────────── */
   function loadCfg(){
@@ -447,14 +483,67 @@
   function releaseJob(){
     var j=state._job; if(!j) return resetToIdle();
     show("printing");
-    call("complete",{ code:j.code, cost:j.cost, totalPages:j.totalPages }).then(function(res){
-      if(res.body && res.body.success){
-        $("#successMsg").textContent="Job "+j.code+" released. Collect "+(j.totalPages||0)+" page"+(j.totalPages===1?"":"s")+".";
+    setDispatchStatus("Releasing job to the kiosk…");
+
+    // Subscribe BEFORE the POST so we never miss the first event the
+    // bundled agent emits when it claims this job from the cloud.
+    var bridged = startAgentSub(j.code, function(ev){
+      if(ev.kind === "dispatching"){
+        setDispatchStatus("Sending to printer (attempt "+ev.attempt+" of "+ev.of+")…");
+      } else if(ev.kind === "awaiting-confirmation"){
+        var n = Number(ev.expected) || (j.totalPages || 1);
+        setDispatchStatus("Waiting for printer to print "+n+" "+plur(n,"page")+"…");
+      } else if(ev.kind === "progress"){
+        setDispatchStatus("Printing — "+ev.printed+" of "+ev.expected+"…");
+      } else if(ev.kind === "attempt-timeout"){
+        setDispatchStatus("Retrying — "+(ev.reason || "no response yet")+"…");
+      } else if(ev.kind === "confirmed"){
+        var p = Number(ev.pages) || (j.totalPages || 1);
+        $("#successMsg").textContent = "Job "+j.code+" printed. Collect "+p+" "+plur(p,"page")+".";
+        stopAgentSub();
         success();
-      } else {
-        showError("Release failed",(res.body&&res.body.message)||"The printer didn't accept this job.",9000);
+      } else if(ev.kind === "verify-failed"){
+        stopAgentSub();
+        showError("Print not confirmed", ev.reason || "The printer didn't report any printed pages.", 12000);
+      } else if(ev.kind === "failed"){
+        stopAgentSub();
+        showError("Print failed", ev.reason || "Couldn't print this job.", 12000);
       }
-    }).catch(function(){ showError("Connection lost","Couldn't confirm with the server.",9000); });
+    });
+
+    // Safety upper-bound — terminal event must arrive in 10 minutes
+    // (well above 2 × per-attempt timeout for any reasonable job).
+    if(bridged){
+      agentSafetyTimer = setTimeout(function(){
+        if(state.screen === "printing"){
+          stopAgentSub();
+          showError("Printer didn't report back", "Check the printer for paper or a jam, then try again.", 12000);
+        }
+      }, 10 * 60 * 1000);
+    }
+
+    call("complete",{ code:j.code, cost:j.cost, totalPages:j.totalPages }).then(function(res){
+      if(!(res.body && res.body.success)){
+        stopAgentSub();
+        showError("Release failed",(res.body&&res.body.message)||"The printer didn't accept this job.",9000);
+        return;
+      }
+      // Bridged mode (Electron-bundled): the POST returns immediately
+      // with status=releasing; the real success/failure arrives via
+      // the agent's `confirmed` / `verify-failed` event. Stay on the
+      // printing screen and let those drive the transition.
+      //
+      // Unbridged mode (page served via npm run serve, no Electron):
+      // we have no events to wait for, so fall back to the legacy
+      // "trust the POST" behavior.
+      if(!bridged){
+        $("#successMsg").textContent="Job "+j.code+" released. Collect "+(j.totalPages||0)+" "+plur(j.totalPages||0,"page")+".";
+        success();
+      }
+    }).catch(function(){
+      stopAgentSub();
+      showError("Connection lost","Couldn't confirm with the server.",9000);
+    });
   }
 
   /* ── Batch ──────────────────────────────────────────── */
@@ -475,15 +564,55 @@
   function releaseBatch(){
     var b=state._batch; if(!b) return resetToIdle();
     show("printing");
+    setDispatchStatus("Releasing batch to the kiosk…");
+
+    // Batch flow currently goes through cloud-push only (the agent
+    // pull pipeline supports single PrintJobs; group-batch is fanned
+    // out across participant uploads, which the agent doesn't claim
+    // yet). When/if a future agent supports batch, the same
+    // event-driven subscription works — events with kind=progress
+    // would carry per-file printed counts.
+    var bridged = startAgentSub(b.code, function(ev){
+      if(ev.kind === "dispatching"){
+        setDispatchStatus("Sending batch to printer (attempt "+ev.attempt+" of "+ev.of+")…");
+      } else if(ev.kind === "progress"){
+        setDispatchStatus("Printing — "+ev.printed+" of "+ev.expected+"…");
+      } else if(ev.kind === "confirmed"){
+        var p = Number(ev.pages) || 0;
+        $("#successMsg").textContent = "Batch "+b.code+" printed ("+p+" "+plur(p,"page")+").";
+        stopAgentSub();
+        success();
+      } else if(ev.kind === "verify-failed" || ev.kind === "failed"){
+        stopAgentSub();
+        showError("Batch not confirmed", ev.reason || "The printer didn't report all the pages back.", 12000);
+      } else if(ev.kind === "attempt-timeout"){
+        setDispatchStatus("Retrying — "+(ev.reason || "no response yet")+"…");
+      }
+    });
+    if(bridged){
+      agentSafetyTimer = setTimeout(function(){
+        if(state.screen === "printing"){
+          stopAgentSub();
+          showError("Printer didn't report back", "Check the printer for paper or a jam, then try again.", 12000);
+        }
+      }, 10 * 60 * 1000);
+    }
+
     call("complete-batch",{ code:b.code }).then(function(res){
-      if(res.body && res.body.success){
+      if(!(res.body && res.body.success)){
+        stopAgentSub();
+        showError("Batch failed",(res.body&&res.body.message)||"The printer didn't accept the batch.",9000);
+        return;
+      }
+      if(!bridged){
         var d=res.body.data||{};
         $("#successMsg").textContent="Batch released ("+(d.printed||0)+"/"+(d.total||0)+"). Documents print in sequence.";
         success();
-      } else {
-        showError("Batch failed",(res.body&&res.body.message)||"The printer didn't accept the batch.",9000);
       }
-    }).catch(function(){ showError("Connection lost","Couldn't confirm with the server.",9000); });
+    }).catch(function(){
+      stopAgentSub();
+      showError("Connection lost","Couldn't confirm with the server.",9000);
+    });
   }
 
   /* ── Result states ──────────────────────────────────── */

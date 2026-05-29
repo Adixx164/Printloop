@@ -154,6 +154,10 @@ function openKioskWindow() {
     title: 'PrintLoop Kiosk',
     icon: path.join(__dirname, 'build', 'icon.png'),
     webPreferences: {
+      // Preload exposes `window.printloopKiosk.onAgentEvent(...)` so the
+      // touchscreen UI can subscribe to dispatch + confirmation events
+      // from the bundled agent, without losing contextIsolation.
+      preload: path.join(__dirname, 'kiosk-preload.js'),
       nodeIntegration: false,
       contextIsolation: true,
       devTools: process.env.PRINTLOOP_KIOSK_DEV === '1',

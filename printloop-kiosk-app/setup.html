@@ -213,6 +213,11 @@
         <input id="pollMs" type="number" value="4000" min="1000" max="60000" step="500" />
         <div class="hint">How often this kiosk checks the cloud for new jobs.</div>
       </div>
+      <div class="field">
+        <label for="maxPrintAttempts">Max print attempts</label>
+        <input id="maxPrintAttempts" type="number" value="2" min="1" max="5" step="1" />
+        <div class="hint">If the printer doesn't confirm via SNMP within the timeout, we re-send up to this many times before marking the job failed.</div>
+      </div>
       <div class="field" style="display:flex;align-items:end">
         <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
           <input id="autoStart" type="checkbox" checked />
@@ -249,6 +254,7 @@
     $('ippVersion').value = cfg.ippVersion || '2.0';
     $('rawPort').value = cfg.rawPort || 9100;
     $('pollMs').value = cfg.pollMs || 4000;
+    $('maxPrintAttempts').value = cfg.maxPrintAttempts || 2;
     $('autoStart').checked = cfg.autoStart !== false;
     if (cfg.transport === 'raw9100') {
       document.querySelector('input[name="transport"][value="raw9100"]').checked = true;
@@ -305,6 +311,7 @@
       ippVersion: $('ippVersion').value,
       rawPort: Number($('rawPort').value) || 9100,
       pollMs: Number($('pollMs').value) || 4000,
+      maxPrintAttempts: Math.max(1, Math.min(5, Number($('maxPrintAttempts').value) || 2)),
       autoStart: $('autoStart').checked,
     };
   }
