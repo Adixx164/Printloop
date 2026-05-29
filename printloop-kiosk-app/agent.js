@@ -331,12 +331,20 @@ async function rawDispatch(cfg, bytes, jobName, opts) {
       code === 'ETIMEDOUT' || code === 'timeout' ||
       code === 'ECONNREFUSED' || code === 'EHOSTUNREACH';
     if (!looksAsleep) throw firstErr;
-    console.warn(`[agent] ${cfg.printerIp}:${cfg.rawPort} ${code} — sending wake-up to :80, retrying…`);
-    // Knock on web-admin (port 80) — the lowest-resource port the
-    // printer keeps "warmer" than raw-9100. Then a small grace
-    // period for the print engine to bring 9100 back up.
+    console.warn(`[agent] ${cfg.printerIp}:${cfg.rawPort} ${code} — waking printer and waiting for raw-9100 to come back…`);
+    // Knock the lighter ports (web-admin 80, IPP 631) — the printer
+    // keeps these "warmer" than raw-9100 and any TCP traffic resets its
+    // idle timer. Then, instead of a blind fixed wait, POLL raw-9100
+    // until the print engine actually reopens it (the Sharp can take
+    // 5–15 s post-wake). A blind 3 s was too short and was a real source
+    // of "nothing came out" misses.
     await wakeIfAsleep(cfg.printerIp, 80);
-    await new Promise((r) => setTimeout(r, 3000));
+    await wakeIfAsleep(cfg.printerIp, 631);
+    const wakeDeadline = Date.now() + 20_000;
+    while (Date.now() < wakeDeadline) {
+      if (await tcpProbe(cfg.printerIp, cfg.rawPort, 1500)) break;
+      await new Promise((r) => setTimeout(r, 1500));
+    }
     await attempt(120_000);
   }
 
@@ -458,18 +466,46 @@ function sendAndParse(sock, packet, host, finish, timer) {
 }
 
 /**
- * Dispatch + confirm a print job with retry. Returns:
- *   { ok: true,  attempts, pages }  on confirmed delivery
- *   { ok: false, attempts, reason } if all attempts time out without
- *                                   the printer's page counter
- *                                   advancing by `expectedPages`.
+ * Robust counter read — retries the single-shot SNMP GetRequest a few
+ * times before giving up. SNMP runs over UDP with no retransmit, so a
+ * single dropped request OR response returns null even though the
+ * printer is perfectly healthy. The Sharp is also slow to answer SNMP
+ * for a few seconds right after waking from deep sleep. Retrying turns
+ * "one unlucky packet" into "actually unreachable," which is what the
+ * caller needs to make a safe confirm-vs-trust decision.
  *
- * The SNMP counter MUST move by at least `expectedPages` within the
- * per-attempt window. If the very first counter read returns null, we
- * still proceed (the printer might just be slow to respond once) but
- * if every subsequent poll also returns null we fail with a clear
- * "SNMP unreachable" reason — the operator either enables SNMP or
- * picks a printer that exposes it.
+ * Returns the counter integer, or null only if EVERY try failed.
+ */
+async function snmpReadCounterRobust(host, tries = 4, perTryMs = 1500) {
+  for (let i = 0; i < tries; i++) {
+    const v = await snmpReadCounter(host, 'public', perTryMs);
+    if (v != null) return v;
+  }
+  return null;
+}
+
+/**
+ * Dispatch + confirm a print job. Returns:
+ *   { ok: true,  attempts, pages, verified }  on success
+ *   { ok: false, attempts, reason[, partial] } on a real failure
+ *
+ * Policy = "confirm if possible, else trust" (operator's choice):
+ *
+ *  • If we can read the printer's SNMP page counter, we use it as the
+ *    source of truth — the job is confirmed only when the counter
+ *    advances by `expectedPages`, and `verified: true` is returned.
+ *  • If SNMP is unavailable (counter unreadable even after retries),
+ *    a CLEANLY-sent job counts as delivered with `verified: false` —
+ *    we do NOT fail/refund a print that may well have come out.
+ *
+ * Safety invariant — we never double-print: a re-send happens ONLY
+ * when the bytes never left (dispatch threw) OR the counter PROVES the
+ * printer marked nothing (movement === 0). A partial or unverifiable
+ * result is reported as-is rather than resent.
+ *
+ * SNMP reads are retried (UDP is lossy and the Sharp is slow to answer
+ * for a few seconds after waking) so a single dropped packet can't be
+ * mistaken for "printer didn't print."
  */
 async function dispatchAndConfirm(cfg, bytes, jobName, opts, expectedPages, emit, code, itemName) {
   const maxAttempts = Math.max(1, Number(cfg.maxPrintAttempts) || 2);
@@ -491,78 +527,115 @@ async function dispatchAndConfirm(cfg, bytes, jobName, opts, expectedPages, emit
 
   let lastReason = '';
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-    // 1. Read the page counter BEFORE we send. If SNMP isn't reachable
-    //    we can't meaningfully verify — record `null` and let the
-    //    polling loop decide whether to bail.
-    let before = await snmpReadCounter(cfg.printerIp);
-    console.log(`[agent] attempt ${attempt}/${maxAttempts} for ${jobName}: counter before=${before}, expected +${expectedPages}`);
+    // ── 1. Establish a TRUSTWORTHY baseline BEFORE sending. ───────────
+    // This is the crux of the fix. The old code read the counter once;
+    // if that single UDP packet was lost or the Sharp's SNMP was still
+    // warming up after sleep, `before` came back null — and then a
+    // mid-poll read got adopted as the baseline AFTER the page had
+    // already printed, so confirmation never matched and we re-sent
+    // (double print). Now we retry the read so `before` is reliable, and
+    // we branch cleanly on whether we actually have one.
+    const before = await snmpReadCounterRobust(cfg.printerIp, 5, 1500);
+    const haveBaseline = before != null;
+    console.log(`[agent] attempt ${attempt}/${maxAttempts} for ${jobName}: baseline=${before} (snmp ${haveBaseline ? 'up' : 'down'}), expected +${expectedPages}`);
 
     emit && emit({ kind: 'dispatching', code, item: itemName, attempt, of: maxAttempts });
 
-    // 2. Send the bytes (existing dispatch path — same code that
-    //    earlier in the session printed byte-exact on the real Sharp).
+    // ── 2. Send the bytes. ────────────────────────────────────────────
     try {
       await dispatchToPrinter(cfg, bytes, jobName, opts);
     } catch (err) {
+      // The send itself failed (timeout / refused / unreachable) — the
+      // bytes never went out, so it is always safe to retry. The printer
+      // may also have moved IP: rescan + adopt (debounced to 1/90s).
       lastReason = `dispatch failed: ${(err && err.message) || String(err)}`;
       console.warn(`[agent] ${lastReason}`);
-      // The send itself failed (timeout / refused / unreachable). The
-      // printer may have moved — rescan and adopt a new IP so the NEXT
-      // attempt hits the right box. Debounced internally to 1/90s.
       await relocateIfMoved(cfg, emit, 'dispatch error');
       emit && emit({ kind: 'attempt-timeout', code, item: itemName, attempt, reason: lastReason });
-      continue; // retry
+      continue;
     }
 
-    // 3. Poll the counter. We need it to reach `before + expected` to
-    //    confirm physical delivery. Other people printing concurrently
-    //    can only push the counter ABOVE that threshold, never below,
-    //    so the inequality is safe.
+    // ── 3a. No baseline → HYBRID fallback: trust the clean send. ──────
+    // Per the operator's "confirm if possible, else trust" choice: with
+    // no pre-send baseline we cannot compute a trustworthy page delta,
+    // and re-sending would risk a double print. The dispatch closed the
+    // socket cleanly, so we count it as delivered (unverified) and stop.
+    if (!haveBaseline) {
+      console.warn(`[agent] ${jobName}: no SNMP baseline — trusting clean send (delivered, pages unverified).`);
+      emit && emit({ kind: 'confirmed', code, item: itemName, pages: expectedPages, attempt, verified: false });
+      return { ok: true, attempts: attempt, pages: expectedPages, verified: false };
+    }
+
+    // ── 3b. Have a baseline → poll for physical confirmation. ─────────
     emit && emit({ kind: 'awaiting-confirmation', code, item: itemName, expected: expectedPages, before });
     const deadline = Date.now() + perAttemptTimeoutMs;
     let confirmed = false;
     let lastCounter = before;
-    let snmpDead = before === null;
     while (Date.now() < deadline) {
       await new Promise((r) => setTimeout(r, pollMs));
-      const cur = await snmpReadCounter(cfg.printerIp);
+      const cur = await snmpReadCounterRobust(cfg.printerIp, 2, 1200);
       if (cur != null) {
-        snmpDead = false;
-        // If we never got a `before`, the first successful read becomes
-        // our baseline. (This can happen if the printer's SNMP daemon
-        // takes a few seconds to warm up after a sleep cycle.)
-        if (before == null) {
-          before = cur;
-          lastCounter = cur;
-          emit && emit({ kind: 'awaiting-confirmation', code, item: itemName, expected: expectedPages, before });
-          continue;
-        }
         lastCounter = cur;
         const printed = Math.max(0, cur - before);
         emit && emit({ kind: 'progress', code, item: itemName, printed, expected: expectedPages });
-        if (printed >= expectedPages) {
-          confirmed = true;
-          break;
-        }
+        if (printed >= expectedPages) { confirmed = true; break; }
       }
     }
 
     if (confirmed) {
       const pages = lastCounter - before;
-      console.log(`[agent] confirmed ${jobName} after attempt ${attempt}: counter advanced by ${pages}`);
-      emit && emit({ kind: 'confirmed', code, item: itemName, pages, attempt });
-      return { ok: true, attempts: attempt, pages };
+      console.log(`[agent] confirmed ${jobName} on attempt ${attempt}: counter +${pages}`);
+      emit && emit({ kind: 'confirmed', code, item: itemName, pages, attempt, verified: true });
+      return { ok: true, attempts: attempt, pages, verified: true };
     }
 
-    // 4. Attempt failed (either counter never moved or SNMP is dead).
-    lastReason = snmpDead
-      ? `printer never responded to SNMP on UDP/161 — enable SNMP in the printer's network settings or check community string`
-      : `printer received the job but only printed ${lastCounter - (before || 0)} of ${expectedPages} pages within ${Math.round(perAttemptTimeoutMs / 1000)}s`;
-    console.warn(`[agent] attempt ${attempt} failed: ${lastReason}`);
-    emit && emit({ kind: 'attempt-timeout', code, item: itemName, attempt, reason: lastReason });
+    // ── 4. Not confirmed within the window. Decide if a retry is SAFE. ─
+    // Re-read the counter robustly and compare to our baseline. We only
+    // re-send when we can PROVE the printer marked nothing — otherwise a
+    // resend duplicates the pages that already came out.
+    const after = await snmpReadCounterRobust(cfg.printerIp, 4, 1500);
+    const movement = after != null ? Math.max(0, after - before) : null;
+
+    if (movement === 0) {
+      // Counter never moved: the printer accepted the bytes but produced
+      // no page (jam, out of toner/paper, held for login, or a PDF it
+      // couldn't render). Nothing printed → safe to re-send.
+      lastReason = `printer accepted the job but printed 0 of ${expectedPages} pages (counter still ${after})`;
+      console.warn(`[agent] attempt ${attempt}: ${lastReason} — safe to retry`);
+      emit && emit({ kind: 'attempt-timeout', code, item: itemName, attempt, reason: lastReason });
+      continue;
+    }
+
+    if (movement != null && movement >= expectedPages) {
+      // It DID print enough — we just missed the threshold inside the
+      // poll window (slow engine). Count it as a confirmed success.
+      console.log(`[agent] ${jobName}: counter advanced ${movement} (≥ ${expectedPages}) by post-window read — confirmed.`);
+      emit && emit({ kind: 'confirmed', code, item: itemName, pages: movement, attempt, verified: true });
+      return { ok: true, attempts: attempt, pages: movement, verified: true };
+    }
+
+    if (movement != null) {
+      // Partial print (0 < movement < expected). Re-sending would double
+      // the pages that already came out, so we STOP and report honestly.
+      // (processJob emits the verify-failed event from the ok:false return.)
+      lastReason = `printer printed ${movement} of ${expectedPages} pages; not re-sending to avoid duplicate pages`;
+      console.warn(`[agent] ${jobName}: ${lastReason}`);
+      return { ok: false, attempts: attempt, reason: lastReason, partial: movement };
+    }
+
+    // movement === null: we HAD a baseline but SNMP stopped answering
+    // after dispatch. We can't tell what happened and re-sending could
+    // double-print — so trust the clean send rather than risk it.
+    console.warn(`[agent] ${jobName}: SNMP went quiet after dispatch — trusting clean send (unverified).`);
+    emit && emit({ kind: 'confirmed', code, item: itemName, pages: expectedPages, attempt, verified: false });
+    return { ok: true, attempts: attempt, pages: expectedPages, verified: false };
   }
 
-  return { ok: false, attempts: maxAttempts, reason: lastReason };
+  // Loop exhausted. The only paths that loop back are (a) the send threw
+  // (bytes never left) and (b) the counter proved 0 pages. Both mean the
+  // document genuinely did not print across every attempt → real failure
+  // (cloud marks FAILED, the cleanup worker refunds the wallet).
+  return { ok: false, attempts: maxAttempts, reason: lastReason || 'could not reach the printer' };
 }
 
 function cloudApi(cfg) {

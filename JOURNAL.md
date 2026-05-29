@@ -762,6 +762,67 @@ counter actually advances.
 
 ---
 
+## Phase 20 — Fix inconsistent printing: SNMP confirm hardening (2026-05-29)
+
+**Prompted by:** "whats the cause of inconsistent printing and can you
+fix it or has it been fixed."
+
+### Diagnosis (code + a live probe)
+
+Probed the configured printer (`192.168.0.112`) from this PC: dead on
+9100/80, no printer found in a LAN scan → it was powered off / asleep
+at the time. Two facts fell out: the saved IP had drifted (`.111` →
+`.115` → `.112`, so **DHCP churn was real**), and the PC has a
+Tailscale adapter beside Wi-Fi (the Phase 9 hazard).
+
+Three root causes, all triggered by the Sharp's deep-sleep behavior:
+
+1. **DHCP moved the IP.** Fixed in Phase 19 (auto-relocate by MAC).
+2. **Wake timing too tight.** `rawDispatch` knocked port 80, waited a
+   blind **3 s**, then retried once. The Sharp can take 5–15 s to bring
+   raw-9100 back, so the retry sometimes connected to a still-closed
+   port → "nothing came out."
+3. **The SNMP confirm logic mishandled a just-woken printer — the big
+   one.** The baseline counter was read **once** over UDP (no retry).
+   Right after waking, the Sharp's SNMP is slow, so that read returned
+   `null`; the page then printed; SNMP recovered mid-poll and the code
+   adopted that post-print value **as the baseline**, so the delta never
+   matched → the job was declared "printed 0 of N" → **re-sent (double
+   print)**, or after the retries → **marked FAILED and the wallet
+   refunded even though paper came out.** That is the "inconsistency":
+   sometimes a double, sometimes a false fail.
+
+### Fixes (`printloop-kiosk-app/agent.js`)
+
+- **`snmpReadCounterRobust(host, tries, perTryMs)`** — retries the
+  single-shot GetRequest (UDP is lossy; the Sharp is slow post-wake).
+  One dropped packet no longer reads as "didn't print."
+- **`rawDispatch` wake** — after knocking 80 + 631, **poll raw-9100
+  until it actually reopens** (up to 20 s) instead of a blind 3 s wait.
+- **`dispatchAndConfirm` rewritten** around a trustworthy baseline:
+  - Establish `before` with retries **before** sending. Clean branch on
+    whether we have one — no more adopting a post-print value.
+  - **Policy = "confirm if possible, else trust"** (operator's pick via
+    the question this turn). SNMP readable → confirm by counter
+    (`verified: true`). SNMP unreadable → a clean send counts as
+    delivered (`verified: false`); we don't refund a print that may have
+    come out.
+  - **Never double-print:** re-send only when the bytes never left
+    (dispatch threw) or the counter **proves** zero movement. Partial or
+    unverifiable results are reported as-is, not resent. A post-window
+    read ≥ expected is accepted as a (late) confirm.
+- Emits now carry `verified: true|false` on `confirmed` (UI ignores it;
+  kiosk still flips to success). Dropped the duplicate `verify-failed`
+  emit (processJob already emits it on `ok:false`).
+
+No backend or UI change — the kiosk's existing event handlers
+(`confirmed → success`, `verify-failed → error`) already cover the new
+flow. Agent-only, so this **needs a .exe rebuild + reinstall**.
+
+**Commit `_pending_`.**
+
+---
+
 ## Phase 19 — Self-healing printer IP + grayscale on every path (2026-05-29)
 
 **Prompted by:** "always scan to re-adjust printer information incase
