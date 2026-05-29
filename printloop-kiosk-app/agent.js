@@ -150,7 +150,25 @@ async function rawDispatch(cfg, bytes, jobName, opts) {
   ];
   if (sided) pjlLines.push('@PJL SET BINDING=LONGEDGE');
   pjlLines.push(
+    // ── Color / monochrome ────────────────────────────────────────
+    // Sharp MX-series often ignores `RENDERMODE` for PDF input and
+    // falls back to the PDF's own colour space. We belt-and-braces:
+    // emit every well-known PJL variable the firmware might honour.
+    // Unknown PJL is silently ignored by every printer, so this is
+    // safe across vendors.
+    //
+    // Known limitation: to *guarantee* monochrome on every printer
+    // we would need to pre-process the PDF through Ghostscript with
+    // `-sColorConversionStrategy=Gray` server-side and ship that. v2.
     `@PJL SET RENDERMODE=${colour ? 'COLOR' : 'GRAYSCALE'}`,
+    `@PJL SET COLORMODE=${colour ? 'COLOR' : 'MONO'}`,
+    `@PJL SET PRINTMODE=${colour ? 'COLOR' : 'GRAYSCALE'}`,
+    `@PJL SET COLOR=${colour ? 'ON' : 'OFF'}`,
+    `@PJL SET PRINTERINMODE=${colour ? 'COLOR' : 'MONO'}`,
+    // Sharp-flavoured variants — observed on some MX-series firmware
+    // service notes.
+    `@PJL SET PCL3COLORMODE=${colour ? 'COLOR' : 'GRAYSCALE'}`,
+    // Paper + orientation
     `@PJL SET PAPER=${paper}`,
     `@PJL SET ORIENTATION=${landscape ? 'LANDSCAPE' : 'PORTRAIT'}`,
     '@PJL ENTER LANGUAGE=PDF',

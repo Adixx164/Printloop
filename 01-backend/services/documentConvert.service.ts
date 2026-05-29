@@ -89,3 +89,82 @@ export async function ensurePdf(
     `Unsupported file type ".${ext || 'unknown'}". PrintLoop prints ${ALLOWED_LABEL} only.`
   );
 }
+
+/**
+ * Parse a user-supplied page-range expression into a sorted, deduped
+ * 1-based page index list, clipped to the document's actual page
+ * count. Examples (totalPages = 10):
+ *   "1"        → [1]
+ *   "1-3"      → [1, 2, 3]
+ *   "1,3,5"    → [1, 3, 5]
+ *   "2-4,7,9-" → [2, 3, 4, 7] + [9, 10]   (open-ended right side)
+ *   "0,15,1-3" → [1, 2, 3]                 (clips zero + over-range)
+ *   ""         → []                        (caller treats as "no range")
+ *
+ * Returns an empty array when the input is empty / unparseable so the
+ * caller can fall back to "print every page."
+ */
+export function parsePageRange(rangeStr: string | undefined | null, totalPages: number): number[] {
+  if (!rangeStr || typeof rangeStr !== 'string') return [];
+  const cap = Math.max(0, Math.floor(totalPages) || 0);
+  if (cap === 0) return [];
+  const seen = new Set<number>();
+  for (const chunk of rangeStr.split(',')) {
+    const piece = chunk.trim();
+    if (!piece) continue;
+    // Open-ended right side: "9-" → 9..totalPages
+    const openEnd = piece.match(/^(\d+)\s*-\s*$/);
+    if (openEnd) {
+      for (let p = +openEnd[1]; p <= cap; p++) {
+        if (p >= 1) seen.add(p);
+      }
+      continue;
+    }
+    // Closed range: "2-4"
+    const closed = piece.match(/^(\d+)\s*-\s*(\d+)$/);
+    if (closed) {
+      const lo = Math.max(1, +closed[1]);
+      const hi = Math.min(cap, +closed[2]);
+      for (let p = lo; p <= hi; p++) seen.add(p);
+      continue;
+    }
+    // Single page: "5"
+    if (/^\d+$/.test(piece)) {
+      const p = +piece;
+      if (p >= 1 && p <= cap) seen.add(p);
+    }
+  }
+  return Array.from(seen).sort((a, b) => a - b);
+}
+
+/**
+ * Build a new PDF containing only the requested pages (1-based) from
+ * the source PDF, in the order given. Returns the original buffer
+ * unchanged if `pageNumbers` is empty, contains every page in order,
+ * or is invalid — so callers can pass it the customer's selection
+ * without pre-checking.
+ *
+ * Used by the agent-pull download endpoint to honor
+ * `printConfiguration.pages === 'range'` server-side — the printer
+ * receives only the pages the customer paid for.
+ */
+export async function extractPages(input: Buffer, pageNumbers: number[]): Promise<Buffer> {
+  if (!pageNumbers || pageNumbers.length === 0) return input;
+  const source = await PDFDocument.load(input, { updateMetadata: false }).catch(() => null);
+  if (!source) return input;
+  const total = source.getPageCount();
+  // Clamp + 0-index. If the result would be the full document in order,
+  // skip the copy — saves CPU + keeps the original byte stream which
+  // is the format the printer's seen working with.
+  const indices = pageNumbers
+    .filter((p) => Number.isFinite(p) && p >= 1 && p <= total)
+    .map((p) => Math.floor(p) - 1);
+  if (indices.length === 0) return input;
+  const isIdentity = indices.length === total && indices.every((v, i) => v === i);
+  if (isIdentity) return input;
+
+  const out = await PDFDocument.create();
+  const copied = await out.copyPages(source, indices);
+  for (const page of copied) out.addPage(page);
+  return Buffer.from(await out.save());
+}

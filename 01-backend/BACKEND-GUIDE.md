@@ -684,15 +684,43 @@ and the cost-calculation per participant that honors the
 host's `enforced` flag.
 
 ### `services/documentConvert.service.ts`
-**File validation + conversion gate.** Exports `ensurePdf
-(bytes, fileName)` which:
-1. Validates the MIME type and extension are in the
-   `PDF | JPG | PNG` allow-list.
-2. Counts pages (pdf-lib for PDFs, 1 for images).
-3. Converts JPG/PNG into a PDF wrapping (so the printer always
-   gets PDF bytes).
-4. Throws `UnsupportedDocumentError` with a `code` field on
-   anything else — route handlers map this to HTTP 415.
+**File validation + conversion + page-range slicing.** Exports:
+- `ensurePdf(bytes, fileName)`:
+  1. Validates the MIME type and extension are in the
+     `PDF | JPG | PNG` allow-list.
+  2. PDF passes through byte-exact.
+  3. JPG / PNG gets wrapped into an A4 page via pdf-lib.
+  4. Throws `UnsupportedDocumentError` (code `UNSUPPORTED_DOCUMENT`)
+     on anything else — route handlers map to HTTP 415.
+- `countPages(bytes, fileName)` — authoritative page count
+  from the bytes themselves (never trust client-supplied
+  counts; they drive pricing/policy).
+- `parsePageRange(rangeStr, totalPages)` — parses a user
+  range expression (`"1"`, `"1-3"`, `"1,3,5"`, `"2-4,7,9-"`),
+  clipped to `[1..totalPages]`, deduped, sorted.
+  Open-ended right side (`"9-"`) means "9 to end." Returns
+  `[]` on empty / malformed input so callers fall back to
+  "every page."
+- `extractPages(input, pageNumbers)` — builds a fresh PDF
+  containing only the requested 1-based pages in the given
+  order via `pdf-lib.copyPages`. Returns the original buffer
+  unchanged when the selection is the identity (every page in
+  order) so the printer keeps seeing byte-exact bytes.
+- `isPrintableDocument(fileName, mime?)` — upload-gate
+  predicate.
+- `UnsupportedDocumentError` class + `ALLOWED_LABEL` constant.
+
+Used by:
+- `routes/customerPrint.routes.ts` — validates uploads,
+  counts pages.
+- `routes/cups.routes.ts` — same.
+- `routes/participantUpload.routes.ts` — same.
+- `routes/printer.routes.ts` — calls `ensurePdf` at dispatch
+  time on the cloud-push path.
+- `routes/agent.routes.ts` — calls `ensurePdf` +
+  `extractPages` at the signed-download endpoint so the
+  kiosk-pull agent always receives a print-ready PDF with the
+  customer's page range already applied (added Phase 17).
 
 ### `services/kiosk.service.ts`
 **Kiosk CRUD logic.** Wraps the TypeORM repo with the

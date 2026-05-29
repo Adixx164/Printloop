@@ -7,6 +7,12 @@ import { File } from '../entities/file.entity';
 import { Kiosk } from '../entities/kiosk.entity';
 import { kioskAuth } from '../middleware/kioskAuth.middleware';
 import { loadDocumentBytes } from '../utils/fileStore';
+import {
+  ensurePdf,
+  extractPages,
+  parsePageRange,
+  UnsupportedDocumentError,
+} from '../services/documentConvert.service';
 import { PrinterServiceExtensions } from '../services/printerExtensions.service';
 import { JWT_SECRET } from '../utils/jwt';
 
@@ -106,6 +112,17 @@ router.get('/jobs/ready', kioskAuth, async (req: Request, res: Response) => {
           printConfiguration: any;
           totalPages: number;
         }>;
+        // Helper: effective page count after applying the customer's
+        // page-range selection. The agent's SNMP confirmation expects
+        // `totalPages × copies` impressions, so we must report what
+        // will ACTUALLY print, not the document's underlying length.
+        const effectivePages = (docTotal: number, cfg: any): number => {
+          const total = Math.max(1, Number(docTotal) || 1);
+          if (!cfg || cfg.pages !== 'range' || !cfg.pageRange) return total;
+          const picked = parsePageRange(String(cfg.pageRange), total);
+          return picked.length > 0 ? picked.length : total;
+        };
+
         if (job.jobType === 'personal_batch') {
           const rows = await AppDataSource.getRepository(PrintJobItem).find({
             where: { printJobId: job.id },
@@ -118,9 +135,10 @@ router.get('/jobs/ready', kioskAuth, async (req: Request, res: Response) => {
               it.id,
             )}&t=${encodeURIComponent(buildFileToken(job.id, kiosk.id))}`,
             printConfiguration: it.printConfiguration,
-            // Page count for the agent's SNMP-based physical-print confirm.
-            // expectedPages = totalPages × printConfiguration.copies.
-            totalPages: Math.max(1, Number(it.totalPages) || 1),
+            // Effective page count for the agent's SNMP-based
+            // physical-print confirm. expectedPages on the agent =
+            // totalPages × printConfiguration.copies.
+            totalPages: effectivePages(it.totalPages, it.printConfiguration),
           }));
         } else {
           items = [
@@ -131,7 +149,7 @@ router.get('/jobs/ready', kioskAuth, async (req: Request, res: Response) => {
                 buildFileToken(job.id, kiosk.id),
               )}`,
               printConfiguration: job.printConfiguration,
-              totalPages: Math.max(1, Number(job.totalPages) || 1),
+              totalPages: effectivePages(job.totalPages, job.printConfiguration),
             },
           ];
         }
@@ -169,7 +187,11 @@ router.get('/jobs/:id/file', async (req: Request, res: Response) => {
       return;
     }
 
+    // Resolve fileId + the relevant printConfiguration. For personal-
+    // batch each item has its own settings; for single-file jobs the
+    // settings live on the PrintJob row itself.
     let fileId: string | undefined;
+    let cfg: any = {};
     if (req.query.item) {
       const item = await AppDataSource.getRepository(PrintJobItem).findOne({
         where: { id: String(req.query.item), printJobId: req.params.id },
@@ -179,6 +201,7 @@ router.get('/jobs/:id/file', async (req: Request, res: Response) => {
         return;
       }
       fileId = item.fileId;
+      cfg = item.printConfiguration || {};
     } else {
       const job = await AppDataSource.getRepository(PrintJob).findOne({
         where: { id: req.params.id },
@@ -188,24 +211,72 @@ router.get('/jobs/:id/file', async (req: Request, res: Response) => {
         return;
       }
       fileId = job.fileId;
+      cfg = job.printConfiguration || {};
     }
     const file = await AppDataSource.getRepository(File).findOne({ where: { id: fileId } });
     if (!file?.fileURL) {
       res.status(404).json({ success: false, message: 'File missing' });
       return;
     }
-    const bytes = await loadDocumentBytes(file.fileURL);
-    if (!bytes) {
+    const rawBytes = await loadDocumentBytes(file.fileURL);
+    if (!rawBytes) {
       res.status(502).json({ success: false, message: 'File not retrievable' });
       return;
     }
-    res.setHeader('Content-Type', file.mimeType || 'application/pdf');
-    res.setHeader('Content-Length', String(bytes.length));
+
+    // ── 1. Always hand the agent a PDF. ─────────────────────────────
+    // The agent's raw-9100 transport sends bytes after
+    // "@PJL ENTER LANGUAGE=PDF", so JPG / PNG would arrive as garbage
+    // to the printer. `ensurePdf` passthrough for PDFs (byte-exact)
+    // and A4-wraps images via pdf-lib.
+    let pdfBytes: Buffer;
+    try {
+      const ensured = await ensurePdf(rawBytes, file.fileName || 'document.pdf');
+      pdfBytes = ensured.buffer;
+    } catch (e: any) {
+      if (e instanceof UnsupportedDocumentError) {
+        res.status(415).json({ success: false, message: e.message, code: e.code });
+        return;
+      }
+      console.error('[agent] ensurePdf failed:', e?.message);
+      res.status(502).json({ success: false, message: 'Document could not be prepared for printing.' });
+      return;
+    }
+
+    // ── 2. Apply page range if the customer chose one. ──────────────
+    // The agent's raw-9100 path has no way to express "print page 5
+    // only" — it sends whatever bytes it gets. We do the slicing here
+    // so the printer physically produces only the pages the customer
+    // selected and paid for. parsePageRange handles "1-3,5,7-".
+    if (cfg && cfg.pages === 'range' && cfg.pageRange) {
+      try {
+        // We trust the stored totalPages over re-parsing; pdf-lib does
+        // its own count inside extractPages but we pass the raw range
+        // string + the document's total so out-of-bounds entries
+        // clip cleanly.
+        const { PDFDocument } = await import('pdf-lib');
+        const doc = await PDFDocument.load(pdfBytes, { updateMetadata: false }).catch(() => null);
+        const total = doc ? doc.getPageCount() : 0;
+        const wanted = parsePageRange(String(cfg.pageRange), total);
+        if (wanted.length > 0) {
+          pdfBytes = await extractPages(pdfBytes, wanted);
+        }
+      } catch (e: any) {
+        // If page-range slicing fails (malformed PDF, etc.), fall
+        // back to the full document. The agent's logs will show the
+        // mismatch between expected page count and what the SNMP
+        // counter advances, which surfaces to the operator.
+        console.warn('[agent] page-range slice failed, sending full document:', e?.message);
+      }
+    }
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Length', String(pdfBytes.length));
     res.setHeader(
       'Content-Disposition',
-      `attachment; filename="${(file.fileName || 'document.pdf').replace(/"/g, '')}"`,
+      `attachment; filename="${(file.fileName || 'document.pdf').replace(/"/g, '')}.pdf"`,
     );
-    res.send(bytes);
+    res.send(pdfBytes);
   } catch (err: any) {
     console.error('[agent] /jobs/:id/file error:', err?.message);
     res.status(500).json({ success: false, message: 'Failed to read file' });

@@ -762,6 +762,107 @@ counter actually advances.
 
 ---
 
+## Phase 17 — Images print + page range + B/W (2026-05-29)
+
+**Prompted by:** "i just realized that images dont print compared
+to pdf / even when a pdf prints it doesnt follow the print
+configuration, e.g b/w, 300 dpi, page range etc. it just prints
+coloured / sent in a pdf with 8 page and choose only the first
+page to be printed in black and white, but instead it printed in
+coloured and all 8 pages."
+
+Two real bugs. The kiosk-pull download endpoint sent the raw
+stored bytes unchanged, while the cloud-push path had been doing
+`ensurePdf(bytes, fileName)` at dispatch — so images on disk
+went out as JPG/PNG bytes wrapped with `@PJL ENTER LANGUAGE=PDF`,
+which the printer can't render. And the agent's PJL prologue
+applied COPIES + DUPLEX + PAPER + ORIENTATION but never the
+page range, and the Sharp tends to ignore `RENDERMODE=GRAYSCALE`
+for PDF input (it falls back to the PDF's own colour space).
+
+### Backend transformation at the signed-download endpoint
+
+The cleanest fix: do PDF preparation **server-side** in
+`/api/agent/jobs/:id/file`. The agent stays simple; the backend
+hands it a fully print-ready PDF.
+
+- `01-backend/services/documentConvert.service.ts`:
+  - New `parsePageRange(rangeStr, totalPages)` — accepts
+    `"1-3,5,7-"` shape including open-ended right side
+    (`"9-"` means "9 to end"). Clips to `[1..totalPages]`,
+    dedupes, sorts ascending. Returns `[]` on empty / malformed
+    input so callers can fall back to "all pages."
+  - New `extractPages(input, pageNumbers)` — builds a fresh PDF
+    via `pdf-lib.copyPages`, returns the buffer. Skips the copy
+    when the selection is the identity (all pages in order) so
+    the printer keeps seeing the byte-exact original.
+- `01-backend/routes/agent.routes.ts`:
+  - `/jobs/ready` now reports **effective** page count per item
+    (after page-range slicing) so the agent's SNMP-confirm
+    expected = `effective × copies` matches what the printer
+    will actually mark.
+  - `/jobs/:id/file` is rewritten:
+    1. Load bytes.
+    2. `ensurePdf(bytes, fileName)` — passthrough for PDFs,
+       A4-wrap via pdf-lib for JPG/PNG. Returns 415 if the
+       stored bytes are an unsupported type.
+    3. If `printConfiguration.pages === 'range'`, parse the
+       range, slice via `extractPages`, fall back to the full
+       document if slicing fails (with a `[agent]` warn line
+       in the logs).
+    4. Set `Content-Type: application/pdf`, append `.pdf` to
+       the filename in Content-Disposition.
+
+### Agent — more PJL colour hints
+
+The Sharp may honour any of these for a forced-mono PDF job;
+unknown PJL is silently ignored, so emitting all of them is
+safe across vendors. Added in `printloop-kiosk-app/agent.js`'s
+`rawDispatch` PJL block:
+
+```
+@PJL SET RENDERMODE=GRAYSCALE       (existing)
+@PJL SET COLORMODE=MONO             (new)
+@PJL SET PRINTMODE=GRAYSCALE        (new)
+@PJL SET COLOR=OFF                  (new)
+@PJL SET PRINTERINMODE=MONO         (new)
+@PJL SET PCL3COLORMODE=GRAYSCALE    (new — Sharp-flavoured)
+```
+
+### Known limitation — bullet-proof grayscale needs Ghostscript
+
+`pdf-lib` can slice page ranges but cannot reliably re-colour
+content (PDF colour spaces are deep — DeviceCMYK, DeviceN,
+ICC-tagged objects, embedded fonts with colour glyphs). The
+proper v2 fix is a server-side Ghostscript pass:
+
+```sh
+gs -sDEVICE=pdfwrite -sColorConversionStrategy=Gray \
+   -dProcessColorModel=/DeviceGray \
+   -dNOPAUSE -dBATCH \
+   -sOutputFile=out.pdf in.pdf
+```
+
+That guarantees mono regardless of the printer's PJL behaviour.
+Adds a system dependency to the Railway container (apt-get
+ghostscript) but is the industry-standard answer. Documented as
+a deferred follow-up.
+
+### Known limitation — DPI / `qualityDpi`
+
+The customer-facing dropdown is preserved because the chosen
+quality drives the price (300dpi costs more than 100dpi per
+the pricing matrix), but the **actual print resolution is set
+by the PDF's source** (the rasteriser that made it). PJL has
+`SET RESOLUTION=N` but it's widely ignored for PDF input. A
+real v2 fix would re-render through Ghostscript at the chosen
+DPI before sending — same hammer as the grayscale fix.
+
+**Commit `_pending_`** — backend + agent. Backend typechecks
+clean; the .exe was rebuilt and reinstalled locally.
+
+---
+
 ## Phase 16 — This journal (2026-05-29 04:50)
 
 **Prompted by:** "create a .md of a journal of all the thing we
