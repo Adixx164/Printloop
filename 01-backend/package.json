@@ -9,6 +9,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@napi-rs/canvas": "1.0.0",
     "@types/bcryptjs": "^2.4.6",
     "@types/ipp": "^2.0.5",
     "@types/jsonwebtoken": "^9.0.10",
@@ -28,6 +29,7 @@
     "nanoid": "^5.1.11",
     "nodemailer": "^8.0.7",
     "pdf-lib": "^1.17.1",
+    "pdfjs-dist": "4.10.38",
     "qrcode": "^1.5.4",
     "rate-limit-redis": "^5.0.0",
     "redis": "^5.12.1",

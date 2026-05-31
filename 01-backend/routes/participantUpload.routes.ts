@@ -4,11 +4,12 @@ import { AppDataSource } from '../config/database';
 import { PrintJob, PrintJobStatus, JobType } from '../entities/printJob.entity';
 import { File } from '../entities/file.entity';
 import { GroupSessionStatus } from '../entities/groupSession.entity';
-import { saveBase64 } from '../utils/fileStore.js';
+import { saveBuffer } from '../utils/fileStore.js';
 import {
   isPrintableDocument,
   ALLOWED_LABEL,
   countPages,
+  flattenAnnotations,
   UnsupportedDocumentError,
 } from '../services/documentConvert.service';
 import { getUploadLimits } from '../utils/limits';
@@ -83,6 +84,10 @@ router.post('/upload', async (req: Request, res: Response) => {
         });
         return;
       }
+      // Bake annotations (signatures) into the bytes before counting/storing,
+      // so the printer RIP can't move or drop them. Byte-exact passthrough
+      // when there are none; original bytes on any failure.
+      buffer = await flattenAnnotations(buffer);
     }
     let authoritativePages: number;
     try {
@@ -107,7 +112,7 @@ router.post('/upload', async (req: Request, res: Response) => {
     }
 
     // Real bytes win: persist them so the kiosk/IPP service can fetch them.
-    const stored = fileBase64 ? saveBase64(fileBase64, fileName) : null;
+    const stored = buffer ? saveBuffer(buffer, String(fileName)) : null;
     const effectiveFileURL = stored ? stored.url : fileURL;
     const effectiveSize = stored ? stored.sizeBytes : Number(sizeBytes) || 0;
 

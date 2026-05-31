@@ -762,6 +762,258 @@ counter actually advances.
 
 ---
 
+## Phase 23 — Page-range audit + print-quality reaches the printer (2026-05-31)
+
+**Prompted by:** a pre-commit check — "make sure that when a range of pages
+is selected the command is obeyed by removing what wasn't selected, and when
+the user selects the highest quality it instructs the printer to print at
+that exact quality."
+
+### Page range — audited, already correct ✅
+
+The kiosk-pull download endpoint (`/api/agent/jobs/:id/file`) runs
+`extractPages`, which builds a **new PDF containing only the selected pages**
+(`copyPages`) and drops the rest — so the printer physically receives only
+those pages. `parsePageRange` handles `1-3,5,7-` with clamping/dedupe. And
+`/jobs/ready` reports a **range-adjusted** page count (`effectivePages`), so
+the agent's SNMP impression math (`totalPages × copies`) matches what
+actually prints — no false-fail / double-print on ranged jobs. Only fix
+needed was a **stale comment** in `agent.js` that wrongly claimed page-range
+"isn't honoured at the agent" (it is, upstream).
+
+### Print quality — was pricing-only, now sent to the printer ✅
+
+**Finding:** `qualityDpi` (100/300/600) drove **pricing only**. It reached
+the agent inside `printConfiguration` but **no transport emitted any quality
+instruction** — the raw-9100 PJL prologue and the IPP attribute builders had
+copies/duplex/colour/paper/orientation but **no resolution/quality**. So the
+printer was never told what quality to use.
+
+**Fix — emit it on every transport:**
+- **raw-9100 PJL** (`printloop-kiosk-app/agent.js`, backend
+  `ipp.service.ts`, deprecated `printloop-agent/agent.ts`):
+  `@PJL SET RESOLUTION=<600|300>` + `@PJL SET ECONOMODE=<ON|OFF>`.
+- **IPP** (all three builders): `print-quality` enum **3 = draft, 4 =
+  normal, 5 = high**.
+- **`printer.routes.ts`** now passes `qualityDpi` into all three
+  `PrintOptions`; the backend `PrintOptions` type gained `qualityDpi`. The
+  kiosk-pull agent already had it via `printConfiguration`.
+
+**Tier mapping** (laser engines run 300/600 dpi): `100 → 300 dpi +
+ECONOMODE ON` (real "draft": toner-saving), `300 → 300 dpi`, `600 → 600
+dpi` (the "highest quality" the customer asked to be honoured).
+
+**Caveats (told to the user):** the Sharp likely **ignores PJL RESOLUTION
+for PDF input** — the same firmware quirk behind colour and orientation — so
+on the Sharp via raw-9100 it's best-effort; it's reliably honoured on
+true-IPP printers. And a **vector** PDF is resolution-independent, so a
+"highest quality" job already prints at the printer's native engine
+resolution (600 dpi) regardless — this change makes the intent **explicit**
+and gives the draft tier a real (economode) effect. (Note: the
+signature-flatten rasters at 200 dpi, so a flattened page is capped there —
+a separate tunable.)
+
+### Needs an `.exe` rebuild
+
+This is the first change since Phase 21/22 that touches the **agent**
+(`agent.js`), so the kiosk `.exe` was **rebuilt + must be reinstalled** for
+the PJL/IPP quality to take effect on the kiosk. Backend typecheck clean;
+deprecated agent typecheck clean; `agent.js` `node --check` clean.
+
+**Commit `_pending_`.**
+
+---
+
+## Phase 22 — Landscape = scale-to-fit, not rotate (2026-05-31)
+
+**Prompted by:** two screenshots of the PrintLoop investment-proposal cover
+— one portrait (correct), one landscape that was wrong. "the way it's been
+processed as landscape in printloop is wrong, as it just flips it, instead
+of scaling it into landscape." Clarified: **"the document was scaled to fit
+the rotated paper, without having to rotate the document."**
+
+### Diagnosis
+
+PrintLoop did **no PDF transform for orientation at all** — the only thing
+"landscape" did was set a *hint*: the agent's PJL `@PJL SET
+ORIENTATION=LANDSCAPE` and IPP `orientation-requested: 4`. No
+`setRotation`/page-box logic anywhere in the codebase. So the **printer**
+decided what landscape meant, and the Sharp MX-5112N **ignores that PJL hint
+for PDF input** — the exact same firmware quirk that forced grayscale
+(Phase 18) and signature flattening (Phase 21) into the bytes. The Sharp
+obeys the PDF's **own page geometry**, so orientation has to live there too.
+
+### Decision (user-confirmed)
+
+Landscape = take the upright page and **scale it to fit a landscape sheet,
+centred, WITHOUT rotating the content.** The pillarbox (even white margins
+left/right) is expected and wanted — it's the cost of not turning a
+portrait layout on its side.
+
+### Implementation (`01-backend/services/documentConvert.service.ts`)
+
+- **`fitToLandscape(input)`** — for every **portrait** page, build a
+  landscape sheet of the same paper size (swap W/H, long edge becomes the
+  width) and `drawPage` the original into it via `embedPages`, scaled to
+  fit (contain) and centred. **Already-landscape / square pages are left
+  alone.** A document that is already landscape on every page is returned
+  **byte-exact**. Non-PDF, unreadable PDF, or ANY error → **original
+  bytes** (mirrors `toGrayscale`). **Page count is preserved** (SNMP math
+  unchanged).
+- Because `embedPages` captures page **content** (not live annotations),
+  this composes correctly *after* `flattenAnnotations` (which at upload
+  bakes signatures into the content) — the real order is flatten@upload →
+  grayscale@download → landscape@download.
+
+### Wiring (at dispatch, beside grayscale)
+
+- **`routes/agent.routes.ts`** (kiosk-pull download) — new step 4 after the
+  grayscale step: `if (cfg.orientation === 'landscape') pdfBytes = await
+  fitToLandscape(pdfBytes)`.
+- **`routes/printer.routes.ts`** (cloud-push) — added a `maybeLandscape()`
+  helper (sibling of `maybeGrayscale`) applied at all three dispatch sites,
+  composed as `maybeLandscape(await maybeGrayscale(...), orientation)`.
+
+### Why no `.exe` rebuild
+
+The fix is in the **bytes**, which the Sharp obeys for PDF. The agent's
+existing `@PJL SET ORIENTATION=LANDSCAPE` is a no-op on the Sharp for PDF
+input (same reason its colour PJL is a no-op), so it doesn't fight the baked
+geometry. **Backend-only.** (A future agent tweak could force the PJL hint
+to PORTRAIT as belt-and-braces for non-Sharp printers that *do* honour it —
+optional, would need a rebuild.)
+
+### Verification
+
+A synthetic full-bleed portrait A4 (blue fill + red page-edge border) →
+`fitToLandscape` → **842×595** with the blue centred and **~25% gray
+pillars each side, full height** (rendered on a gray backdrop so the white
+pillars were visible). The earlier real-form render *looked* full-width only
+because its white pillars were invisible against the white page. `npm run
+typecheck` clean.
+
+**Commit `_pending_`.**
+
+---
+
+## Phase 21 — Flatten signatures so they survive printing (2026-05-31)
+
+**Prompted by:** a real form — `MUTUAL 4.pdf`, a Lotus Capital "MUTUAL
+FUND REDEMPTION FORM." A hand-drawn signature that sits perfectly in the
+SIGNATURE box on screen **jumped out of the box (or vanished entirely)
+when printed.** The ask: "can we integrate that to our system so
+everything is flattened at the user's end before bringing it to the
+kiosk."
+
+### Diagnosis (the file is fine; the print paths are broken)
+
+The signatures created by Preview / Adobe / phone apps aren't in the page
+content stream — they're `/Ink` (and friends: `/FreeText`, `/Stamp`,
+`/Widget`) annotations layered on top, living in the page's `/Annots`
+array. The PDF is internally consistent: **PDF.js / Firefox render it
+correctly** (verified by rendering to PNG and eyeballing — signature in
+the box). Only **broken print paths** mishandle the overlay:
+
+- The **Sharp MX-5112N RIP** moves the signature up, out of its box.
+- **Microsoft Edge's "Print to PDF"** silently **drops** the strokes.
+
+So the bug isn't ours and isn't the file's — it's that a real-world RIP
+can't be trusted to place a separate annotation layer where the spec says
+it goes.
+
+### Dead-end: pure-vector flatten (built, verified, still failed)
+
+First attempt re-inlined each annotation's appearance operators straight
+into the page content stream, with the net form→page transform baked into
+a `cm` (no form XObject, no `/Matrix` for a RIP to flip). A `Z_SYNC_FLUSH`
+fix was needed to inflate appearance streams that lack the end-of-stream
+marker (Node's zlib is stricter than PDF producers). It was **verified
+pixel-perfect in PDF.js** — and **still** moved on the Sharp and dropped
+in Edge. That disproved the "it's the matrix" theory: even an identity
+`cm` failed. A vector overlay, however we re-express it, is at the mercy
+of the RIP.
+
+### Decision: rasterize the annotated pages (user picked "Rasterize")
+
+The one representation a broken RIP physically cannot misplace is a flat
+raster. The user compared a vector-flattened and a rasterized copy
+("they both sit in the right place") and chose **Rasterize**.
+
+**Design (graceful, mirrors `toGrayscale`):**
+
+- **No visible annotations anywhere → return the bytes BYTE-EXACT.** The
+  common case (ordinary documents) pays nothing and is never re-serialized.
+  `/Link` and `/Popup` don't count — they never paint on the page.
+- **Has annotations →** render *only the annotated pages* at **200 DPI**
+  with annotations baked into the pixels, and rebuild each as an
+  image-only page **at the original page's point size**. Un-annotated
+  pages are copied through as crisp **vector** (one batched `copyPages`
+  so shared resources dedupe). **Page count and physical geometry are
+  preserved exactly** — SNMP page-count math and per-page pricing are
+  unaffected.
+- **Any failure → return the ORIGINAL bytes.** Uploads never break on
+  account of this step.
+
+### Implementation (`01-backend/services/documentConvert.service.ts`)
+
+- **`flattenAnnotations(input)`** — the entry point, exported. Non-PDF →
+  passthrough; load fails (encrypted/malformed) → passthrough; no
+  annotations → byte-exact; else rasterize; throw → original bytes.
+- **`annotatedPageIndices(pdf)`** — 0-based set of pages with a visible
+  annotation (every `lookup` wrapped, because pdf-lib's typed `lookup`
+  *throws* on a missing/mistyped key).
+- **`rasterizeAnnotatedPages(...)`** — `pdfjs-dist` (legacy ESM build,
+  runs in Node, `annotationMode: ENABLE` bakes the overlay) +
+  `@napi-rs/canvas` (native, **prebuilt for Railway's Linux**) →
+  per-page PNG; `pdf-lib` `embedPng` + full-page `drawImage`.
+- **`loadPdfjs()`** — lazy import; installs a guarded `Promise.withResolvers`
+  polyfill first (pdfjs v4 needs it; the backend runs Node 20).
+- **`standardFontDataUrl()`** — `file://` to pdfjs's bundled
+  `standard_fonts/`, resolved off the *package location* via
+  `createRequire(import.meta.url)` (NOT `process.cwd()`), so it works
+  regardless of the launch directory on Windows or Railway.
+- Replaced the entire vector-flatten block (asNums / transformBox /
+  mulMatrix / inlineAppearanceChunk / decodeAppearance …) with the above.
+- **New deps (pinned, in `dependencies` — used in prod):**
+  `pdfjs-dist@4.10.38`, `@napi-rs/canvas@1.0.0`.
+
+### Wiring (flatten on the upload path, before the kiosk pulls)
+
+Inserted **after** the size/limit check and **before** `countPages` +
+`saveBuffer`, so the counted, priced, and stored bytes are all the
+flattened bytes (`sizeBytes` now reflects the stored file's length):
+
+- **`customerPrint.routes.ts`** — single upload **and** batch. In the
+  batch's two-pass flow the flattened buffer is produced in the
+  validation pass and carried into the persist pass (`perFile[i].bytes`)
+  so count and save use identical bytes.
+- **`participantUpload.routes.ts`** — flatten the decoded buffer; switched
+  storage `saveBase64(fileBase64) → saveBuffer(buffer)` (byte-identical
+  when there are no annotations).
+- **`cups.routes.ts`** — the IPP/desktop-print ingress, same pattern.
+- **Skipped `devApi.routes.ts`** — a dev-only mock with its own in-memory
+  store that never reaches a real kiosk.
+
+### Verification
+
+- `MUTUAL 4.pdf`: **1.19 MB → 242 KB**, **1 page in → 1 page out**,
+  annotated page detected and rasterized in ~1.4 s; the integrated
+  function's output rendered in PDF.js shows the signature **baked into
+  the SIGNATURE box**.
+- `npm run typecheck` clean; an ESM import probe loads all three rewired
+  routes + the service in Node's runtime with no import-time throw.
+
+### Aside: the "it prints 2 sheets" complaint
+
+Provably a print-**dialog** setting, not the file — `getPageCount() === 1`
+and a single `/Type /Page`. Second sheet = Copies/duplex in the dialog.
+Advised Copies = 1, duplex off.
+
+**Backend-only change — no `.exe` rebuild needed** (the agent/kiosk are
+untouched). **Commit `_pending_`.**
+
+---
+
 ## Phase 20 — Fix inconsistent printing: SNMP confirm hardening (2026-05-29)
 
 **Prompted by:** "whats the cause of inconsistent printing and can you

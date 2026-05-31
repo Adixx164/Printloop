@@ -12,6 +12,7 @@ import {
   extractPages,
   parsePageRange,
   toGrayscale,
+  fitToLandscape,
   UnsupportedDocumentError,
 } from '../services/documentConvert.service';
 import { PrinterServiceExtensions } from '../services/printerExtensions.service';
@@ -281,6 +282,17 @@ router.get('/jobs/:id/file', async (req: Request, res: Response) => {
     // print unchanged.
     if (cfg && cfg.color && cfg.color !== 'color') {
       pdfBytes = await toGrayscale(pdfBytes);
+    }
+
+    // ── 4. Bake landscape orientation if the customer chose it. ─────
+    // Same firmware-proof rationale as grayscale: the Sharp obeys the
+    // PDF's own page geometry for PDF input but ignores the PJL
+    // ORIENTATION hint. So we lay the page out as landscape in the bytes
+    // — the upright content scaled to fit the rotated sheet (NOT rotated)
+    // — which is exactly what the customer expects to see. No-op
+    // passthrough for already-landscape docs or on any error.
+    if (cfg && cfg.orientation === 'landscape') {
+      pdfBytes = await fitToLandscape(pdfBytes);
     }
 
     res.setHeader('Content-Type', 'application/pdf');

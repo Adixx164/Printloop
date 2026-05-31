@@ -203,6 +203,9 @@ function buildIppJobAttributes(opts) {
       : 'separate-documents-uncollated-copies';
     attrs['sheet-collate'] = collate ? 'collated' : 'uncollated';
   }
+  // Print quality enum: 3 = draft, 4 = normal, 5 = high.
+  const q = Number(opts.qualityDpi) || 300;
+  attrs['print-quality'] = q <= 100 ? 3 : q >= 600 ? 5 : 4;
   return attrs;
 }
 
@@ -264,6 +267,12 @@ async function rawDispatch(cfg, bytes, jobName, opts) {
   const colour = opts.color === 'color';
   const landscape = opts.orientation === 'landscape';
   const paper = String(opts.paper || 'A4').toUpperCase();
+  // Print-quality tier (100 = draft, 300 = normal, 600 = high). Laser
+  // engines run 300/600 dpi, so a sub-300 pick floors to 300 and instead
+  // saves toner via ECONOMODE; the top tier asks for the full 600.
+  const qualityDpi = Number(opts.qualityDpi) || 300;
+  const resolution = qualityDpi >= 600 ? 600 : 300;
+  const economy = qualityDpi <= 100;
 
   const pjlLines = [
     UEL + '@PJL',
@@ -294,6 +303,11 @@ async function rawDispatch(cfg, bytes, jobName, opts) {
     // Paper + orientation
     `@PJL SET PAPER=${paper}`,
     `@PJL SET ORIENTATION=${landscape ? 'LANDSCAPE' : 'PORTRAIT'}`,
+    // Print quality / resolution. Like the colour hints above, the Sharp
+    // may ignore these for PDF input, but they're correct for any printer
+    // that honours PJL and make the customer's quality choice real.
+    `@PJL SET RESOLUTION=${resolution}`,
+    `@PJL SET ECONOMODE=${economy ? 'ON' : 'OFF'}`,
     '@PJL ENTER LANGUAGE=PDF',
     '',
   );
@@ -670,12 +684,11 @@ async function processJob(cfg, api, job, emit) {
         job.items.length === 1 ? `${job.code}` : `${job.code} · ${item.fileName}`;
 
       // Compute the expected impression delta. The Printer-MIB counter
-      // ticks once per side actually marked, so single-sided N pages
-      // and double-sided N pages both add N impressions. Page-range
-      // printing isn't honoured at the agent (the page-range field is
-      // stored but not threaded into PJL/IPP), so the printer renders
-      // every page in the PDF — `totalPages × copies` is what shows up
-      // on the counter.
+      // ticks once per side actually marked, so single-sided N pages and
+      // double-sided N pages both add N impressions. The backend slices
+      // the PDF to the customer's page range at the download endpoint AND
+      // reports the post-range page count in `item.totalPages`, so
+      // `totalPages × copies` is exactly what the printer will mark.
       const cfgOpts = item.printConfiguration || {};
       const copies = Math.max(1, Number(cfgOpts.copies) || 1);
       const itemPages = Math.max(1, Number(item.totalPages) || 1);

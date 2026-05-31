@@ -11,7 +11,7 @@ import { PrintJob, PrintJobStatus } from '../entities/printJob.entity';
 import { PrintJobItem } from '../entities/printJobItem.entity';
 import { File } from '../entities/file.entity';
 import { loadDocumentBytes } from '../utils/fileStore';
-import { ensurePdf, toGrayscale, UnsupportedDocumentError } from '../services/documentConvert.service';
+import { ensurePdf, toGrayscale, fitToLandscape, UnsupportedDocumentError } from '../services/documentConvert.service';
 
 const router = Router();
 const printerExt = new PrinterServiceExtensions();
@@ -49,6 +49,18 @@ async function dispatchPrint(
  */
 async function maybeGrayscale(buffer: Buffer, color: string | undefined): Promise<Buffer> {
   return color && color !== 'color' ? toGrayscale(buffer) : buffer;
+}
+
+/**
+ * Bake landscape orientation on the cloud-push path when the customer
+ * chose it. Like {@link maybeGrayscale} this is firmware-proof: the Sharp
+ * ignores the PJL ORIENTATION hint for PDF input but obeys the PDF's own
+ * page geometry, so `fitToLandscape` lays the upright page out, scaled to
+ * fit, on a landscape sheet (no rotation). No-op (original bytes) for
+ * non-landscape jobs, already-landscape docs, or any failure.
+ */
+async function maybeLandscape(buffer: Buffer, orientation: string | undefined): Promise<Buffer> {
+  return orientation === 'landscape' ? fitToLandscape(buffer) : buffer;
 }
 
 function parsePages(cfg: any): number[] | null {
@@ -251,7 +263,12 @@ router.post('/complete', kioskAuth, async (req: Request, res: Response) => {
           const b = await loadDocumentBytes(url);
           if (b) {
             const pdf = await ensurePdf(b, f?.fileName || it.fileName || 'doc.pdf');
-            src = { buffer: await maybeGrayscale(pdf.buffer, pol.mutated.color) };
+            src = {
+              buffer: await maybeLandscape(
+                await maybeGrayscale(pdf.buffer, pol.mutated.color),
+                (it.printConfiguration as any)?.orientation,
+              ),
+            };
           }
         } catch (e: any) {
           if (e instanceof UnsupportedDocumentError) {
@@ -276,6 +293,7 @@ router.post('/complete', kioskAuth, async (req: Request, res: Response) => {
             (it.printConfiguration as any)?.orientation === 'landscape'
               ? 'landscape'
               : 'portrait',
+          qualityDpi: (it.printConfiguration as any)?.qualityDpi,
           collate,
           requestingUser: 'PrintLoop-Kiosk',
           secure: prefs.secure,
@@ -347,6 +365,7 @@ router.post('/complete', kioskAuth, async (req: Request, res: Response) => {
       color: policy.mutated.color,
       paper: policy.mutated.paper || 'A4',
       orientation: cfg.orientation === 'landscape' ? 'landscape' : 'portrait',
+      qualityDpi: cfg.qualityDpi,
       collate: cfg.collate !== false,
       pages: parsePages(cfg),
       requestingUser: 'PrintLoop-Kiosk',
@@ -363,7 +382,12 @@ router.post('/complete', kioskAuth, async (req: Request, res: Response) => {
       const bytes = await loadDocumentBytes(fileUrl);
       if (bytes) {
         const pdf = await ensurePdf(bytes, file?.fileName || job.fileName || `${job.code}.pdf`);
-        source = { buffer: await maybeGrayscale(pdf.buffer, policy.mutated.color) };
+        source = {
+          buffer: await maybeLandscape(
+            await maybeGrayscale(pdf.buffer, policy.mutated.color),
+            opts.orientation,
+          ),
+        };
       }
     } catch (e: any) {
       if (e instanceof UnsupportedDocumentError) {
@@ -491,6 +515,7 @@ router.post('/complete-batch', kioskAuth, async (req: Request, res: Response) =>
         paper: pol.mutated.paper || 'A4',
         orientation:
           (f.printConfig as any)?.orientation === 'landscape' ? 'landscape' : 'portrait',
+        qualityDpi: (f.printConfig as any)?.qualityDpi,
         collate: true, // a participant's own set prints collated
         requestingUser: 'PrintLoop-Kiosk',
         secure: prefs.secure,
@@ -506,7 +531,12 @@ router.post('/complete-batch', kioskAuth, async (req: Request, res: Response) =>
         const bytes = await loadDocumentBytes(f.fileURL);
         if (bytes) {
           const pdf = await ensurePdf(bytes, `${f.participantName || 'document'}.pdf`);
-          src = { buffer: await maybeGrayscale(pdf.buffer, pol.mutated.color) };
+          src = {
+            buffer: await maybeLandscape(
+              await maybeGrayscale(pdf.buffer, pol.mutated.color),
+              opts.orientation,
+            ),
+          };
         }
         await dispatchPrint(
           kiosk.ipAddress,

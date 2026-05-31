@@ -13,6 +13,9 @@ export interface PrintOptions {
   /** Portrait (default) or landscape. Maps to IPP orientation-requested
    *  (3 = portrait, 4 = landscape). */
   orientation?: 'portrait' | 'landscape';
+  /** Print-quality tier in dpi (100 = draft, 300 = normal, 600 = high).
+   *  Maps to IPP print-quality (3/4/5) + PJL RESOLUTION/ECONOMODE. */
+  qualityDpi?: 100 | 300 | 600;
   collate?: boolean;
   /** 1-based pages to print, e.g. [2,3,10,11,12] */
   pages?: number[] | null;
@@ -159,6 +162,9 @@ export class IppService {
     if (ranges) {
       attrs['page-ranges'] = ranges.map(([lower, upper]) => ({ lower, upper }));
     }
+    // Print quality enum: 3 = draft, 4 = normal, 5 = high.
+    const q = Number(opts.qualityDpi) || 300;
+    attrs['print-quality'] = q <= 100 ? 3 : q >= 600 ? 5 : 4;
     return attrs;
   }
 
@@ -252,6 +258,9 @@ export class IppService {
     const colour = opts.color === 'color';
     const landscape = opts.orientation === 'landscape';
     const paper = String(opts.paper || 'A4').toUpperCase();
+    const qualityDpi = Number(opts.qualityDpi) || 300;
+    const resolution = qualityDpi >= 600 ? 600 : 300;
+    const economy = qualityDpi <= 100;
 
     const pjl: string[] = [
       UEL + '@PJL',
@@ -262,6 +271,8 @@ export class IppService {
       `@PJL SET RENDERMODE=${colour ? 'COLOR' : 'GRAYSCALE'}`,
       `@PJL SET PAPER=${paper}`,
       `@PJL SET ORIENTATION=${landscape ? 'LANDSCAPE' : 'PORTRAIT'}`,
+      `@PJL SET RESOLUTION=${resolution}`,
+      `@PJL SET ECONOMODE=${economy ? 'ON' : 'OFF'}`,
       // Sharp + most vendors auto-detect the document language, but
       // ENTER LANGUAGE=PDF makes intent explicit.
       `@PJL ENTER LANGUAGE=PDF`,

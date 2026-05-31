@@ -80,6 +80,7 @@ interface ReadyJobItem {
     color?: 'bw' | 'color';
     paper?: string;
     orientation?: 'portrait' | 'landscape';
+    qualityDpi?: 100 | 300 | 600;
     collate?: boolean;
   };
 }
@@ -127,6 +128,9 @@ function buildIppJobAttributes(opts: ReadyJobItem['printConfiguration']) {
       : 'separate-documents-uncollated-copies';
     attrs['sheet-collate'] = collate ? 'collated' : 'uncollated';
   }
+  // Print quality enum: 3 = draft, 4 = normal, 5 = high.
+  const q = Number(opts.qualityDpi) || 300;
+  attrs['print-quality'] = q <= 100 ? 3 : q >= 600 ? 5 : 4;
   return attrs;
 }
 
@@ -179,6 +183,9 @@ async function rawDispatch(
   const colour = opts.color === 'color';
   const landscape = opts.orientation === 'landscape';
   const paper = String(opts.paper || 'A4').toUpperCase();
+  const qualityDpi = Number(opts.qualityDpi) || 300;
+  const resolution = qualityDpi >= 600 ? 600 : 300;
+  const economy = qualityDpi <= 100;
 
   const pjl: string[] = [
     UEL + '@PJL',
@@ -189,6 +196,8 @@ async function rawDispatch(
     `@PJL SET RENDERMODE=${colour ? 'COLOR' : 'GRAYSCALE'}`,
     `@PJL SET PAPER=${paper}`,
     `@PJL SET ORIENTATION=${landscape ? 'LANDSCAPE' : 'PORTRAIT'}`,
+    `@PJL SET RESOLUTION=${resolution}`,
+    `@PJL SET ECONOMODE=${economy ? 'ON' : 'OFF'}`,
     `@PJL ENTER LANGUAGE=PDF`,
     '',
   ];

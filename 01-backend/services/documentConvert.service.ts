@@ -1,10 +1,12 @@
-import { PDFDocument } from 'pdf-lib';
+import { PDFDocument, PDFName, PDFArray, PDFDict, type PDFPage } from 'pdf-lib';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { promises as fs } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import crypto from 'node:crypto';
+import { createRequire } from 'node:module';
+import { pathToFileURL } from 'node:url';
 
 const execFileAsync = promisify(execFile);
 
@@ -177,6 +179,199 @@ export async function extractPages(input: Buffer, pageNumbers: number[]): Promis
   return Buffer.from(await out.save());
 }
 
+// ── Annotation flattening (rasterize annotated pages) ──────────────────
+//
+// Why this exists: signatures and form fills created by Preview, Adobe,
+// or phone apps are stored as /Ink, /FreeText, /Stamp, or /Widget
+// annotations layered ON TOP of the page — they live in the page's
+// /Annots array, NOT in its content stream. Many office-printer RIPs
+// (the Sharp MX-5112N among them) mis-place or silently drop these
+// annotations on paper even though they sit correctly on screen — a
+// signature jumps out of its box, or vanishes entirely.
+//
+// We first tried a pure-vector fix (re-inline each appearance's operators
+// into the page content with the transform baked into a `cm`). It was
+// verified pixel-perfect in a spec-compliant renderer (PDF.js) yet STILL
+// mangled by the real print paths: the Sharp moved it, and Edge's print
+// engine dropped it. The one representation a broken RIP physically
+// cannot misplace is a flat raster, so that is what we ship.
+//
+// Strategy: any page that carries a visible annotation is rendered with
+// its annotations baked in (pdfjs-dist + @napi-rs/canvas, both prebuilt
+// for Railway's Linux) to a RASTER_DPI image and rebuilt as an image-only
+// page. Pages with no visible annotation are copied through untouched, so
+// ordinary text pages stay crisp vector. A document with NO annotations
+// anywhere is returned BYTE-EXACT — the common case pays nothing.
+//
+// Graceful by design (mirrors toGrayscale): a non-PDF, an unreadable /
+// encrypted PDF, or ANY error during rendering returns the ORIGINAL bytes.
+
+/** Render resolution for flattened pages. 200 DPI keeps form text crisp
+ *  to the eye while holding an A4 colour page near ~240 KB. */
+const RASTER_DPI = 200;
+
+/** pdfjs-dist is a heavy ESM module; import it once, lazily, on first use. */
+let pdfjsModule: any;
+async function loadPdfjs(): Promise<any> {
+  if (pdfjsModule) return pdfjsModule;
+  // pdfjs-dist v4 calls Promise.withResolvers (Node 22+); the backend runs
+  // Node 20, so polyfill it before the module's top-level code touches it.
+  if (typeof (Promise as any).withResolvers !== 'function') {
+    (Promise as any).withResolvers = function <T>() {
+      let resolve!: (value: T | PromiseLike<T>) => void;
+      let reject!: (reason?: unknown) => void;
+      const promise = new Promise<T>((res, rej) => {
+        resolve = res;
+        reject = rej;
+      });
+      return { promise, resolve, reject };
+    };
+  }
+  pdfjsModule = await import('pdfjs-dist/legacy/build/pdf.mjs');
+  return pdfjsModule;
+}
+
+/** file:// URL to pdfjs-dist's bundled standard_fonts dir, resolved off the
+ *  package location (NOT process.cwd) so it works regardless of the launch
+ *  directory on Windows or Railway. */
+let cachedFontUrl: string | undefined;
+function standardFontDataUrl(): string {
+  if (cachedFontUrl) return cachedFontUrl;
+  const require = createRequire(import.meta.url);
+  const pkgJson = require.resolve('pdfjs-dist/package.json');
+  cachedFontUrl = pathToFileURL(path.join(path.dirname(pkgJson), 'standard_fonts') + path.sep).href;
+  return cachedFontUrl;
+}
+
+/** 0-based indices of pages carrying a visible annotation. /Link and /Popup
+ *  never paint on the page, so a page bearing only those is treated as clean
+ *  and left as crisp vector. (pdf-lib's typed `lookup(name, Type)` THROWS on a
+ *  missing or mistyped key, so every lookup is wrapped.) */
+function annotatedPageIndices(pdf: PDFDocument): Set<number> {
+  const result = new Set<number>();
+  const pages = pdf.getPages();
+  for (let i = 0; i < pages.length; i++) {
+    let annots: PDFArray | undefined;
+    try {
+      annots = pages[i].node.lookup(PDFName.of('Annots'), PDFArray);
+    } catch {
+      annots = undefined;
+    }
+    if (!annots || annots.size() === 0) continue;
+    for (let a = 0; a < annots.size(); a++) {
+      let dict: PDFDict | undefined;
+      try {
+        dict = pdf.context.lookup(annots.get(a), PDFDict);
+      } catch {
+        dict = undefined;
+      }
+      const subtype = dict?.lookup(PDFName.of('Subtype'))?.toString();
+      if (subtype && subtype !== '/Popup' && subtype !== '/Link') {
+        result.add(i);
+        break;
+      }
+    }
+  }
+  return result;
+}
+
+/**
+ * Render every annotated page (annotations baked in) to a RASTER_DPI PNG and
+ * rebuild it as an image-only page at the original page's point size; copy the
+ * remaining pages through as untouched vector. Returns the new PDF bytes.
+ *
+ * Page count and physical page geometry are preserved exactly, so the SNMP
+ * page-count math and per-page pricing downstream are unaffected.
+ */
+async function rasterizeAnnotatedPages(
+  input: Buffer,
+  src: PDFDocument,
+  annotated: Set<number>,
+): Promise<Buffer> {
+  const pdfjs = await loadPdfjs();
+  const { createCanvas } = await import('@napi-rs/canvas');
+  const doc = await pdfjs.getDocument({
+    data: new Uint8Array(input),
+    standardFontDataUrl: standardFontDataUrl(),
+    isEvalSupported: false, // keep it sandbox-safe; fine for our forms
+  }).promise;
+
+  try {
+    const out = await PDFDocument.create();
+    const count = src.getPageCount();
+    const scale = RASTER_DPI / 72;
+
+    // Deep-copy every vector (un-annotated) page in ONE batch so pdf-lib
+    // de-duplicates shared resources, then slot them back at their indices.
+    const vectorIdx: number[] = [];
+    for (let i = 0; i < count; i++) if (!annotated.has(i)) vectorIdx.push(i);
+    const copied = vectorIdx.length ? await out.copyPages(src, vectorIdx) : [];
+    const vectorPage = new Map<number, PDFPage>();
+    vectorIdx.forEach((origIdx, k) => vectorPage.set(origIdx, copied[k]));
+
+    for (let i = 0; i < count; i++) {
+      const vec = vectorPage.get(i);
+      if (vec) {
+        out.addPage(vec);
+        continue;
+      }
+      const page = await doc.getPage(i + 1);
+      const ptsViewport = page.getViewport({ scale: 1 }); // page size in PDF points
+      const pxViewport = page.getViewport({ scale }); // render size in pixels
+      const canvas = createCanvas(Math.ceil(pxViewport.width), Math.ceil(pxViewport.height));
+      const cctx = canvas.getContext('2d');
+      cctx.fillStyle = 'white';
+      cctx.fillRect(0, 0, canvas.width, canvas.height);
+      await page.render({
+        canvasContext: cctx as any,
+        viewport: pxViewport,
+        annotationMode: pdfjs.AnnotationMode.ENABLE, // bake annotations into pixels
+      }).promise;
+      page.cleanup();
+      const img = await out.embedPng(canvas.toBuffer('image/png'));
+      const p = out.addPage([ptsViewport.width, ptsViewport.height]);
+      p.drawImage(img, { x: 0, y: 0, width: ptsViewport.width, height: ptsViewport.height });
+    }
+
+    return Buffer.from(await out.save());
+  } finally {
+    await doc.cleanup();
+    await doc.destroy();
+  }
+}
+
+/**
+ * Bake annotations (signatures, form fills) into the pages that carry them so
+ * a broken print RIP can't move or drop them, and return the rewritten PDF.
+ *
+ * Graceful by design (mirrors {@link toGrayscale}): a non-PDF input, an
+ * encrypted/unreadable PDF, a PDF with NO visible annotations, or ANY error
+ * during rendering returns the ORIGINAL bytes — the no-annotation common case
+ * is handed back BYTE-EXACT (never re-serialized), so it pays nothing and
+ * can't be altered. Uploads never break on account of this step.
+ */
+export async function flattenAnnotations(input: Buffer): Promise<Buffer> {
+  if (!isPdf(input)) return input;
+
+  let src: PDFDocument;
+  try {
+    src = await PDFDocument.load(input, { updateMetadata: false });
+  } catch {
+    // Encrypted or malformed — leave it for the downstream pipeline.
+    return input;
+  }
+
+  const annotated = annotatedPageIndices(src);
+  if (annotated.size === 0) return input; // nothing to bake → byte-exact
+
+  try {
+    return await rasterizeAnnotatedPages(input, src, annotated);
+  } catch (e: any) {
+    console.warn('[documentConvert] flattenAnnotations failed, sending original:', e?.message);
+    return input;
+  }
+}
+
 // ── Ghostscript grayscale enforcement ─────────────────────────────────
 //
 // Why this exists: the Sharp MX-5112N (like many office MFPs) ignores
@@ -277,5 +472,81 @@ export async function toGrayscale(pdfBytes: Buffer): Promise<Buffer> {
   } finally {
     fs.unlink(inPath).catch(() => {});
     fs.unlink(outPath).catch(() => {});
+  }
+}
+
+// ── Landscape orientation (scale-to-fit, no content rotation) ──────────
+//
+// Why this exists: when a customer picks "landscape" for a portrait
+// document, the only thing the agent does is send a PJL
+// `SET ORIENTATION=LANDSCAPE` hint — and the Sharp MX-5112N ignores that
+// hint for PDF input (the same firmware quirk that forced grayscale and
+// signature flattening into the bytes). The printer DOES obey the PDF's
+// own page geometry, so orientation has to be baked in there too.
+//
+// The customer's expectation (confirmed against a real proposal): the
+// upright page is **scaled to fit a rotated (landscape) sheet, NOT turned
+// on its side.** So for every portrait page we build a landscape-shaped
+// page of the same paper size (the long edge becomes the width) and draw
+// the original page into it, scaled to fit (contain) and centred — the
+// letterboxed result the customer asked for, with even margins left/right.
+// Already-landscape (or square) pages are left exactly as they are.
+//
+// Page COUNT is preserved (so the SNMP physical-print confirmation math is
+// unchanged). Graceful by design (mirrors toGrayscale): a non-PDF, an
+// unreadable PDF, a document that is already landscape on every page, or
+// ANY error returns the ORIGINAL bytes — a portrait print beats a failed
+// print.
+export async function fitToLandscape(input: Buffer): Promise<Buffer> {
+  if (!isPdf(input)) return input;
+
+  let src: PDFDocument;
+  try {
+    src = await PDFDocument.load(input, { updateMetadata: false });
+  } catch {
+    return input;
+  }
+
+  try {
+    const pages = src.getPages();
+    // Nothing to do if every page is already landscape (or square).
+    const hasPortrait = pages.some((p) => {
+      const { width, height } = p.getSize();
+      return height > width;
+    });
+    if (!hasPortrait) return input;
+
+    const out = await PDFDocument.create();
+    // Embed every source page once (batched so shared resources dedupe),
+    // then place each onto a fresh page.
+    const embedded = await out.embedPages(pages);
+    for (let i = 0; i < pages.length; i++) {
+      const { width: w, height: h } = pages[i].getSize();
+      if (w >= h) {
+        // Already landscape (or square): copy 1:1 onto a same-size page.
+        const p = out.addPage([w, h]);
+        p.drawPage(embedded[i], { x: 0, y: 0, width: w, height: h });
+        continue;
+      }
+      // Portrait → landscape sheet of the same paper size (swap W/H), with
+      // the upright page contained inside it: scale to fit, no rotation, no
+      // crop, centred — even pillarbox margins on the left and right.
+      const landW = h;
+      const landH = w;
+      const scale = Math.min(landW / w, landH / h);
+      const dw = w * scale;
+      const dh = h * scale;
+      const p = out.addPage([landW, landH]);
+      p.drawPage(embedded[i], {
+        x: (landW - dw) / 2,
+        y: (landH - dh) / 2,
+        width: dw,
+        height: dh,
+      });
+    }
+    return Buffer.from(await out.save());
+  } catch (e: any) {
+    console.warn('[documentConvert] fitToLandscape failed, sending original:', e?.message);
+    return input;
   }
 }

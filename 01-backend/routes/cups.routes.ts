@@ -9,6 +9,7 @@ import {
   isPrintableDocument,
   ALLOWED_LABEL,
   countPages,
+  flattenAnnotations,
   UnsupportedDocumentError,
 } from '../services/documentConvert.service';
 import { getUploadLimits } from '../utils/limits';
@@ -166,9 +167,13 @@ router.post('/print', upload.single('file'), async (req: Request, res: Response)
       });
       return;
     }
+    // Bake annotations (signatures) into the bytes before counting/storing so
+    // the printer RIP can't move or drop them. Byte-exact passthrough when
+    // there are none; original bytes on any failure — the job never breaks.
+    const pdfBytes = await flattenAnnotations(file.buffer);
     let pageCount: number;
     try {
-      pageCount = await countPages(file.buffer, file.originalname || 'document.pdf');
+      pageCount = await countPages(pdfBytes, file.originalname || 'document.pdf');
     } catch (e: any) {
       res.status(e instanceof UnsupportedDocumentError ? 415 : 422).json({
         success: false,
@@ -244,12 +249,12 @@ router.post('/print', upload.single('file'), async (req: Request, res: Response)
       }
     }
 
-    const stored = saveBuffer(file.buffer, file.originalname || req.body?.title || 'document.pdf');
+    const stored = saveBuffer(pdfBytes, file.originalname || req.body?.title || 'document.pdf');
     const savedFile = await AppDataSource.getRepository(File).save(
       AppDataSource.getRepository(File).create({
         fileName: file.originalname || req.body?.title || 'document',
         mimeType: file.mimetype || 'application/octet-stream',
-        sizeBytes: file.size,
+        sizeBytes: pdfBytes.length,
         fileURL: stored.url,
         pageCount,
       }),

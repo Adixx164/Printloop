@@ -588,12 +588,18 @@ encapsulate a single domain.
   IPP `Print-Job` op over the `ipp` library. Handles IPP /
   IPPS, custom paths, IPP version 1.0/1.1/2.0, page-range
   encoding, media (paper) → IPP media keyword mapping, color
-  mode, collation.
+  mode, collation, and `print-quality` (enum 3/4/5 from
+  `qualityDpi` 100/300/600 — added Phase 23).
 - `rawPrint(printerIp, source, jobName, opts, rawPort=9100)`
   — TCP socket + PJL prologue (UEL + `@PJL SET COPIES /
-  DUPLEX / BINDING / RENDERMODE / PAPER / ORIENTATION` +
-  `@PJL ENTER LANGUAGE=PDF`) + PDF bytes + UEL epilogue.
-  This is the path that actually prints on the Sharp.
+  DUPLEX / BINDING / RENDERMODE / PAPER / ORIENTATION /
+  RESOLUTION / ECONOMODE` + `@PJL ENTER LANGUAGE=PDF`) + PDF
+  bytes + UEL epilogue. This is the path that actually prints
+  on the Sharp. `qualityDpi` → `RESOLUTION` 600/300 +
+  `ECONOMODE` for the draft (100) tier; like the colour hints,
+  the Sharp may ignore these for PDF input (Phase 23). The
+  kiosk-pull agent (`printloop-kiosk-app/agent.js`) emits the
+  same PJL/IPP — **changing it needs an `.exe` rebuild**.
 - `checkPrinterStatus(printerIp, opts)` — IPP `Get-Printer-
   Attributes` for `printer-state` / `printer-state-reasons` /
   `printer-is-accepting-jobs`.
@@ -718,21 +724,54 @@ host's `enforced` flag.
   Page count is preserved (SNMP confirm math unchanged). Added
   Phase 18; needs `ghostscript` on the host (Railway gets it via
   `01-backend/nixpacks.toml`).
+- `flattenAnnotations(bytes)` — bakes signatures / form-fill
+  annotations into the page so a broken printer RIP can't move or
+  drop them. Signatures from Preview / Adobe / phone apps are
+  `/Ink`/`/FreeText`/`/Stamp`/`/Widget` annotations layered on top of
+  the page (in `/Annots`), not page content; some RIPs (the Sharp
+  MX-5112N) shift them and Edge's "Print to PDF" drops them. **No
+  visible annotation → bytes returned BYTE-EXACT** (`/Link` + `/Popup`
+  don't count — they never paint). **Has annotations →** only the
+  annotated pages are rendered at **200 DPI** with the overlay baked
+  in (`pdfjs-dist` legacy build + `@napi-rs/canvas`, both prebuilt for
+  Railway Linux) and rebuilt as image-only pages at the original point
+  size; other pages stay crisp vector. **Page count + geometry are
+  preserved** (SNMP confirm + pricing unchanged). Any failure → the
+  **original** bytes (uploads never break — mirrors `toGrayscale`). A
+  pure-vector flatten was tried first and abandoned: pixel-perfect in
+  PDF.js yet still mangled by the real RIPs (Phase 21). Lazy-imports
+  its heavy deps; requires `pdfjs-dist` + `@napi-rs/canvas` (both in
+  `dependencies`, pinned). Runs on the **upload** path (before the
+  kiosk pulls), after the size check and before `countPages`/store.
+- `fitToLandscape(bytes)` — bakes landscape orientation into the
+  page **geometry** when the customer chose it. Same firmware-proof
+  reason as `toGrayscale`: the Sharp ignores the PJL ORIENTATION
+  hint for PDF input but obeys the PDF's own page size. For each
+  **portrait** page it builds a landscape sheet of the same paper
+  size (swap W/H) and draws the upright page into it **scaled to
+  fit, centred, NOT rotated** (the customer's confirmed
+  expectation) — even pillarbox margins on the left/right.
+  Already-landscape pages, and whole already-landscape documents,
+  are left untouched (byte-exact); any error → the original bytes.
+  **Page count is preserved** (SNMP math unchanged). Applied at
+  **dispatch**, right after `toGrayscale` (added Phase 22). Uses
+  `pdf-lib` `embedPages`/`drawPage`, so it composes cleanly on top
+  of the upload-time annotation flatten.
 - `ghostscriptAvailable()` — probe helper (cached) for whether a
   `gs` binary is callable.
 - `UnsupportedDocumentError` class + `ALLOWED_LABEL` constant.
 
 Used by:
 - `routes/customerPrint.routes.ts` — validates uploads,
-  counts pages.
+  **flattens annotations**, counts pages (single + batch).
 - `routes/cups.routes.ts` — same.
 - `routes/participantUpload.routes.ts` — same.
-- `routes/printer.routes.ts` — calls `ensurePdf` at dispatch
-  time on the cloud-push path.
-- `routes/agent.routes.ts` — calls `ensurePdf` +
-  `extractPages` at the signed-download endpoint so the
-  kiosk-pull agent always receives a print-ready PDF with the
-  customer's page range already applied (added Phase 17).
+- `routes/printer.routes.ts` — at dispatch on the cloud-push path
+  applies `ensurePdf` + `maybeGrayscale` + `maybeLandscape`.
+- `routes/agent.routes.ts` — at the signed-download endpoint applies
+  `ensurePdf` → `extractPages` (page range, Phase 17) → `toGrayscale`
+  (B&W, Phase 18) → `fitToLandscape` (landscape, Phase 22), so the
+  kiosk-pull agent always receives fully print-ready bytes.
 
 ### `services/kiosk.service.ts`
 **Kiosk CRUD logic.** Wraps the TypeORM repo with the

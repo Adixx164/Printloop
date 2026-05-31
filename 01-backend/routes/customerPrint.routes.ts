@@ -11,6 +11,7 @@ import {
   isPrintableDocument,
   ALLOWED_LABEL,
   countPages,
+  flattenAnnotations,
   UnsupportedDocumentError,
 } from '../services/documentConvert.service';
 import { getUploadLimits } from '../utils/limits';
@@ -92,9 +93,14 @@ router.post('/print-jobs', upload.single('file'), async (req: Request, res: Resp
       });
       return;
     }
+    // Bake annotations (signatures, form fills) into the page bytes BEFORE
+    // counting and storing, so a broken printer RIP can't move or drop them.
+    // No-annotation PDFs (and images) pass through byte-exact; any failure
+    // yields the original bytes — the upload never breaks.
+    const pdfBytes = await flattenAnnotations(file.buffer);
     let pageCount: number;
     try {
-      pageCount = await countPages(file.buffer, file.originalname || 'document.pdf');
+      pageCount = await countPages(pdfBytes, file.originalname || 'document.pdf');
     } catch (e: any) {
       res.status(e instanceof UnsupportedDocumentError ? 415 : 422).json({
         success: false,
@@ -128,13 +134,13 @@ router.post('/print-jobs', upload.single('file'), async (req: Request, res: Resp
     });
     const cost = promo.cost;
 
-    // Persist the real bytes (served at /api/files, fetched by the kiosk).
-    const stored = saveBuffer(file.buffer, file.originalname || req.body.fileName || 'document.pdf');
+    // Persist the (flattened) bytes — served at /api/files, fetched by the kiosk.
+    const stored = saveBuffer(pdfBytes, file.originalname || req.body.fileName || 'document.pdf');
     const savedFile = await AppDataSource.getRepository(File).save(
       AppDataSource.getRepository(File).create({
         fileName: file.originalname || 'document',
         mimeType: file.mimetype || 'application/octet-stream',
-        sizeBytes: file.size,
+        sizeBytes: pdfBytes.length,
         fileURL: stored.url,
         pageCount,
       })
@@ -202,7 +208,7 @@ router.post('/print-jobs/batch', upload.array('files', 50), async (req: Request,
 
     // Authoritative validation pre-pass — fail before we create any rows.
     const limits = await getUploadLimits();
-    const perFile: Array<{ pages: number }> = [];
+    const perFile: Array<{ pages: number; bytes: Buffer }> = [];
     for (const f of files) {
       if (f.size > limits.maxFileBytes) {
         res.status(413).json({
@@ -212,9 +218,12 @@ router.post('/print-jobs/batch', upload.array('files', 50), async (req: Request,
         });
         return;
       }
+      // Bake annotations once here; carry the flattened bytes into the
+      // persist pass below so the stored file matches the counted pages.
+      const bytes = await flattenAnnotations(f.buffer);
       let pages: number;
       try {
-        pages = await countPages(f.buffer, f.originalname || 'document.pdf');
+        pages = await countPages(bytes, f.originalname || 'document.pdf');
       } catch (e: any) {
         res.status(e instanceof UnsupportedDocumentError ? 415 : 422).json({
           success: false,
@@ -231,7 +240,7 @@ router.post('/print-jobs/batch', upload.array('files', 50), async (req: Request,
         });
         return;
       }
-      perFile.push({ pages });
+      perFile.push({ pages, bytes });
     }
 
     const fileRepo = AppDataSource.getRepository(File);
@@ -274,16 +283,17 @@ router.post('/print-jobs/batch', upload.array('files', 50), async (req: Request,
           : 'portrait') as 'portrait' | 'landscape',
       };
       const pages = perFile[i].pages; // authoritative (server-derived)
+      const bytes = perFile[i].bytes; // flattened in the validation pass
       const cost = await computeCost({ pageCount: pages, ...cfg });
       totalCost += cost;
       totalPages += pages;
 
-      const stored = saveBuffer(f.buffer, f.originalname || meta.fileName || `doc-${i + 1}.pdf`);
+      const stored = saveBuffer(bytes, f.originalname || meta.fileName || `doc-${i + 1}.pdf`);
       const savedFile = await fileRepo.save(
         fileRepo.create({
           fileName: f.originalname || `doc-${i + 1}`,
           mimeType: f.mimetype || 'application/octet-stream',
-          sizeBytes: f.size,
+          sizeBytes: bytes.length,
           fileURL: stored.url,
           pageCount: pages,
         })
