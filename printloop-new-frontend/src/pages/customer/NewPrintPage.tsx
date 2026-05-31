@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Wallet, CreditCard } from "lucide-react";
 import { toast } from "sonner";
@@ -69,6 +69,19 @@ export default function NewPrintPage() {
     orientation: "portrait",
     paymentMethod: "wallet",
   });
+
+  // When a new file's native orientation is detected, default the selector to
+  // it (once per file) — a landscape document opens as Landscape. The customer
+  // can still override; we don't fight a manual change afterwards.
+  const autoOrientedFor = useRef<File | null>(null);
+  const handleMeta = (m: { pageCount: number; rangeable: boolean; orientation?: "portrait" | "landscape" }) => {
+    setDocPages(m.pageCount);
+    setRangeable(m.rangeable);
+    if (m.orientation && autoOrientedFor.current !== file) {
+      autoOrientedFor.current = file;
+      setConfig((c) => ({ ...c, orientation: m.orientation! }));
+    }
+  };
   // Live pricing matrix — refetches whenever admin pricing changes (the
   // admin's save invalidates the `Pricing` tag).
   const { data: pricingData } = useGetPricingQuery();
@@ -262,7 +275,7 @@ export default function NewPrintPage() {
             {/* Hidden detector: parses page count without showing the preview yet */}
             <div className="hidden">
               <PrintPreview file={file} pages={null} color="color" orientation={config.orientation}
-                onMeta={(m) => { setDocPages(m.pageCount); setRangeable(m.rangeable); }} />
+                onMeta={handleMeta} />
             </div>
 
             <div className="border-2 border-ink bg-paper-light p-4 mb-5 flex items-center justify-between">
@@ -484,7 +497,7 @@ export default function NewPrintPage() {
               color={config.color}
               copies={config.copies}
               orientation={config.orientation}
-              onMeta={(m) => { setDocPages(m.pageCount); setRangeable(m.rangeable); }}
+              onMeta={handleMeta}
             />
           </div>
         </div>

@@ -475,29 +475,34 @@ export async function toGrayscale(pdfBytes: Buffer): Promise<Buffer> {
   }
 }
 
-// ── Landscape orientation (scale-to-fit, no content rotation) ──────────
+// ── Orientation fit (scale-to-fit the chosen sheet, no content rotation) ─
 //
-// Why this exists: when a customer picks "landscape" for a portrait
-// document, the only thing the agent does is send a PJL
-// `SET ORIENTATION=LANDSCAPE` hint — and the Sharp MX-5112N ignores that
-// hint for PDF input (the same firmware quirk that forced grayscale and
-// signature flattening into the bytes). The printer DOES obey the PDF's
-// own page geometry, so orientation has to be baked in there too.
+// Why this exists: when a customer picks an orientation, the only thing the
+// agent does is send a PJL `SET ORIENTATION` hint — and the Sharp MX-5112N
+// ignores that hint for PDF input (the same firmware quirk that forced
+// grayscale and signature flattening into the bytes). The printer DOES obey
+// the PDF's own page geometry, so orientation has to be baked in there too.
 //
-// The customer's expectation (confirmed against a real proposal): the
-// upright page is **scaled to fit a rotated (landscape) sheet, NOT turned
-// on its side.** So for every portrait page we build a landscape-shaped
-// page of the same paper size (the long edge becomes the width) and draw
-// the original page into it, scaled to fit (contain) and centred — the
-// letterboxed result the customer asked for, with even margins left/right.
-// Already-landscape (or square) pages are left exactly as they are.
+// The customer's expectation (confirmed): the upright page is **scaled to
+// fit the chosen sheet, NOT turned on its side, and never cropped.** This
+// works in BOTH directions:
+//   • a PORTRAIT page on a LANDSCAPE sheet  → pillarboxed (margins L/R)
+//   • a LANDSCAPE page on a PORTRAIT sheet  → letterboxed (margins T/B)
+// For each page that doesn't already match the target orientation we build
+// a sheet of the page's own paper size in the target orientation (long/short
+// edges swapped) and draw the page into it, scaled to fit (contain) and
+// centred. Pages that already match the target (or are square) are left
+// exactly as they are, so the common "portrait doc, portrait sheet" case is
+// a no-op.
 //
 // Page COUNT is preserved (so the SNMP physical-print confirmation math is
 // unchanged). Graceful by design (mirrors toGrayscale): a non-PDF, an
-// unreadable PDF, a document that is already landscape on every page, or
-// ANY error returns the ORIGINAL bytes — a portrait print beats a failed
-// print.
-export async function fitToLandscape(input: Buffer): Promise<Buffer> {
+// unreadable PDF, a document already in the target orientation on every
+// page, or ANY error returns the ORIGINAL bytes — a print beats a no-print.
+export async function fitToOrientation(
+  input: Buffer,
+  target: 'portrait' | 'landscape',
+): Promise<Buffer> {
   if (!isPdf(input)) return input;
 
   let src: PDFDocument;
@@ -507,14 +512,17 @@ export async function fitToLandscape(input: Buffer): Promise<Buffer> {
     return input;
   }
 
+  const wantLandscape = target === 'landscape';
+
   try {
     const pages = src.getPages();
-    // Nothing to do if every page is already landscape (or square).
-    const hasPortrait = pages.some((p) => {
+    // Nothing to do if every page already matches the target orientation
+    // (square pages count as a match — there's nothing to fit).
+    const needsFit = pages.some((p) => {
       const { width, height } = p.getSize();
-      return height > width;
+      return width !== height && width > height !== wantLandscape;
     });
-    if (!hasPortrait) return input;
+    if (!needsFit) return input;
 
     const out = await PDFDocument.create();
     // Embed every source page once (batched so shared resources dedupe),
@@ -522,31 +530,35 @@ export async function fitToLandscape(input: Buffer): Promise<Buffer> {
     const embedded = await out.embedPages(pages);
     for (let i = 0; i < pages.length; i++) {
       const { width: w, height: h } = pages[i].getSize();
-      if (w >= h) {
-        // Already landscape (or square): copy 1:1 onto a same-size page.
+      const pageLandscape = w > h;
+      if (w === h || pageLandscape === wantLandscape) {
+        // Already the target orientation (or square): copy 1:1.
         const p = out.addPage([w, h]);
         p.drawPage(embedded[i], { x: 0, y: 0, width: w, height: h });
         continue;
       }
-      // Portrait → landscape sheet of the same paper size (swap W/H), with
-      // the upright page contained inside it: scale to fit, no rotation, no
-      // crop, centred — even pillarbox margins on the left and right.
-      const landW = h;
-      const landH = w;
-      const scale = Math.min(landW / w, landH / h);
+      // Mismatch → sheet of the same paper size in the target orientation
+      // (long edge becomes width for landscape, height for portrait), with
+      // the page contained inside it: scaled to fit, no rotation, no crop,
+      // centred — even margins on the two free sides.
+      const long = Math.max(w, h);
+      const short = Math.min(w, h);
+      const sheetW = wantLandscape ? long : short;
+      const sheetH = wantLandscape ? short : long;
+      const scale = Math.min(sheetW / w, sheetH / h);
       const dw = w * scale;
       const dh = h * scale;
-      const p = out.addPage([landW, landH]);
+      const p = out.addPage([sheetW, sheetH]);
       p.drawPage(embedded[i], {
-        x: (landW - dw) / 2,
-        y: (landH - dh) / 2,
+        x: (sheetW - dw) / 2,
+        y: (sheetH - dh) / 2,
         width: dw,
         height: dh,
       });
     }
     return Buffer.from(await out.save());
   } catch (e: any) {
-    console.warn('[documentConvert] fitToLandscape failed, sending original:', e?.message);
+    console.warn('[documentConvert] fitToOrientation failed, sending original:', e?.message);
     return input;
   }
 }

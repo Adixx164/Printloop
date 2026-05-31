@@ -27,6 +27,14 @@ export function parsePageRange(input: string, total: number): number[] {
   return [...out].sort((x, y) => x - y);
 }
 
+export type PreviewMeta = {
+  pageCount: number;
+  rangeable: boolean;
+  /** The document's OWN (native) orientation, so the caller can default the
+   *  orientation selector to it. */
+  orientation?: "portrait" | "landscape";
+};
+
 type Props = {
   file: File | null;
   /** null = print all pages; otherwise the explicit 1-based pages to print */
@@ -34,22 +42,78 @@ type Props = {
   color: "bw" | "color";
   copies?: number;
   /**
-   * Page orientation. Landscape shows the upright page **scaled to fit a
-   * landscape sheet (pillarboxed), NOT rotated** — mirroring the server's
-   * `fitToLandscape`, which bakes exactly that geometry into the print
-   * bytes at dispatch. (We used to rotate 90° here, which no longer
-   * matches what actually prints.)
+   * Target sheet orientation. The page is **scaled to fit** a sheet of this
+   * orientation — pillarboxed if the page is narrower (portrait page on a
+   * landscape sheet), letterboxed if it's wider (landscape page on a portrait
+   * sheet) — NOT rotated and never cropped, mirroring the server's
+   * `fitToOrientation`. Pages already in this orientation fill the width.
    */
   orientation?: "portrait" | "landscape";
-  /** reports detected page count + whether we can parse it for range selection */
-  onMeta?: (m: { pageCount: number; rangeable: boolean }) => void;
+  /** reports detected page count, range-ability, and the document's own
+   *  (native) orientation. */
+  onMeta?: (m: PreviewMeta) => void;
 };
+
+/**
+ * Draw one rendered page/image so it matches what the server bakes. If the
+ * page's own orientation already equals the target it fills the width;
+ * otherwise it's contained (scaled to fit, centred) inside a sheet of the
+ * target orientation — pillarbox or letterbox, never cropped.
+ *
+ * The sheet height is set with the padding-bottom percentage trick (rock
+ * solid across browsers) and the image is flex-centred inside an absolutely
+ * positioned layer, bounded by max-width/height — a bulletproof "contain".
+ */
+function FitSheet({
+  url,
+  w,
+  h,
+  target,
+  gray,
+  alt,
+}: {
+  url: string;
+  w: number;
+  h: number;
+  target: "portrait" | "landscape";
+  gray: boolean;
+  alt: string;
+}) {
+  const grayStyle = gray ? "grayscale(1)" : "none";
+  const pageLandscape = w > h;
+  const matches = w === h || pageLandscape === (target === "landscape");
+  if (matches) {
+    return (
+      <img
+        src={url}
+        alt={alt}
+        className="w-full block border-2 border-ink shadow-[6px_6px_0_#1A1410]"
+        style={{ filter: grayStyle }}
+      />
+    );
+  }
+  const long = Math.max(w, h);
+  const short = Math.min(w, h);
+  // padding-bottom = sheetHeight / sheetWidth, as a % of the (full) width.
+  const padPct = target === "landscape" ? (short / long) * 100 : (long / short) * 100;
+  return (
+    <div
+      className="relative w-full bg-white overflow-hidden border-2 border-ink shadow-[6px_6px_0_#1A1410]"
+      style={{ paddingBottom: `${padPct}%` }}
+    >
+      <div className="absolute inset-0 flex items-center justify-center">
+        <img src={url} alt={alt} className="block" style={{ maxWidth: "100%", maxHeight: "100%", filter: grayStyle }} />
+      </div>
+    </div>
+  );
+}
 
 export default function PrintPreview({ file, pages, color, copies = 1, orientation = "portrait", onMeta }: Props) {
   const [imgs, setImgs] = useState<{ page: number; url: string; w: number; h: number }[]>([]);
   const [kind, setKind] = useState<"pdf" | "image" | "other" | "none">("none");
   const [status, setStatus] = useState<string>("");
   const [imgUrl, setImgUrl] = useState<string>("");
+  const [imgDim, setImgDim] = useState<{ w: number; h: number }>({ w: 1, h: 1 });
   const reqId = useRef(0);
 
   const ext = (file?.name.split(".").pop() || "").toLowerCase();
@@ -70,7 +134,20 @@ export default function PrintPreview({ file, pages, color, copies = 1, orientati
       setKind("image");
       const u = URL.createObjectURL(file);
       setImgUrl(u);
-      onMeta?.({ pageCount: 1, rangeable: false });
+      // Probe natural dimensions so we can report the image's native
+      // orientation and fit it into the chosen sheet below.
+      const probe = new Image();
+      probe.onload = () => {
+        if (reqId.current !== myReq) return;
+        const w = probe.naturalWidth || 1;
+        const h = probe.naturalHeight || 1;
+        setImgDim({ w, h });
+        onMeta?.({ pageCount: 1, rangeable: false, orientation: w > h ? "landscape" : "portrait" });
+      };
+      probe.onerror = () => {
+        if (reqId.current === myReq) onMeta?.({ pageCount: 1, rangeable: false });
+      };
+      probe.src = u;
       return () => URL.revokeObjectURL(u);
     }
 
@@ -91,7 +168,15 @@ export default function PrintPreview({ file, pages, color, copies = 1, orientati
         if (reqId.current !== myReq) return;
 
         const total = pdf.numPages;
-        onMeta?.({ pageCount: total, rangeable: true });
+        // Detect the document's native orientation from page 1 so the caller
+        // can default the orientation selector to it.
+        const first = await pdf.getPage(1);
+        const fvp = first.getViewport({ scale: 1 });
+        onMeta?.({
+          pageCount: total,
+          rangeable: true,
+          orientation: fvp.width > fvp.height ? "landscape" : "portrait",
+        });
 
         const wanted =
           pages && pages.length
@@ -104,10 +189,8 @@ export default function PrintPreview({ file, pages, color, copies = 1, orientati
         for (const n of slice) {
           if (reqId.current !== myReq) return;
           const page = await pdf.getPage(n);
-          // Always render the page UPRIGHT. Landscape is shown by
-          // pillarboxing this upright page into a landscape sheet in the
-          // markup below — mirroring the server's fitToLandscape, which
-          // SCALES (does not rotate) the page onto a landscape sheet.
+          // Always render the page UPRIGHT; orientation is applied as a
+          // scale-to-fit in the markup (FitSheet), matching the server.
           const viewport = page.getViewport({ scale: 1.4 });
           const canvas = document.createElement("canvas");
           const ctx = canvas.getContext("2d");
@@ -132,8 +215,8 @@ export default function PrintPreview({ file, pages, color, copies = 1, orientati
         }
       }
     })();
-    // orientation intentionally NOT a dep: pages render upright once, and
-    // the landscape pillarbox is applied purely in the markup below.
+    // orientation intentionally NOT a dep: pages render upright once, and the
+    // fit-to-sheet is applied purely in the markup below.
   }, [file, isPdf, isImage, JSON.stringify(pages)]);
 
   const gray = color === "bw";
@@ -161,28 +244,9 @@ export default function PrintPreview({ file, pages, color, copies = 1, orientati
 
       {kind === "image" && (
         <div className="p-6 grid place-items-center">
-          {orientation === "landscape" ? (
-            // Landscape: pillarbox the upright image into a landscape A4
-            // sheet (scaled to fit, centred). Mirrors fitToLandscape — the
-            // image is NOT rotated.
-            <div
-              className="w-full max-w-[620px] border border-ink/20 shadow grid place-items-center overflow-hidden bg-white"
-              style={{ aspectRatio: "297 / 210" }}
-            >
-              <img
-                src={imgUrl}
-                alt={file.name}
-                style={{ width: "100%", height: "100%", objectFit: "contain", filter: gray ? "grayscale(1)" : "none" }}
-              />
-            </div>
-          ) : (
-            <img
-              src={imgUrl}
-              alt={file.name}
-              className="max-w-full max-h-[620px] border border-ink/20 shadow"
-              style={{ filter: gray ? "grayscale(1)" : "none" }}
-            />
-          )}
+          <div className="w-full max-w-[620px]">
+            <FitSheet url={imgUrl} w={imgDim.w} h={imgDim.h} target={orientation} gray={gray} alt={file.name} />
+          </div>
         </div>
       )}
 
@@ -206,27 +270,13 @@ export default function PrintPreview({ file, pages, color, copies = 1, orientati
           {imgs.length === 0 && (
             <div className="py-20 text-ink/50 pl-serif italic">{status || "Rendering…"}</div>
           )}
-          {imgs.map(({ page, url, w, h }) => {
-            // Mirror fitToLandscape: only PORTRAIT pages get scaled to fit
-            // a landscape sheet (swap W/H, centred → pillarbox). Pages that
-            // are already landscape are shown as-is.
-            const sheet = orientation === "landscape" && h > w;
-            return (
-              <figure key={page} className="w-full max-w-[640px]">
-                {sheet ? (
-                  <div
-                    className="w-full border-2 border-ink shadow-[6px_6px_0_#1A1410] grid place-items-center overflow-hidden bg-white"
-                    style={{ aspectRatio: `${h} / ${w}` }}
-                  >
-                    <img src={url} alt={`Page ${page}`} style={{ width: "100%", height: "100%", objectFit: "contain" }} />
-                  </div>
-                ) : (
-                  <img src={url} alt={`Page ${page}`} className="w-full border-2 border-ink shadow-[6px_6px_0_#1A1410]" />
-                )}
-                <figcaption className="editorial-label text-center text-ink/50 mt-2">PAGE {page}</figcaption>
-              </figure>
-            );
-          })}
+          {imgs.map(({ page, url, w, h }) => (
+            <figure key={page} className="w-full max-w-[640px]">
+              {/* gray handled by the wrapper's filter above */}
+              <FitSheet url={url} w={w} h={h} target={orientation} gray={false} alt={`Page ${page}`} />
+              <figcaption className="editorial-label text-center text-ink/50 mt-2">PAGE {page}</figcaption>
+            </figure>
+          ))}
           {status && imgs.length > 0 && (
             <div className="editorial-label text-persimmon py-2 text-center">{status}</div>
           )}

@@ -762,6 +762,53 @@ counter actually advances.
 
 ---
 
+## Phase 25 — Orientation, done properly: bidirectional fit + auto-detect (2026-05-31)
+
+**Prompted by:** "the preview is still scaling wrong — it kept the same size
+so part of the document was cut out. And a landscape document isn't detected
+as landscape; if portrait is selected it should be scaled to fit the paper."
+
+Two gaps in the Phase 22/24 work:
+
+### 1. Fit must work BOTH ways (and the preview was clipping)
+
+`fitToLandscape` only handled portrait→landscape. Generalised it to
+**`fitToOrientation(bytes, target)`**: for each page whose orientation
+doesn't match the target it builds a sheet of the page's paper size in the
+target orientation and scales the page to fit (contain), centred —
+**pillarbox** a portrait page onto landscape, **letterbox** a landscape page
+onto portrait. Pages already matching the target (or square) pass through;
+an all-matching doc is byte-exact. Verified in Node both directions
+(portrait→landscape 595×842→842×595 pillarbox; landscape→portrait
+842×595→595×842 letterbox; portrait→portrait byte-exact no-op). Call sites
+(`agent.routes.ts`, `printer.routes.ts` `maybeOrient`) now fire for either
+orientation, only when one is explicitly set.
+
+The **preview** clipped because the old markup leaned on
+`aspect-ratio` + `object-fit`. Rebuilt it around a bulletproof `FitSheet`:
+upright-rendered page → if it matches the target it fills width; otherwise a
+`position:relative; padding-bottom:<sheet H/W>%` box (rock-solid aspect) with
+the image flex-centred and `max-width/height:100%` (true contain). **Visually
+verified in a real browser** (pillarbox / letterbox / fill — every corner
+marker present, nothing cropped).
+
+### 2. Auto-detect the document's native orientation
+
+`PrintPreview` now reports the document's own orientation (page-1 / image
+aspect) via `onMeta`. **`NewPrintPage`** defaults the orientation selector to
+it, once per file (a landscape doc opens as Landscape; the customer can still
+override). Deliberately **not** applied to `JoinPage` (orientation comes from
+the host's session defaults / enforcement) or per-document `BatchPrintPage`
+(manual per file); both still get the corrected preview + bidirectional
+backend fit.
+
+Backend typecheck + frontend `tsc -b && vite build` clean. Backend-only +
+frontend; **no `.exe` rebuild** (agent untouched).
+
+**Commit `_pending_`.**
+
+---
+
 ## Phase 24 — Preview matches the baked landscape (2026-05-31)
 
 **Prompted by:** "the preview doesn't show the right orientation. why?"
