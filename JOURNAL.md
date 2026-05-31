@@ -762,6 +762,58 @@ counter actually advances.
 
 ---
 
+## Phase 26 — OpenPrinting design + Option A render spike (2026-05-31)
+
+**Prompted by:** "how can OpenPrinting be integrated… go in depth" → after the
+analysis, "Option A; write it up; commit; start the spike; and look for
+anything that may cause issues in the future and fix it."
+
+### Design
+
+`docs/OPENPRINTING-INTEGRATION.md` — an ADR for adopting the OpenPrinting /
+PWG filter chain. The thesis: every per-attribute byte-baking phase (18
+grayscale, 21 flatten, 22/25 orientation, 23 quality) is a partial re-derivation
+of what CUPS/`ipptransform` do correctly and in order. **Option A**: render each
+job to the printer's *native* language (PCL/PostScript) with attributes applied,
+instead of shipping PDF + PJL the Sharp ignores. (Options B local CUPS / C IPP
+INFRA / D SavaPage recorded for later.)
+
+### Spike (super-admin, env-flagged)
+
+- `renderToPrinterLanguage(pdf, {lang,color,dpi,duplex,copies})` in
+  `documentConvert.service.ts` — Ghostscript `ps2write` → PostScript,
+  `pxlmono`/`pxlcolor` → PCL-XL, colour/dpi/duplex baked in. Returns `null` on
+  failure. The reusable core of the future `renderNative`; **not yet in the live
+  path.**
+- `routes/spike.routes.ts` — `POST /api/admin/spike/render` (upload a PDF, get
+  back PCL/PS) + `GET /diag`. Gated three ways: mounted only when
+  `ENABLE_SPIKE_RENDER=1`, `authenticate` at the mount, **super-admin** check in
+  the handler; multipart-PDF-only input, `execFile` array args, allow-listed
+  params. Lets us print PCL vs PostScript on the Sharp and pick a language
+  without touching dispatch. Throwaway `scripts/_spike-render.sh` +
+  `_spike.Dockerfile` for Docker/WSL.
+
+### Future-issue fixes & improvements (the "look for problems" pass)
+
+- **Reverted a deploy-breaker I'd just introduced:** adding `ippsample` /
+  `cups-filters` to `nixpacks.toml` would fail `apt-get install` (and break the
+  Railway build) if those names aren't in the base image. The spike needs only
+  Ghostscript, which is already installed — so the packages are deferred until
+  their apt names are validated. `nixpacks.toml` keeps a comment explaining why.
+- **Silent-degradation visibility:** `GET /api/admin/spike/diag` +
+  `rasterRenderAvailable()` report whether Ghostscript (grayscale/render) and the
+  flatten raster stack (`pdfjs-dist` + `@napi-rs/canvas`) actually load on a
+  given deploy — previously a missing binary was invisible until the first
+  affected upload.
+- Exported `isPdf` for reuse.
+
+Backend typecheck + ESM import probe clean. **Not pushed**; `ENABLE_SPIKE_RENDER`
+is off by default (the route does not exist in prod until set).
+
+**Commit `_pending_`.**
+
+---
+
 ## Phase 25 — Orientation, done properly: bidirectional fit + auto-detect (2026-05-31)
 
 **Prompted by:** "the preview is still scaling wrong — it kept the same size

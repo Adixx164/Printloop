@@ -187,18 +187,22 @@ This is the one stage we deliberately *don't* hand to the standard pipeline.
 
 ## 6. Implementation plan (phased, code-mapped)
 
-**Spike (½ day) — prove the format on paper.** Add the binaries locally / on a branch; render a
-known test PDF (MUTUAL 4 / the investment proposal) to **PCL** and to **PostScript**; print both on
-the Sharp; compare against today's hand-baked output for colour, resolution, duplex, and the
-signature. Pick the language.
+**Spike — DONE, behind `ENABLE_SPIKE_RENDER`.** Implemented as a **super-admin-only** endpoint
+`POST /api/admin/spike/render?lang=pcl|ps&color=bw|color&dpi=600&duplex=1&copies=1` (upload a PDF,
+download the rendered file), backed by `renderToPrinterLanguage` in `documentConvert.service.ts`.
+It uses **Ghostscript** (`ps2write` → PostScript; `pxlmono`/`pxlcolor` → PCL-XL) with colour /
+resolution / duplex baked in — gs is **already on Railway, so the spike needs no new packages**.
+`GET /api/admin/spike/diag` reports toolchain availability (gs + the flatten raster stack). Print
+the PCL and the PostScript on the Sharp, compare colour / resolution / duplex / signature, pick the
+language. *Throwaway: also runnable via `01-backend/scripts/_spike-render.sh` / `_spike.Dockerfile`.*
 
-**Step 1 — Railway build.** Extend `01-backend/nixpacks.toml` (same mechanism as ghostscript):
-```toml
-[phases.setup]
-aptPkgs = ["...", "ghostscript", "ippsample", "cups-filters", "poppler-utils"]
-```
-(`ippsample` provides `ipptransform`; `cups-filters` + `poppler-utils` provide the underlying
-`pdftopdf`/`pdftops`/`gstoraster` converters.)
+**Step 1 — Railway build (DEFERRED until the real `renderNative`).** The spike runs on Ghostscript
+(already installed), so **nothing is added to `nixpacks.toml` yet**. The richer OpenPrinting tools
+(`ipptransform` from `ippsample`, `cups-filters`) are intentionally *not* added until their exact
+apt names are confirmed against Railway's base image — **an unknown package name fails `apt-get
+install` and breaks the deploy.** `poppler-utils` is a safe add when we want `pdftops`. Until then
+`renderToPrinterLanguage` (gs `ps2write` / `pxlmono` / `pxlcolor`) already covers colour, resolution
+and duplex.
 
 **Step 2 — `renderNative()` in `services/documentConvert.service.ts`.** Mirror `toGrayscale`:
 resolve the binary (cache), write a temp PDF, `execFile('ipptransform', …)`, read the output, clean

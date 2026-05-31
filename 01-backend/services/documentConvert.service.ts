@@ -24,7 +24,7 @@ export const ALLOWED_LABEL = 'PDF, JPG, PNG';
 function extOf(name: string): string {
   return (name.split('.').pop() || '').toLowerCase();
 }
-function isPdf(buf: Buffer): boolean {
+export function isPdf(buf: Buffer): boolean {
   return buf.subarray(0, 5).toString('latin1') === '%PDF-';
 }
 
@@ -560,5 +560,103 @@ export async function fitToOrientation(
   } catch (e: any) {
     console.warn('[documentConvert] fitToOrientation failed, sending original:', e?.message);
     return input;
+  }
+}
+
+// ── Render to the printer's native language (Option A groundwork) ──────────
+//
+// docs/OPENPRINTING-INTEGRATION.md. The recurring Sharp problem is that it
+// ignores PJL for PDF input, so every print attribute has had to be baked
+// into the bytes by hand. The fix is to stop sending PDF + PJL and instead
+// render to a language the Sharp interprets natively and reliably — PostScript
+// or PCL — with colour / resolution / duplex / copies already applied.
+//
+// This is the reusable core of the future `renderNative` dispatch step. It is
+// NOT yet wired into the live print path: for now it is exercised only by the
+// super-admin spike endpoint (routes/spike.routes.ts) so we can print PCL vs
+// PostScript on real paper and pick a language before changing dispatch.
+//
+// Implemented with Ghostscript (already installed on Railway): PDF→PostScript
+// via the `ps2write` device, PDF→PCL-XL via `pxlmono` / `pxlcolor`. Returns
+// null if gs is missing or the render fails (the caller decides the fallback).
+
+export type PrinterLang = 'ps' | 'pcl';
+
+export interface RenderToPrinterOpts {
+  lang: PrinterLang;
+  /** 'bw' converts to DeviceGray; 'color' keeps colour. Default 'bw'. */
+  color?: 'bw' | 'color';
+  /** Rasterisation resolution; clamped to a printer-sane value. Default 600. */
+  dpi?: number;
+  /** Bake long-edge duplex into the output. */
+  duplex?: boolean;
+  /** Copies — applied to the PostScript path only (see note below). */
+  copies?: number;
+}
+
+export async function renderToPrinterLanguage(
+  pdf: Buffer,
+  opts: RenderToPrinterOpts,
+): Promise<Buffer | null> {
+  if (!isPdf(pdf)) return null;
+  const bin = await resolveGsBinary();
+  if (!bin) return null;
+
+  const dpi = [150, 300, 600, 1200].includes(Number(opts.dpi)) ? Number(opts.dpi) : 600;
+  const copies = Math.max(1, Math.min(99, Number(opts.copies) || 1));
+  const gray = opts.color !== 'color';
+
+  const stamp = crypto.randomBytes(8).toString('hex');
+  const inPath = path.join(os.tmpdir(), `pl-rn-${stamp}-in.pdf`);
+  const outPath = path.join(os.tmpdir(), `pl-rn-${stamp}-out.${opts.lang}`);
+
+  const args = ['-q', '-dNOPAUSE', '-dBATCH', '-dSAFER', `-r${dpi}`];
+  if (opts.lang === 'pcl') {
+    // PCL-XL (a.k.a. PCL6). Copies on the pxl devices is unreliable via gs, so
+    // we leave copies to the dispatch layer for PCL and apply it only for PS.
+    args.push(`-sDEVICE=${gray ? 'pxlmono' : 'pxlcolor'}`);
+    if (opts.duplex) args.push('-dDuplex=true');
+    args.push(`-sOutputFile=${outPath}`, inPath);
+  } else {
+    args.push('-sDEVICE=ps2write');
+    if (gray) args.push('-sColorConversionStrategy=Gray', '-dProcessColorModel=/DeviceGray');
+    args.push(`-sOutputFile=${outPath}`);
+    // Duplex + copies baked into the PostScript via setpagedevice.
+    const dev: string[] = [];
+    if (opts.duplex) dev.push('/Duplex true', '/Tumble false');
+    if (copies > 1) dev.push(`/NumCopies ${copies}`);
+    if (dev.length) args.push('-c', `<<${dev.join(' ')}>> setpagedevice`, '-f', inPath);
+    else args.push(inPath);
+  }
+
+  try {
+    await fs.writeFile(inPath, pdf);
+    await execFileAsync(bin, args, { timeout: 120000, maxBuffer: 128 * 1024 * 1024 });
+    const out = await fs.readFile(outPath);
+    if (!out || out.length === 0) throw new Error('Ghostscript produced an empty file');
+    return out;
+  } catch (e: any) {
+    console.warn('[documentConvert] renderToPrinterLanguage failed:', e?.message);
+    return null;
+  } finally {
+    fs.unlink(inPath).catch(() => {});
+    fs.unlink(outPath).catch(() => {});
+  }
+}
+
+/**
+ * True iff the raster-flatten toolchain (pdfjs-dist + @napi-rs/canvas) actually
+ * loads in this process. `flattenAnnotations` degrades gracefully when it
+ * doesn't, but that failure is otherwise INVISIBLE until the first annotated
+ * upload — this lets ops confirm a deploy can really flatten signatures
+ * (surfaced via the super-admin /api/admin/spike/diag endpoint).
+ */
+export async function rasterRenderAvailable(): Promise<boolean> {
+  try {
+    await loadPdfjs();
+    await import('@napi-rs/canvas');
+    return true;
+  } catch {
+    return false;
   }
 }

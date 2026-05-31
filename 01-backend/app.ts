@@ -5,6 +5,7 @@ import devApiRoutes from "./routes/devApi.routes.js";
 import adminAuthRoutes from "./routes/adminAuth.routes.js";
 import adminRoutes from "./routes/admin.routes.js";
 import adminKioskRoutes from "./routes/admin-kiosk.routes.js";
+import spikeRoutes from "./routes/spike.routes.js";
 import groupSessionRoutes from "./routes/groupSession.routes.js";
 import participantUploadRoutes from "./routes/participantUpload.routes.js";
 import printerRoutes from "./routes/printer.routes.js";
@@ -65,6 +66,12 @@ export function createApp(): Application {
   // Order matters: auth (public login) → kiosks → generic admin → dev mock.
   app.use("/api/admin/auth", adminAuthRoutes);
   app.use("/api/admin/kiosks", authenticate, adminKioskRoutes);
+  // Option A render spike (docs/OPENPRINTING-INTEGRATION.md) — super-admin
+  // only, and only mounted when explicitly enabled, so it is invisible in
+  // production. Must precede the generic /api/admin router below.
+  if (process.env.ENABLE_SPIKE_RENDER === "1") {
+    app.use("/api/admin/spike", authenticate, spikeRoutes);
+  }
   app.use("/api/admin", authenticate, adminRoutes);
 
   // ── Real TypeORM-backed feature APIs (distinct prefixes; the legacy
