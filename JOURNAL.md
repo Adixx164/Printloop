@@ -762,6 +762,29 @@ counter actually advances.
 
 ---
 
+## Phase 24 — Preview matches the baked landscape (2026-05-31)
+
+**Prompted by:** "the preview doesn't show the right orientation. why?"
+
+The customer preview (`printloop-new-frontend/.../PrintPreview.tsx`) is a
+**separate client-side renderer** (pdf.js in the browser) — it never sees
+the server's `fitToLandscape`. It still drew landscape the OLD way: **rotate
+the page 90°** (`rotation: 90` for PDFs, CSS `rotate(90deg)` for images).
+The backend now **scales the upright page to fit a landscape sheet**
+(pillarbox, no rotation), so the preview — which advertises "EXACTLY WHAT
+PRINTS" — contradicted the actual output.
+
+**Fix:** pages render **upright**; landscape **pillarboxes** each PORTRAIT
+page into a landscape-aspect sheet (`aspect-ratio` = swapped W/H,
+`object-fit: contain`, white ground); already-landscape pages are shown
+as-is; images pillarbox into a landscape A4 sheet instead of CSS-rotating.
+The preview now mirrors `fitToLandscape`. **Frontend-only → Vercel deploy.**
+`tsc -b && vite build` clean.
+
+**Commit `_pending_`.**
+
+---
+
 ## Phase 23 — Page-range audit + print-quality reaches the printer (2026-05-31)
 
 **Prompted by:** a pre-commit check — "make sure that when a range of pages
