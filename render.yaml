@@ -1,6 +1,8 @@
+# render.yaml
+# Blueprint version: 1
+# 
 # Render Infrastructure as Code
 # Deploy with: render deploy --config render.yaml
-# Blueprint version: v1
 
 services:
   # Backend API
