@@ -17,9 +17,14 @@ export enum KioskStatus {
 }
 
 @Entity('kiosks')
+@Index('idx_kiosk_tenant', ['tenantId'])
 export class Kiosk extends BaseEntity {
   @PrimaryGeneratedColumn('uuid')
   id: string;
+
+  /** Owning tenant. Backfilled to 'legacy' tenant for pre-multi-tenancy rows. */
+  @Column({ type: 'uuid', nullable: true })
+  tenantId: string | null;
 
   @Column({ type: 'varchar', length: 255 })
   name: string;
@@ -58,6 +63,47 @@ export class Kiosk extends BaseEntity {
 
   @Column({ type: 'datetime', nullable: true })
   lastPrintedAt: Date;
+
+  /** Timestamp of the most recent offline alert sent to the tenant owner.
+   *  Used to rate-limit: we only re-alert after KIOSK_ALERT_COOLDOWN_MINUTES. */
+  @Column({ type: 'datetime', nullable: true })
+  lastOfflineAlertAt: Date | null;
+
+  /**
+   * Set by the tenant admin once they've run a successful test print
+   * through this kiosk (V2-32). The "live gate" on
+   * PATCH /api/saas/me/location refuses to flip isDiscoverable=true
+   * until at least one kiosk on the tenant has a non-null value here.
+   *
+   * Manual marker — the kiosk software doesn't auto-detect; the
+   * admin clicks "Confirm test print" after pulling a real sheet of
+   * paper out of the printer. NULL = not yet verified.
+   */
+  @Column({ type: 'datetime', nullable: true })
+  testPrintPassedAt: Date | null;
+
+  /**
+   * Hardware capabilities the agent auto-discovers via IPP
+   * Get-Printer-Attributes (V2-44). NULL = unknown — non-IPP
+   * transports or kiosks paired before this shipped. The discovery
+   * rollup only *narrows* claims when these are known; unknown keeps
+   * the pricing-derived behaviour.
+   */
+  @Column({ type: 'boolean', nullable: true })
+  capColor: boolean | null;
+
+  @Column({ type: 'boolean', nullable: true })
+  capDuplex: boolean | null;
+
+  @Column({ type: 'boolean', nullable: true })
+  capA3: boolean | null;
+
+  /** Raw media list (JSON array of IPP media keywords), for support. */
+  @Column({ type: 'text', nullable: true })
+  capMedia: string | null;
+
+  @Column({ type: 'datetime', nullable: true })
+  capUpdatedAt: Date | null;
 
   @Column({ type: 'int', default: 0 })
   totalJobsPrinted: number;

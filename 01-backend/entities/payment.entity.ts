@@ -18,9 +18,15 @@ export type PaymentMethod = 'wallet' | 'card' | 'transfer' | 'ussd';
  * money-movement record the admin console reports on (revenue, refunds).
  */
 @Entity('payments')
+@Index('idx_payment_tenant', ['tenantId'])
 export class Payment {
   @PrimaryGeneratedColumn('uuid')
   id: string;
+
+  /** Owning tenant. The commission slice on this payment lives on the
+   *  paired transactions row (transactions.commissionAmount). */
+  @Column({ type: 'uuid', nullable: true })
+  tenantId: string | null;
 
   @Column({ type: 'uuid' })
   @Index('idx_payment_user_id')
@@ -41,6 +47,15 @@ export class Payment {
 
   @Column({ type: 'varchar', length: 120, nullable: true })
   reference: string;
+
+  /**
+   * Paystack card authorization code captured from charge.success
+   * (V2-53). Lets the kiosk release gate charge the saved card for
+   * the delta when the render's final cost exceeds the estimate —
+   * no re-entry of card details.
+   */
+  @Column({ type: 'varchar', length: 120, nullable: true })
+  authorizationCode: string | null;
 
   @Column({ type: 'varchar', length: 255, nullable: true })
   description: string;

@@ -7,14 +7,20 @@ import {
   OneToOne,
   JoinColumn,
   OneToMany,
+  Index,
 } from 'typeorm';
 import { User } from './user.entity';
 import { Transaction } from './transaction.entity';
 
 @Entity('wallets')
+@Index('idx_wallet_tenant', ['tenantId'])
 export class Wallet {
   @PrimaryGeneratedColumn('uuid')
   id: string;
+
+  /** Mirrors the owning User's tenantId. Denormalized for index speed. */
+  @Column({ type: 'uuid', nullable: true })
+  tenantId: string | null;
 
   @OneToOne(() => User)
   @JoinColumn({ name: 'userId' })

@@ -4,12 +4,19 @@ import {
   Column,
   CreateDateColumn,
   UpdateDateColumn,
+  Index,
 } from 'typeorm';
 
 @Entity('files')
+@Index('idx_file_tenant', ['tenantId'])
 export class File {
   @PrimaryGeneratedColumn('uuid')
   id: string;
+
+  /** Owning tenant. Used by the storage-quota abuse limit + per-tenant
+   *  retention sweeps. */
+  @Column({ type: 'uuid', nullable: true })
+  tenantId: string | null;
 
   @Column({ type: 'varchar', length: 255 })
   fileName: string;

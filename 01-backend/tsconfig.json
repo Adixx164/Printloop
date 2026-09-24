@@ -14,15 +14,5 @@
     "types": ["node"]
   },
   "include": ["**/*.ts"],
-  "exclude": [
-    "node_modules",
-    "dist",
-    "// --- superseded duplicates: replaced by the live devApi/adminAuth/admin.routes + middleware/rbac; kept on disk for reference, not built ---",
-    "controllers/admin.controller.ts",
-    "controllers/adminPrivilege.controller.ts",
-    "controllers/auth.controller.ts",
-    "controllers/job.controller.ts",
-    "controllers/wallet.controller.ts",
-    "middlewares/rbac.middleware.ts"
-  ]
+  "exclude": ["node_modules", "dist"]
 }

@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { ROUTES } from "@/constants/routes";
 import { Lock, Share2, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/Button";
@@ -148,6 +150,23 @@ function SessionCard({ session, hostId }: { session: any; hostId: string }) {
 }
 
 export default function GroupPrintPage() {
+  const navigate = useNavigate();
+  const urlParams = new URLSearchParams(window.location.search);
+  const urlTenant = urlParams.get("tenantSlug");
+  if (urlTenant) {
+    sessionStorage.setItem("activeTenantSlug", urlTenant);
+    sessionStorage.setItem("reviewedPricesForTenant", urlTenant);
+  }
+  const activeTenant = urlTenant || sessionStorage.getItem("activeTenantSlug");
+  const reviewedTenant = sessionStorage.getItem("reviewedPricesForTenant");
+
+  useEffect(() => {
+    if (!activeTenant || activeTenant !== reviewedTenant) {
+      toast.error("Please select a print shop and review its prices on the map first.");
+      navigate(ROUTES.APP.DASHBOARD);
+    }
+  }, [activeTenant, reviewedTenant, navigate]);
+
   const hostId = useMemo(() => getHostId(), []);
   const { data, isLoading } = useListGroupSessionsQuery(hostId);
   const [createSession, { isLoading: isCreating }] = useCreateGroupSessionMutation();

@@ -2,7 +2,9 @@
 
 Turns a Linux/macOS box into a "Print → PrintLoop" target. CUPS spools the
 document; the `printloop` backend script POSTs it to PrintLoop's API; the
-user enters the release code at any PrintLoop kiosk to actually print.
+user **pays the returned checkout link**, then enters the release code at
+any PrintLoop kiosk to actually print (V2-55: CUPS jobs bill via Paystack,
+same as web uploads).
 
 ```
 File → Print → PrintLoop   (any app)
@@ -12,11 +14,11 @@ File → Print → PrintLoop   (any app)
  │ local CUPS  │ ─────────────────▶ │ /usr/lib/cups/backend│
  │  (lpd/ipp)  │                    │       /printloop      │
  └─────────────┘ ◀────── stderr ─── └──────────┬───────────┘
-                  release code               │ HTTPS multipart
-                                             ▼
-                                  POST /api/cups/print  ──▶  PrintLoop
-                                  (Bearer <printToken>)         ↓
-                                                          release code
+       code + pay link              │ HTTPS multipart
+                                              ▼
+                                   POST /api/cups/print  ──▶  PrintLoop
+                                   (Bearer <printToken>)         ↓
+                                               code + Paystack checkout link
 ```
 
 ## Prerequisites
@@ -67,11 +69,14 @@ To do a real test, print a PDF:
 
 ```sh
 lp -d PrintLoop ~/Documents/example.pdf
-lpq -P PrintLoop -l          # → look for the "PrintLoop release code:"
-                             #   line in the "Job notes" section
+lpq -P PrintLoop -l          # → look for the "PrintLoop release code:" and
+                             #   "PAY HERE:" lines in the "Job notes" section
 ```
 
-Then enter that code at any PrintLoop kiosk.
+Open the **PAY HERE** link, pay with your bank or card, then enter the
+release code at any PrintLoop kiosk. The job only prints after payment —
+the code is minted at submission so `lpq` shows it immediately, but the
+job stays PENDING until the Paystack webhook confirms the charge.
 
 ## Uninstall
 
@@ -98,7 +103,7 @@ Backend logs go to `/var/log/cups/error_log` — search for
 ## Security model
 
 - The print token is a bearer secret. Whoever has it can submit jobs
-  billed to your wallet until you rotate it.
+  billed to your account until you rotate it.
 - The token lives in the CUPS device URI, which is stored locally in
   `/etc/cups/printers.conf` (root-readable only on a properly configured
   system).

@@ -38,11 +38,35 @@ function makeQueue(name: string): JobQueue {
   };
 }
 
-export const watermarkQueue = makeQueue('watermark-pdf');
 export const fileCleanupQueue = makeQueue('file-cleanup');
-export const emailQueue = makeQueue('email');
-export const smsQueue = makeQueue('sms');
 export const scheduledQueue = makeQueue('scheduled');
+/**
+ * Render queue — consumed by the standalone render-worker service
+ * (see ../render-worker/). Each job normalises an uploaded document
+ * to PWG-Raster via ghostscript + cups-filters and stores the
+ * spool-ready artifact for the kiosk to pull. See
+ * ../ARCHITECTURE.md (cloud render → kiosk spool).
+ *
+ * Job payload: { printJobId, tenantId, sourceFileKey, printerProfileId | null }
+ */
+export const renderQueue = makeQueue('render');
+/**
+ * Webhook delivery queue (Dimension 14 — V2-15). Each job is one
+ * outbound POST to one tenant webhook endpoint. BullMQ's retry +
+ * backoff (defaultJobOptions: 3 attempts, exponential) gives us
+ * at-least-once delivery for free. Consumed by
+ * `workers/webhook.worker.ts`.
+ *
+ * Job payload:
+ *   { webhookId, url, secret, event, body } — body is the
+ *   pre-serialised JSON string so the HMAC signature the worker
+ *   computes matches the bytes it sends.
+ */
+export const webhookQueue = makeQueue('webhook-deliveries');
+/**
+ * Notification queue — for async push/email notifications (edit flow, etc.)
+ */
+export const notificationQueue = makeQueue('notifications');
 
 /**
  * Register repeatable scheduled jobs. No-op when Redis is disabled.
@@ -67,6 +91,36 @@ export async function initScheduledJobs(): Promise<void> {
     'daily-cleanup',
     {},
     { repeat: { pattern: '0 3 * * *' }, jobId: 'daily-cleanup' }
+  );
+  // Database backup (SQLite `VACUUM INTO` / Postgres `pg_dump`) — fires
+  // daily at 02:30 UTC, before daily-cleanup, so backups run on a calm
+  // DB. Rotation keeps the newest `BACKUP_KEEP` (default 14) files.
+  await scheduledQueue.add(
+    'db-backup',
+    {},
+    { repeat: { pattern: '30 2 * * *' }, jobId: 'db-backup' }
+  );
+  // Payouts to tenants (Dimension 15) — fires daily at 04:00 UTC,
+  // after daily-cleanup. The job's own per-schedule filter
+  // (PayoutSchedule.cadence + dayOfWeek) decides which tenants get
+  // a transfer today; daily-cadence tenants fire every day.
+  await scheduledQueue.add(
+    'process-payouts',
+    {},
+    { repeat: { pattern: '0 4 * * *' }, jobId: 'process-payouts' }
+  );
+  // Stuck-RENDERING sweep — fires every 10 minutes. Tight cadence
+  // because the customer is at a kiosk waiting; we want to unstick
+  // within one pickup window. The 15-minute threshold inside
+  // reconcileStuckRenders keeps it from misfiring on legitimately
+  // slow renders.
+  await scheduledQueue.add(
+    'reconcile-stuck-renders',
+    {},
+    {
+      repeat: { every: 10 * 60 * 1000 },
+      jobId: 'reconcile-stuck-renders',
+    },
   );
   console.log('✓ Scheduled jobs initialized');
 }

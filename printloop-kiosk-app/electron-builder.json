@@ -1,0 +1,50 @@
+{
+  "build": {
+    "appId": "com.printloop.kiosk",
+    "productName": "PrintLoop Kiosk",
+    "copyright": "Copyright © 2026 PrintLoop",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "dist/**/*",
+      "public/**/*"
+    ],
+    "extraResources": [
+      {
+        "from": "resources",
+        "to": "resources",
+        "filter": ["**/*"]
+      }
+    ],
+    "win": {
+      "target": "nsis",
+      "icon": "public/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "PrintLoop Kiosk",
+      "installerIcon": "public/icon.ico",
+      "uninstallerIcon": "public/icon.ico",
+      "installerHeaderIcon": "public/icon.ico"
+    },
+    "linux": {
+      "target": "AppImage",
+      "icon": "public/icon.png",
+      "category": "Office",
+      "desktop": {
+        "Name": "PrintLoop Kiosk",
+        "Comment": "PrintLoop Self-Service Printing Kiosk",
+        "Categories": "Office;Printing;"
+      }
+    },
+    "mac": {
+      "target": "dmg",
+      "icon": "public/icon.icns",
+      "category": "public.app-category.business"
+    }
+  }
+}

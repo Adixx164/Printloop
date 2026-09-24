@@ -2,7 +2,7 @@ import { Router, type Request, type Response } from 'express';
 import bcrypt from 'bcryptjs';
 import { AppDataSource } from '../config/database';
 import { User, UserRole } from '../entities/user.entity';
-import { signAccessToken } from '../utils/jwt';
+import { signAccessToken, loadMembershipsForUser } from '../utils/jwt';
 import { authenticate } from '../middleware/auth.middleware';
 
 const router = Router();
@@ -47,10 +47,32 @@ router.post('/login', async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
+    // 2FA gate (V2-22) — admin/platform accounts are highest-value.
+    if (user.totpEnabled && user.totpSecret) {
+      const { verifyTotp } = await import('../utils/totp');
+      const code = String((req.body || {}).totpCode || '');
+      if (!code) {
+        res.status(401).json({ success: false, message: 'Two-factor code required', code: 'TOTP_REQUIRED' });
+        return;
+      }
+      if (!verifyTotp(user.totpSecret, code)) {
+        res.status(401).json({ success: false, message: 'Invalid two-factor code', code: 'TOTP_INVALID' });
+        return;
+      }
+    }
+
     user.lastLoginAt = new Date();
     await userRepo.save(user);
 
-    const accessToken = signAccessToken({ userId: user.id, role: user.role });
+    // Admins authenticate per-platform but their tenant membership
+    // set determines which tenant data they can see. Memberships are
+    // baked into the JWT so RBAC checks don't need a DB round-trip.
+    const memberships = await loadMembershipsForUser(user.id);
+    const accessToken = signAccessToken({
+      userId: user.id,
+      role: user.role,
+      memberships,
+    });
 
     res.json({
       success: true,

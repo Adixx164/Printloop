@@ -12,9 +12,17 @@ import {
  * settings and file. No FK (kept simple, like GroupSession).
  */
 @Entity('print_job_items')
+@Index('idx_pji_tenant', ['tenantId'])
 export class PrintJobItem {
   @PrimaryGeneratedColumn('uuid')
   id: string;
+
+  /** Mirrors the parent PrintJob's tenantId. Denormalised so tenant-
+   *  scoped queries (e.g. "list every item this tenant has ever
+   *  printed") don't need a JOIN. Nullable during the multi-tenancy
+   *  cutover; backfilled to the parent's tenantId at boot. */
+  @Column({ type: 'uuid', nullable: true })
+  tenantId: string | null;
 
   @Column({ type: 'uuid' })
   @Index('idx_pji_print_job')

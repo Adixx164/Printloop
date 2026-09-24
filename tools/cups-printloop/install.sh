@@ -96,4 +96,5 @@ cupsenable "$QUEUE_NAME" || true
 echo ""
 echo "Done. From any app you can now choose '$QUEUE_NAME' in the print dialog."
 echo "After printing, look at the print queue (or run \`lpq -P $QUEUE_NAME -l\`)"
-echo "to see the PrintLoop release code; enter it at any PrintLoop kiosk."
+echo "for the Paystack checkout link and the PrintLoop release code: pay the"
+echo "link, then enter the code at any PrintLoop kiosk."

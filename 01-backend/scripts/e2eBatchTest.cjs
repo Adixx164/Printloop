@@ -8,6 +8,22 @@ const sha = (b) => crypto.createHash('sha256').update(b).digest('hex');
 const B = 'http://localhost:4000/api';
 const PRINTED = path.resolve(__dirname, '..', 'data', 'printed');
 
+let sqlite3;
+try { sqlite3 = require('sqlite3'); } catch { sqlite3 = null; }
+const DB_PATH = path.resolve(__dirname, '..', 'data', 'printloop.sqlite');
+
+function sqlRun(sql, params) {
+  return new Promise((resolve, reject) => {
+    if (!sqlite3) return resolve(null);
+    const db = new sqlite3.Database(DB_PATH, sqlite3.OPEN_READWRITE);
+    db.run(sql, params, function (err) { db.close(); err ? reject(err) : resolve(this.changes); });
+  });
+}
+
+async function topUpWallet(userId, naira) {
+  await sqlRun(`UPDATE wallets SET balance = ? WHERE userId = ?`, [naira, userId]);
+}
+
 async function j(method, url, body, headers) {
   const r = await fetch(B + url, {
     method,
@@ -36,6 +52,12 @@ async function mkPdf(label) {
   const reg = await j('POST', '/customer/auth/register', { firstName: 'Batch', lastName: 'User', email, phoneNumber: '+2348000000999', password: 'Passw0rd!' });
   const tok = reg.data?.data?.tokens?.accessToken;
   console.log(`2. Registered → JWT ${tok ? 'ok' : 'NONE'}`);
+
+  const userId = reg.data?.data?.user?.id;
+  if (userId) {
+    await topUpWallet(userId, 2000);
+    console.log(`   Topped up wallet for user ${userId} with ₦2000`);
+  }
 
   const fd = new FormData();
   fd.append('files', new Blob([a], { type: 'application/pdf' }), 'docA.pdf');

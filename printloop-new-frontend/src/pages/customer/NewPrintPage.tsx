@@ -1,19 +1,24 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Wallet, CreditCard } from "lucide-react";
+import { CreditCard, FileEdit, MessageSquare } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/Button";
 import QrBlock from "@/components/ui/QrBlock";
 import { ROUTES } from "@/constants/routes";
 import PrintPreview, { parsePageRange } from "@/components/print/PrintPreview";
-import { useCreateJobMutation, useGetPricingQuery } from "@/store/services/jobsApi";
-import { useGetWalletQuery, useTopUpMutation } from "@/store/services/walletApi";
+import {
+  useCreateJobMutation,
+  useInitializeJobPaymentMutation,
+  useListJobsQuery,
+  useGetPricingQuery,
+} from "@/store/services/jobsApi";
 import { extractError } from "@/lib/errors";
 import { priceFromMatrix, type PricingRow } from "@/lib/pricing";
+import { isOfficeName, uploadAccept } from "@/lib/pageCount";
+import { useGetEditPricingQuery } from "@/store/services/saasApi";
 
 type Step = 1 | 2 | 3 | 4;
 type QualityDpi = 100 | 300 | 600;
-type PaymentMethod = "wallet" | "paystack";
 
 type Config = {
   copies: number;
@@ -24,16 +29,11 @@ type Config = {
   paper: "A4" | "A3" | "Letter";
   qualityDpi: QualityDpi;
   orientation: "portrait" | "landscape";
-  paymentMethod: PaymentMethod;
 };
 
-type Receipt = { code: string; cost: number; expiresAt?: string; qrPayload?: string };
+type Receipt = { id?: string; code: string; cost: number; expiresAt?: string; qrPayload?: string };
 
 const qualityOptions: QualityDpi[] = [100, 300, 600];
-const paymentOptions = [
-  { key: "wallet" as const, label: "Wallet", icon: Wallet, note: "Instant · prepaid balance" },
-  { key: "paystack" as const, label: "Paystack", icon: CreditCard, note: "Card · transfer · USSD · bank" },
-];
 
 // `priceOf` was previously hardcoded to ₦5/₦25/0.85 multipliers, which
 // silently diverged from the admin pricing matrix. Live calc now lives in
@@ -50,12 +50,11 @@ function formatExpiry(value?: string) {
 export default function NewPrintPage() {
   const navigate = useNavigate();
   const [createJob, { isLoading: isCreating }] = useCreateJobMutation();
-  const { data: wallet } = useGetWalletQuery();
-  const [topUp, { isLoading: isToppingUp }] = useTopUpMutation();
+  const [initJobPayment, { isLoading: isIniting }] = useInitializeJobPaymentMutation();
   const [step, setStep] = useState<Step>(1);
   const [file, setFile] = useState<File | null>(null);
   const [receipt, setReceipt] = useState<Receipt | null>(null);
-  const [topUpAmount, setTopUpAmount] = useState(1000);
+  const [awaitingPayment, setAwaitingPayment] = useState(false);
 
   // Auto-detected from the document; manualPages only used for formats we
   // cannot parse (e.g. DOCX) — that is the entire purpose of "page count".
@@ -63,11 +62,26 @@ export default function NewPrintPage() {
   const [rangeable, setRangeable] = useState(false);
   const [manualPages, setManualPages] = useState(1);
 
+  const urlParams = new URLSearchParams(window.location.search);
+  const urlTenant = urlParams.get("tenantSlug");
+  if (urlTenant) {
+    sessionStorage.setItem("activeTenantSlug", urlTenant);
+    sessionStorage.setItem("reviewedPricesForTenant", urlTenant);
+  }
+  const activeTenant = urlTenant || sessionStorage.getItem("activeTenantSlug");
+  const reviewedTenant = sessionStorage.getItem("reviewedPricesForTenant");
+
+  useEffect(() => {
+    if (!activeTenant || activeTenant !== reviewedTenant) {
+      toast.error("Please select a print shop and review its prices on the map first.");
+      navigate(ROUTES.APP.DASHBOARD);
+    }
+  }, [activeTenant, reviewedTenant, navigate]);
+
   const [config, setConfig] = useState<Config>({
     copies: 1, pages: "all", pageRange: "", color: "bw",
     sided: "single", paper: "A4", qualityDpi: 300,
     orientation: "portrait",
-    paymentMethod: "wallet",
   });
 
   // When a new file's native orientation is detected, default the selector to
@@ -82,11 +96,44 @@ export default function NewPrintPage() {
       setConfig((c) => ({ ...c, orientation: m.orientation! }));
     }
   };
-  // Live pricing matrix — refetches whenever admin pricing changes (the
-  // admin's save invalidates the `Pricing` tag).
   const { data: pricingData } = useGetPricingQuery();
   const pricingRows: PricingRow[] | undefined = pricingData?.configs;
+  // V2-48 — does this shop's server convert Office files to PDF?
+  const officeEnabled = Boolean((pricingData as any)?.officeConversion);
 
+  // V2-XX — Document Editing Service
+  const { data: editPricing } = useGetEditPricingQuery();
+  const editingEnabled = editPricing?.editingEnabled === true;
+  const [editingRequired, setEditingRequired] = useState(false);
+  const [editingInstructions, setEditingInstructions] = useState("");
+
+  const paperOptions = useMemo(() => {
+    if (!pricingRows || pricingRows.length === 0) return ["A4"];
+    const sizes = Array.from(new Set(pricingRows.map((r) => r.paperSize)));
+    return sizes.length ? sizes : ["A4"];
+  }, [pricingRows]);
+
+  const hasColorCapability = useMemo(() => {
+    if (!pricingRows || pricingRows.length === 0) return false;
+    return pricingRows.some((r) => r.colorType === "COLOR");
+  }, [pricingRows]);
+
+  useEffect(() => {
+    if (paperOptions.length > 0 && !paperOptions.some(p => p.toUpperCase() === config.paper.toUpperCase())) {
+      setConfig((c) => ({ ...c, paper: paperOptions[0] as any }));
+    }
+  }, [paperOptions, config.paper]);
+
+  useEffect(() => {
+    if (!hasColorCapability && config.color === "color") {
+      setConfig((c) => ({ ...c, color: "bw" }));
+    }
+  }, [hasColorCapability, config.color]);
+
+  // Office files can't be page-counted in the browser — the server
+  // converts + counts on upload. Until then everything we show is an
+  // estimate driven by the user's approximate page count.
+  const isOffice = file ? isOfficeName(file.name) : false;
   const totalDocPages = rangeable ? docPages : manualPages;
   const selectedPages = useMemo(() => {
     if (config.pages === "all" || !rangeable) return null;
@@ -97,8 +144,6 @@ export default function NewPrintPage() {
   const printedPageCount =
     config.pages === "range" && selectedPages ? selectedPages.length : totalDocPages || 1;
   const total = priceFromMatrix(printedPageCount, config, pricingRows);
-  const walletBalance = Number(wallet?.balance || 0);
-  const walletShortfall = Math.max(0, total - walletBalance);
 
   // Per-page rate and the actual simplex↔duplex delta — both derived from
   // the same matrix the server bills against, so the review panel can
@@ -133,19 +178,21 @@ export default function NewPrintPage() {
 
   const submitPrintJob = async () => {
     if (!file) return toast.error("Choose a file first.");
-    if (config.paymentMethod === "wallet" && walletShortfall > 0) {
-      toast.error("Top up your wallet or pay with Paystack.");
-      return;
-    }
     try {
       // Multipart → the real customer endpoint persists the actual document
-      // and creates a real PrintJob a kiosk can fetch & print.
+      // and creates a real PrintJob a kiosk can fetch & print. The job is
+      // created PENDING — the release code is minted by the Paystack
+      // webhook after the customer pays (V2-53: no wallet).
       const fd = new FormData();
       fd.append("file", file, file.name);
       fd.append("fileName", file.name);
       fd.append("pageCount", String(printedPageCount));
-      fd.append("paymentMethod", config.paymentMethod);
       fd.append("jobType", "single");
+      // V2-XX — Document Editing Service
+      fd.append("editingRequired", String(editingRequired));
+      if (editingRequired && editingInstructions.trim()) {
+        fd.append("editingInstructions", editingInstructions.trim());
+      }
       fd.append(
         "printConfiguration",
         JSON.stringify({
@@ -157,22 +204,50 @@ export default function NewPrintPage() {
       const result = await createJob(fd).unwrap();
       const payload = result?.response || result?.data || result;
       const job = payload?.job || payload;
-      setReceipt({ code: job.code, cost: job.cost, expiresAt: job.expiresAt, qrPayload: job.qrPayload });
-      toast.success("Payment complete. Your print token is ready.");
-      setStep(4);
+      if (!job?.id) throw new Error("Job was not created.");
+
+      // Open the Paystack hosted checkout; the payment poll below
+      // picks up the release code once the webhook lands.
+      const init = await initJobPayment({ jobId: job.id }).unwrap();
+      const initData = init?.data || init;
+      const url = initData?.authorizationUrl;
+      if (!url) throw new Error("Could not start payment. Try again.");
+      sessionStorage.setItem("pendingJobId", job.id);
+      setAwaitingPayment(true);
+      window.open(url, "_blank", "noopener");
     } catch (err) {
       toast.error(extractError(err));
     }
   };
 
-  const handleTopUp = async () => {
-    try {
-      await topUp({ amount: topUpAmount }).unwrap();
-      toast.success(`Wallet topped up with ₦${topUpAmount.toLocaleString()}.`);
-    } catch (err) {
-      toast.error(extractError(err));
+  // While the Paystack checkout tab is open, poll the job list every 3s
+  // until the release code appears (minted by the webhook after payment).
+  const { data: jobsData } = useListJobsQuery(undefined, {
+    pollingInterval: awaitingPayment ? 3000 : 0,
+    skip: !awaitingPayment,
+  });
+
+  useEffect(() => {
+    if (!awaitingPayment) return;
+    const pendingId = sessionStorage.getItem("pendingJobId");
+    if (!pendingId || !jobsData) return;
+    const list = jobsData?.jobs ?? [];
+    const paid = list.find((j: any) => j.id === pendingId);
+    if (paid?.code) {
+      sessionStorage.removeItem("pendingJobId");
+      setAwaitingPayment(false);
+      setReceipt({
+        id: paid.id,
+        code: paid.code,
+        cost: Number(paid.finalCost ?? paid.cost ?? 0),
+        expiresAt: paid.expiresAt,
+        qrPayload: paid.qrPayload,
+      });
+      toast.success("Payment confirmed. Your print token is ready.");
+      setStep(4);
     }
-  };
+  }, [awaitingPayment, jobsData]);
+
 
   const stepLabels = ["UPLOAD", "CONFIGURE + REVIEW", "SUMMARY + PREVIEW", "TOKEN"];
   const pagesLabel =
@@ -189,7 +264,7 @@ export default function NewPrintPage() {
         Upload, price, preview, <em className="italic text-persimmon font-semibold">release</em>.
       </h1>
       <p className="pl-serif italic text-ink/60 mb-6 sm:mb-7 text-sm sm:text-base">
-        Print codes stay valid for 24 hours. Unprinted jobs are auto-refunded to your wallet.
+        Print codes stay valid for 24 hours. You pay once, securely, via Paystack.
       </p>
 
       <div className="grid grid-cols-4 gap-1.5 sm:gap-2 mb-6 sm:mb-7">
@@ -228,7 +303,9 @@ export default function NewPrintPage() {
               Drop a file, or click to browse.
             </div>
             <div className="pl-serif italic text-ink/60 text-xs sm:text-sm mb-4">
-              PDF · JPG · PNG · up to 50MB
+              {officeEnabled
+                ? "PDF · Word · PowerPoint · Excel · images · up to 50MB"
+                : "PDF · JPG · PNG · up to 50MB"}
             </div>
             {file && (
               <div className="inline-block bg-ink text-paper px-3 py-1.5 text-xs font-semibold break-all max-w-full">
@@ -238,15 +315,54 @@ export default function NewPrintPage() {
             <input
               id="filein"
               type="file"
-              accept="application/pdf,image/png,image/jpeg"
+              accept={uploadAccept(officeEnabled)}
               hidden
               onChange={(e) => {
-                setFile(e.target.files?.[0] || null);
+                const f = e.target.files?.[0] || null;
+                if (f && isOfficeName(f.name) && !officeEnabled) {
+                  toast.error("This shop can't convert Office files yet — please upload a PDF.");
+                  return;
+                }
+                setFile(f);
                 setDocPages(0);
                 setRangeable(false);
+                setManualPages(1);
               }}
             />
           </label>
+
+          {editingEnabled && (
+            <div className="mt-6 border-2 border-ink/20 p-4 bg-paper-light">
+              <div className="flex items-start gap-3">
+                <FileEdit className="w-5 h-5 mt-0.5 shrink-0 text-persimmon" />
+                <div>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={editingRequired}
+                      onChange={(e) => setEditingRequired(e.target.checked)}
+                      className="pl-checkbox w-4 h-4"
+                    />
+                    <div className="pl-serif font-bold text-base">Request editing service</div>
+                  </label>
+                  <p className="pl-serif italic text-ink/60 text-xs sm:text-sm mt-1">
+                    Our print shop will edit your document before printing (formatting, layout fixes, conversions, etc.).
+                    Additional fees apply — pricing shown on next step.
+                  </p>
+                  {editingRequired && (
+                    <textarea
+                      value={editingInstructions}
+                      onChange={(e) => setEditingInstructions(e.target.value)}
+                      placeholder="Describe the edits you need (e.g., 'Convert to PDF', 'Fix formatting', 'Add page numbers', 'Change margins to 1 inch'...)"
+                      className="pl-input mt-3 min-h-[80px] resize-y"
+                      rows={3}
+                    />
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
           <div className="flex flex-col sm:flex-row sm:justify-end mt-6 gap-2">
             <Button variant="ghost" onClick={() => navigate(ROUTES.APP.DASHBOARD)} className="w-full sm:w-auto">
               CANCEL
@@ -284,17 +400,26 @@ export default function NewPrintPage() {
                 <div className="pl-serif font-bold text-lg truncate max-w-[280px]">{file?.name}</div>
               </div>
               <div className="text-right">
-                <div className="editorial-label text-ink/60">PAGES DETECTED</div>
+                <div className="editorial-label text-ink/60">{isOffice ? "APPROX. PAGES" : "PAGES DETECTED"}</div>
                 {rangeable ? (
                   <div className="pl-mono text-2xl font-bold">{docPages || "…"}</div>
                 ) : (
                   <input type="number" min={1} value={manualPages}
                     onChange={(e) => setManualPages(Math.max(1, Number(e.target.value)))}
                     className="pl-input pl-mono text-lg font-bold w-24 text-right"
-                    title="We can't auto-read pages for this format — enter the page count" />
+                    title={isOffice
+                      ? "Office files are converted to PDF on upload — enter an approximate page count for the estimate"
+                      : "We can't auto-read pages for this format — enter the page count"} />
                 )}
               </div>
             </div>
+            {isOffice && (
+              <div className="border-2 border-ochre/60 bg-ochre/10 p-3 mb-5 text-sm pl-serif">
+                <span className="font-bold text-ochre">Word / PowerPoint / Excel</span> is converted to PDF
+                when you upload. The price is an <span className="font-bold">estimate</span> from your
+                approximate page count — the exact pages &amp; price are confirmed on your receipt.
+              </div>
+            )}
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               <div>
@@ -309,8 +434,8 @@ export default function NewPrintPage() {
               <div>
                 <div className="editorial-label mb-2">PAPER</div>
                 <div className="flex gap-2 flex-wrap">
-                  {(["A4", "A3", "Letter"] as const).map((paper) => (
-                    <button key={paper} onClick={() => setConfig({ ...config, paper })} className={`pl-chip ${config.paper === paper ? "pl-chip-active" : ""}`}>{paper}</button>
+                  {paperOptions.map((paper) => (
+                    <button key={paper} onClick={() => setConfig({ ...config, paper: paper as any })} className={`pl-chip ${config.paper.toUpperCase() === paper.toUpperCase() ? "pl-chip-active" : ""}`}>{paper}</button>
                   ))}
                 </div>
               </div>
@@ -319,7 +444,9 @@ export default function NewPrintPage() {
                 <div className="editorial-label mb-2">COLOUR</div>
                 <div className="flex gap-2 flex-wrap">
                   <button onClick={() => setConfig({ ...config, color: "bw" })} className={`pl-chip ${config.color === "bw" ? "pl-chip-active" : ""}`}>Black &amp; White</button>
-                  <button onClick={() => setConfig({ ...config, color: "color" })} className={`pl-chip ${config.color === "color" ? "pl-chip-active" : ""}`}>Colour</button>
+                  {hasColorCapability && (
+                    <button onClick={() => setConfig({ ...config, color: "color" })} className={`pl-chip ${config.color === "color" ? "pl-chip-active" : ""}`}>Colour</button>
+                  )}
                 </div>
               </div>
 
@@ -396,7 +523,7 @@ export default function NewPrintPage() {
               // while billing ₦70.
               ["RATE", `₦${ratePerPage.toLocaleString()}/page`],
               ["QUALITY", `${config.qualityDpi}dpi`],
-              ["PAGES", `${printedPageCount} x ${config.copies} cop${config.copies === 1 ? "y" : "ies"}`],
+              ["PAGES", `${isOffice ? "~" : ""}${printedPageCount} x ${config.copies} cop${config.copies === 1 ? "y" : "ies"}${isOffice ? " (est.)" : ""}`],
               ["DUPLEX", duplexLabel],
             ].map(([k, v]) => (
               <div key={k} className="flex justify-between border-b border-ink/15 py-2.5 gap-4">
@@ -404,36 +531,63 @@ export default function NewPrintPage() {
                 <span className="font-semibold text-sm text-right">{v}</span>
               </div>
             ))}
-            <div className="bg-ink text-paper p-5 flex justify-between items-center mt-5">
-              <span className="pl-serif text-lg italic">Total locked price</span>
-              <span className="pl-mono text-3xl font-bold">₦{total.toLocaleString()}</span>
-            </div>
 
-            <div className="mt-5">
-              <div className="editorial-label mb-2">PAYMENT METHOD</div>
-              <div className="grid grid-cols-2 gap-2">
-                {paymentOptions.map(({ key, label, icon: Icon, note }) => (
-                  <button key={key} onClick={() => setConfig({ ...config, paymentMethod: key })}
-                    className={`border-2 border-ink rounded-md p-3 text-left transition-all hover:-translate-x-1 hover:-translate-y-1 hover:[box-shadow:4px_4px_0_#1A1410] ${
-                      config.paymentMethod === key ? "bg-persimmon text-paper" : "bg-paper"}`}>
-                    <Icon size={18} className="mb-2" />
-                    <div className="text-xs font-bold tracking-wider uppercase">{label}</div>
-                    <div className={`text-[10px] mt-1 ${config.paymentMethod === key ? "text-paper/80" : "text-ink/55"}`}>{note}</div>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {config.paymentMethod === "wallet" && walletShortfall > 0 && (
-              <div className="mt-5 border-2 border-persimmon bg-persimmon/10 p-4 animate-fadein">
-                <div className="editorial-label text-persimmon mb-2">WALLET SHORT BY ₦{walletShortfall.toLocaleString()}</div>
-                <div className="flex gap-2">
-                  <input type="number" value={topUpAmount}
-                    onChange={(e) => setTopUpAmount(Math.max(0, Number(e.target.value)))} className="pl-input pl-mono" />
-                  <Button variant="dark" loading={isToppingUp} onClick={handleTopUp}>TOP UP</Button>
+            {editingRequired && editingEnabled && editPricing && (
+              <div className="mt-4 pt-4 border-t-2 border-ink/15">
+                <div className="flex items-center gap-2 mb-3">
+                  <MessageSquare className="w-4 h-4 text-persimmon" />
+                  <span className="editorial-label text-persimmon">EDITING SERVICE</span>
+                </div>
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between border-b border-ink/15 py-2">
+                    <span className="editorial-label">Base Fee</span>
+                    <span className="font-semibold">₦{Number(editPricing.baseFee).toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between border-b border-ink/15 py-2">
+                    <span className="editorial-label">Per Page</span>
+                    <span className="font-semibold">₦{Number(editPricing.perPageFee).toLocaleString()}/page</span>
+                  </div>
+                  {Object.keys(editPricing.complexityTierFees || {}).length > 0 && (
+                    <div className="flex justify-between border-b border-ink/15 py-2">
+                      <span className="editorial-label">Complexity</span>
+                      <span className="font-semibold">
+                        {Object.entries(editPricing.complexityTierFees).map(([k, v]) => `${k}: ₦${Number(v).toLocaleString()}`).join(", ")}
+                      </span>
+                    </div>
+                  )}
+                  <div className="flex justify-between py-2">
+                    <span className="editorial-label font-bold">Est. Edit Total</span>
+                    <span className="font-bold text-persimmon">
+                      ₦{Number(editPricing.baseFee + editPricing.perPageFee * printedPageCount).toLocaleString()}
+                    </span>
+                  </div>
+                </div>
+                <div className="text-[11px] text-ink/55 pl-serif italic mt-2 text-right">
+                  Final edit price confirmed by the shop after review.
                 </div>
               </div>
             )}
+
+            <div className="bg-ink text-paper p-5 flex justify-between items-center mt-5">
+              <span className="pl-serif text-lg italic">{isOffice ? "Estimated price" : "Total locked price"}</span>
+              <span className="pl-mono text-3xl font-bold">{isOffice ? "~" : ""}₦{total.toLocaleString()}</span>
+            </div>
+            {isOffice && (
+              <div className="text-[11px] text-ink/55 pl-serif italic mt-2 text-right">
+                Final price confirmed after we convert your document.
+              </div>
+            )}
+
+            <div className="mt-5">
+              <div className="editorial-label mb-2">PAYMENT METHOD</div>
+              <div className="border-2 border-ink rounded-md p-3 flex items-start gap-3 bg-paper">
+                <CreditCard size={18} className="mt-0.5 shrink-0" />
+                <div>
+                  <div className="text-xs font-bold tracking-wider uppercase">Paystack</div>
+                  <div className="text-[10px] text-ink/55 mt-1">Card · transfer · USSD · bank — secure checkout in a new tab</div>
+                </div>
+              </div>
+            </div>
 
             <div className="flex flex-col sm:flex-row sm:justify-end gap-2 mt-6 sm:mt-7">
               <Button variant="ghost" onClick={() => setStep(1)}>BACK</Button>
@@ -473,13 +627,12 @@ export default function NewPrintPage() {
             </div>
             <div className="flex justify-between items-center p-4 bg-paper-light gap-3 flex-wrap">
               <div className="pl-serif italic text-ink/60 text-sm">
-                Token valid 24 hours · unprinted jobs auto-refunded · paying with{" "}
-                <b className="not-italic">{config.paymentMethod === "wallet" ? "Wallet" : "Paystack"}</b>
+                Token valid 24 hours · secure checkout via <b className="not-italic">Paystack</b>
               </div>
               <div className="flex gap-2">
                 <Button variant="ghost" onClick={() => setStep(2)}>BACK TO CONFIGURE</Button>
-                <Button variant="primary" arrow loading={isCreating} onClick={submitPrintJob}>
-                  PAY ₦{total.toLocaleString()} &amp; PRINT
+                <Button variant="primary" arrow loading={isCreating || isIniting} onClick={submitPrintJob}>
+                  {awaitingPayment ? "CHECKOUT OPEN…" : `PAY ₦${total.toLocaleString()} & PRINT`}
                 </Button>
               </div>
             </div>
@@ -498,6 +651,8 @@ export default function NewPrintPage() {
               copies={config.copies}
               orientation={config.orientation}
               onMeta={handleMeta}
+              onZoom={() => {}}
+              paper={config.paper as any}
             />
           </div>
         </div>
@@ -509,7 +664,7 @@ export default function NewPrintPage() {
             <div className="editorial-label text-persimmon mb-2">YOUR 24-HOUR PRINT TOKEN</div>
             <div className="pl-mono text-5xl font-bold tracking-wider mb-1">{receipt?.code || "------"}</div>
             <div className="pl-serif italic opacity-80 text-sm">
-              Expires {formatExpiry(receipt?.expiresAt)}. Unprinted jobs are refunded automatically.
+              Expires {formatExpiry(receipt?.expiresAt)}. Enter this code at any PrintLoop kiosk.
             </div>
           </div>
           <div className="p-7">
@@ -532,12 +687,12 @@ export default function NewPrintPage() {
                   <div className="border border-ink/15 p-3">
                     <div className="editorial-label mb-1">EXPIRES</div>
                     <div className="pl-serif font-semibold text-lg">24 hours</div>
-                    <div className="text-fog text-xs">Auto-refund after expiry</div>
+                    <div className="text-fog text-xs">Codes expire after 24h</div>
                   </div>
                   <div className="border border-ink/15 p-3">
                     <div className="editorial-label mb-1">PAID</div>
                     <div className="pl-serif font-semibold text-lg">₦{receipt?.cost ?? total}</div>
-                    <div className="text-fog text-xs">{config.paymentMethod === "wallet" ? "WALLET" : "PAYSTACK"}</div>
+                    <div className="text-fog text-xs">VIA PAYSTACK</div>
                   </div>
                 </div>
                 <div className="flex gap-2 flex-wrap">

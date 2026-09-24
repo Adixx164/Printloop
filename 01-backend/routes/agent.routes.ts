@@ -6,7 +6,8 @@ import { PrintJobItem } from '../entities/printJobItem.entity';
 import { File } from '../entities/file.entity';
 import { Kiosk } from '../entities/kiosk.entity';
 import { kioskAuth } from '../middleware/kioskAuth.middleware';
-import { loadDocumentBytes } from '../utils/fileStore';
+import path from 'node:path';
+import { loadDocumentBytes, UPLOAD_DIR } from '../utils/fileStore';
 import {
   ensurePdf,
   extractPages,
@@ -17,6 +18,8 @@ import {
 } from '../services/documentConvert.service';
 import { PrinterServiceExtensions } from '../services/printerExtensions.service';
 import { JWT_SECRET } from '../utils/jwt';
+import { emitTenantEvent } from '../services/tenantWebhook.service';
+import { WebhookEvent } from '../entities/tenantWebhook.entity';
 
 const router = Router();
 const printerExt = new PrinterServiceExtensions();
@@ -92,10 +95,17 @@ router.get('/jobs/ready', kioskAuth, async (req: Request, res: Response) => {
   try {
     const kiosk = req.kiosk as Kiosk;
     const repo = AppDataSource.getRepository(PrintJob);
+    // Tenant-scope every result to this kiosk's tenant. Two clauses for
+    // the OR of "bound to me" or "unbound (any agent grabs it)".
+    // Entity declares `tenantId: string | null` (legacy from V2-3
+    // when the column was added nullable), but the V2-8 migration
+    // made the column NOT NULL. Cast to string for TypeORM's
+    // FindOptionsWhere — tightening the entity types is a follow-up.
+    const kioskTid = kiosk.tenantId as string;
     const jobs = await repo.find({
       where: [
-        { status: PrintJobStatus.RELEASING, kioskId: kiosk.id },
-        { status: PrintJobStatus.RELEASING, kioskId: null as any },
+        { status: PrintJobStatus.RELEASING, kioskId: kiosk.id, tenantId: kioskTid },
+        { status: PrintJobStatus.RELEASING, kioskId: null as any, tenantId: kioskTid },
       ],
       order: { updatedAt: 'ASC' },
       take: 10,
@@ -189,6 +199,38 @@ router.get('/jobs/:id/file', async (req: Request, res: Response) => {
       return;
     }
 
+    const printJob = await AppDataSource.getRepository(PrintJob).findOne({
+      where: { id: req.params.id },
+    });
+    if (!printJob) {
+      res.status(404).json({ success: false, message: 'Job not found' });
+      return;
+    }
+
+    // Serve pre-rendered PWG if available (and not a batch item request)
+    if (!req.query.item && printJob.renderedKey) {
+      const s3Bucket = process.env.S3_BUCKET;
+      const s3Region = process.env.AWS_REGION || 'us-east-1';
+      const fileURL = s3Bucket
+        ? `https://${s3Bucket}.s3.${s3Region}.amazonaws.com/${printJob.renderedKey}`
+        : path.join(UPLOAD_DIR, printJob.renderedKey);
+
+      const rawBytes = await loadDocumentBytes(fileURL);
+      if (!rawBytes) {
+        res.status(502).json({ success: false, message: 'Rendered file not retrievable' });
+        return;
+      }
+
+      res.setHeader('Content-Type', 'image/pwg-raster');
+      res.setHeader('Content-Length', String(rawBytes.length));
+      res.setHeader(
+        'Content-Disposition',
+        `attachment; filename="${printJob.id}.pwg"`,
+      );
+      res.send(rawBytes);
+      return;
+    }
+
     // Resolve fileId + the relevant printConfiguration. For personal-
     // batch each item has its own settings; for single-file jobs the
     // settings live on the PrintJob row itself.
@@ -205,17 +247,16 @@ router.get('/jobs/:id/file', async (req: Request, res: Response) => {
       fileId = item.fileId;
       cfg = item.printConfiguration || {};
     } else {
-      const job = await AppDataSource.getRepository(PrintJob).findOne({
-        where: { id: req.params.id },
-      });
-      if (!job) {
-        res.status(404).json({ success: false, message: 'Job not found' });
-        return;
-      }
-      fileId = job.fileId;
-      cfg = job.printConfiguration || {};
+      fileId = printJob.fileId;
+      cfg = printJob.printConfiguration || {};
+      // Stash the tenantId so the file lookup below scopes correctly.
+      (req as any).__tokenJobTenantId = printJob.tenantId;
     }
-    const file = await AppDataSource.getRepository(File).findOne({ where: { id: fileId } });
+    const fileTenantId =
+      (req as any).__tokenJobTenantId ?? (req as any).kiosk?.tenantId ?? null;
+    const file = await AppDataSource.getRepository(File).findOne({
+      where: fileTenantId ? { id: fileId, tenantId: fileTenantId } : { id: fileId },
+    });
     if (!file?.fileURL) {
       res.status(404).json({ success: false, message: 'File missing' });
       return;
@@ -322,9 +363,10 @@ router.post('/jobs/:id/start', kioskAuth, async (req: Request, res: Response) =>
       .createQueryBuilder()
       .update(PrintJob)
       .set({ status: PrintJobStatus.PRINTING, kioskId: kiosk.id })
-      .where('id = :id AND status = :releasing', {
+      .where('id = :id AND status = :releasing AND tenantId = :tid', {
         id: req.params.id,
         releasing: PrintJobStatus.RELEASING,
+        tid: kiosk.tenantId,
       })
       .execute();
     if ((result.affected ?? 0) !== 1) {
@@ -351,8 +393,9 @@ router.post('/jobs/:id/start', kioskAuth, async (req: Request, res: Response) =>
 router.post('/jobs/:id/complete', kioskAuth, async (req: Request, res: Response) => {
   try {
     const kiosk = req.kiosk as Kiosk;
-    const job = await AppDataSource.getRepository(PrintJob).findOne({
-      where: { id: req.params.id },
+    const repo = AppDataSource.getRepository(PrintJob);
+    const job = await repo.findOne({
+      where: { id: req.params.id, tenantId: kiosk.tenantId as string },
     });
     if (!job) {
       res.status(404).json({ success: false, message: 'Job not found' });
@@ -362,15 +405,35 @@ router.post('/jobs/:id/complete', kioskAuth, async (req: Request, res: Response)
       res.status(403).json({ success: false, message: 'Job belongs to another kiosk' });
       return;
     }
+
+    // V2-44 job-truth: record what the agent could PROVE. Stored as
+    // "<method>:<state>" — e.g. "ipp-job-state:confirmed" means the
+    // printer itself reported the job completed; "none:unconfirmed"
+    // means raw-9100 fire-and-forget. Older agents send no body —
+    // their rows simply stay NULL (pre-V2-44 behaviour).
+    const VALID_STATES = new Set(['confirmed', 'unconfirmed']);
+    const VALID_METHODS = new Set(['ipp-job-state', 'queue-drain', 'none']);
+    const confState = String(req.body?.confirmation || '');
+    const confMethod = String(req.body?.method || '');
+    if (VALID_STATES.has(confState) && VALID_METHODS.has(confMethod)) {
+      job.agentConfirmation = `${confMethod}:${confState}`.slice(0, 64);
+      await repo.save(job);
+      const detail = String(req.body?.detail || '').slice(0, 200);
+      console.log(
+        `[agent] job ${job.id} confirmation: ${job.agentConfirmation}${detail ? ` — ${detail}` : ''}`,
+      );
+    }
+
     // Reuse the existing completion path so kiosk counters, cleanup
     // scheduling, and audit log entries all stay consistent with the
     // cloud-push mode.
     const result = await printerExt.completePrintJob({
-      code: job.code,
+      code: job.code || '',
       kioskId: kiosk.id,
       kioskName: kiosk.name,
       cost: Number(job.cost) || 0,
       totalPages: job.totalPages || 0,
+      tenantId: kiosk.tenantId,
     });
     res.json({ success: true, data: result });
   } catch (err: any) {
@@ -380,12 +443,52 @@ router.post('/jobs/:id/complete', kioskAuth, async (req: Request, res: Response)
 });
 
 /**
+ * POST /api/agent/printer/capabilities
+ *
+ * V2-44 (P2) — the agent auto-discovered what the printer can do via
+ * IPP Get-Printer-Attributes and reports it. We store the flags on
+ * the kiosk row; the marketplace rollup (discovery.routes) then only
+ * claims colour/A3 a shop's hardware actually has. NULL stays NULL
+ * for transports that can't be queried — unknown is not false.
+ */
+router.post('/printer/capabilities', kioskAuth, async (req: Request, res: Response) => {
+  try {
+    const kiosk = req.kiosk as Kiosk;
+    const body = req.body || {};
+    const asTri = (v: unknown): boolean | null => (typeof v === 'boolean' ? v : null);
+    const media = Array.isArray(body.media)
+      ? body.media.slice(0, 50).map((m: unknown) => String(m).slice(0, 64))
+      : null;
+
+    await AppDataSource.getRepository(Kiosk).update(
+      { id: kiosk.id },
+      {
+        capColor: asTri(body.color),
+        capDuplex: asTri(body.duplex),
+        capA3: asTri(body.a3),
+        capMedia: media ? JSON.stringify(media) : null,
+        capUpdatedAt: new Date(),
+      },
+    );
+    console.log(
+      `[agent] kiosk ${kiosk.id} capabilities: colour=${asTri(body.color)} duplex=${asTri(
+        body.duplex,
+      )} a3=${asTri(body.a3)}`,
+    );
+    res.json({ success: true });
+  } catch (err: any) {
+    console.error('[agent] /printer/capabilities error:', err?.message);
+    res.status(500).json({ success: false, message: 'Failed to store capabilities' });
+  }
+});
+
+/**
  * POST /api/agent/jobs/:id/failed
  *
  * Agent reports the print failed at the printer (offline, paper jam,
  * IPP error). We mark FAILED and surface the reason in the audit log;
- * the user's wallet is auto-refunded by the existing job-cleanup
- * worker the same way a stuck cloud-push job would be.
+ * the customer can then raise it with the shop (V2-53: no automatic
+ * refunds — refunds are eliminated).
  */
 router.post('/jobs/:id/failed', kioskAuth, async (req: Request, res: Response) => {
   try {
@@ -396,7 +499,8 @@ router.post('/jobs/:id/failed', kioskAuth, async (req: Request, res: Response) =
       .createQueryBuilder()
       .update(PrintJob)
       .set({ status: PrintJobStatus.FAILED })
-      .where('id = :id AND (kioskId = :kid OR kioskId IS NULL)', {
+      .where('id = :id AND tenantId = :tid AND (kioskId = :kid OR kioskId IS NULL)', {
+        tid: kiosk.tenantId,
         id: req.params.id,
         kid: kiosk.id,
       })
@@ -406,6 +510,16 @@ router.post('/jobs/:id/failed', kioskAuth, async (req: Request, res: Response) =
       return;
     }
     console.error(`[agent] job ${req.params.id} FAILED: ${reason}`);
+    // job.failed webhook (Dimension 14 — V2-15). kiosk.tenantId is
+    // the scope; the job we just updated belongs to it.
+    if (kiosk.tenantId) {
+      emitTenantEvent(kiosk.tenantId, WebhookEvent.JOB_FAILED, {
+        printJobId: req.params.id,
+        reason,
+        kioskId: kiosk.id,
+        source: 'agent',
+      });
+    }
     res.json({ success: true });
   } catch (err: any) {
     console.error('[agent] /jobs/:id/failed error:', err?.message);

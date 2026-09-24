@@ -27,19 +27,28 @@ operator.
 provisioned tenant (`{theirname}.printloop.app` plus optional
 custom domain), configure their pricing + branding + kiosks +
 Paystack subaccount, hand `PrintLoop Kiosk Setup.exe` to their
-staff, and start charging their own customers — while we (the SaaS
-operator) charge them a subscription fee per kiosk + per print job.
+staff, and start charging their own customers — and we (the SaaS
+operator) earn a **commission on every print transaction** that
+flows through the platform, **Bolt-Nigeria style** (~~a subscription
+fee per kiosk + per print job~~). No monthly bill, no plan tiers,
+no kiosk caps — we get paid when our tenants get paid. Pivoted
+2026-05-31; see Phase V2-1 in `JOURNAL.md`.
 
 **Effort estimate:** 5–8 months of focused work for a 2–3 engineer
 team. The single biggest line item is adding `tenantId` to every
 entity + query in the backend (4–6 weeks alone). After that the
-work is mostly additive: onboarding, billing, branding, operations.
+work is mostly additive: onboarding, branding, operations. ~~Stripe
+Billing for tenant subscriptions~~ → commission deduction via
+Paystack Split is now the billing approach (Dimension 9).
 
 **Critical paths first:**
 1. Multi-tenancy foundation (everything else assumes this).
 2. Database move from SQLite to Postgres.
 3. Self-serve sign-up + first-admin flow.
-4. SaaS-side billing (Stripe Connect or a metered subscription).
+4. ~~SaaS-side billing (Stripe Connect or a metered subscription)~~
+   → Paystack Split + payout ledger (Dimensions 9 + 15). Money
+   flows through us first; commission deducted automatically;
+   tenant balance paid out on schedule.
 
 Everything else (white-label branding, custom domains, advanced
 operations tooling) is incremental polish on top.
@@ -114,7 +123,7 @@ printing business. It's the floor we're building up from.
 
 ---
 
-## 2) The 14 dimensions of the SaaS transformation
+## 2) The ~~14~~ 15 dimensions of the SaaS transformation
 
 Each dimension is a workstream — most have crisp scope and clear
 file lists. Effort estimates assume 1 engineer working full-time
@@ -395,44 +404,133 @@ Tenants want `print.kampala-uni.ac.ug`, not `kampala-uni.printloop.app`.
 **Effort:** 2 weeks (Vercel/Cloudflare); 4 weeks (self-host
 Caddy).
 
-### Dimension 9 — Payments — three layers, not one
+### Dimension 9 — Payments — Bolt-Nigeria commission model
 
-There are now THREE payment flows to think about:
+**Revised 2026-05-31.** Originally this dimension had three flows
+(customer→tenant, SaaS→tenant subscription, international). The
+SaaS→tenant subscription is **gone**. We bill via a commission on
+every customer payment, the same way Bolt earns from each ride.
 
-**A. Customer pays tenant** (already exists).
-- Currently the tenant's Paystack secret key is in the backend
-  `.env`.
-- SaaS: each tenant brings their own Paystack subaccount.
-  - Option A.1: **Paystack Connect / Paystack Split** —
-    payments go to the tenant's subaccount, we (the SaaS) take a
-    platform fee. Paystack supports this natively.
-  - Option A.2: each tenant configures their own Paystack secret
-    key in the tenant settings, and customer payments flow
-    directly to them. We never touch the money. Simpler for v1.
-- Multi-currency: Paystack supports NGN, USD, GHS, ZAR, KES.
-  The `currency` setting becomes per-tenant.
+**The single flow.**
 
-**B. SaaS bills the tenant** (new).
-- Subscription plans: Starter (1 kiosk, 200 jobs/mo, $19/mo),
-  Pro (5 kiosks, 2000 jobs/mo, $79/mo), Enterprise (custom).
-- OR usage-based: $5 per kiosk-month + $0.01 per print job.
-- OR hybrid: small base fee + per-print.
-- **Stripe Billing** is the standard answer. Webhook integration
-  for `invoice.payment_succeeded`, `customer.subscription.updated`,
-  `invoice.payment_failed`.
-- Need: `subscription.entity.ts`, `invoice.entity.ts`,
-  `usage_event.entity.ts` (one row per print, batched into
-  invoices).
-- New routes: `/api/saas/billing/portal` (Stripe customer portal
-  link), `/api/saas/billing/webhook`, `/api/saas/usage/summary`.
+```
+Customer pays ₦X
+   │
+   ▼ (Paystack Split, one charge, split at processor)
+   │
+   ├──→ ₦X × (1 - commission_pct)  → Tenant subaccount
+   │
+   └──→ ₦X × commission_pct        → PrintLoop main account
+```
 
-**C. International tenants** — Stripe (USA/EU), Paystack (Africa),
-Razorpay (India), MercadoPago (LatAm). The SaaS subscription
-billing in (B) probably picks ONE processor (Stripe) and the
-customer-payments processor in (A) is what varies by tenant.
+One charge, one webhook, two destinations. No invoice, no monthly
+debit, no card-on-file required from the tenant.
 
-**Effort:** 4 weeks (Stripe Billing for B + tenant-scoped
-Paystack keys for A; multi-processor for A in (C) defers to v2).
+**Commission rate (v1):**
+
+- Default: **10%** of customer print spend, NGN gross.
+- Range we'll experiment with: 7–15% (Bolt Nigeria sits at ~20%
+  on rides; printing has thinner margins for the tenant, so we
+  start lower).
+- Negotiable downward for high-volume tenants (Enterprise tier:
+  custom rate, set per-tenant in `tenant.commission_pct`).
+
+**What changes in the code:**
+
+- `tenant.entity.ts` gains:
+  - `paystackSubaccountCode` (required at first kiosk activation).
+  - `commissionPct` (decimal(5,4), default 0.1000).
+- The existing `paystack.service.ts` `initializeTopUp` /
+  `initializeCharge` calls must pass `subaccount` and
+  `transaction_charge` (Paystack's split parameters).
+- `transaction.entity.ts` gains a `commissionAmount` column +
+  `payoutBalance` column (the tenant's running balance net of
+  commission, waiting for payout — see Dimension 15).
+- Webhook handling stays the same shape; the split happens at
+  Paystack, so we just record both amounts on receipt.
+
+**What stays the same:**
+
+- Customer-side flow is identical from their perspective — same
+  hosted checkout, same SMS code.
+- Tenant doesn't see PrintLoop on the receipt; they see their own
+  branding (Dimension 7).
+- Wallet top-ups (the existing flow) work the same way; the
+  commission is taken on the top-up itself, not on per-print
+  spend, so the tenant's pricing-matrix revenue is gross-of-
+  commission to the customer but net for the tenant.
+
+**Currency:**
+
+- v1 Nigeria-only (NGN). The Paystack Split feature is native
+  Naira; multi-currency is a v2 problem.
+- When we go international we add a parallel split for Stripe
+  Connect (USA/EU), with the same `commissionPct` field
+  reused.
+
+**Edge cases:**
+
+- **Refunds.** If a print fails and we refund the customer, we
+  refund the FULL amount (not customer-share). The commission
+  refund is automatic via Paystack's refund API — they reverse
+  both legs of the split. Our books just write a negative
+  commission entry.
+- **Chargebacks.** Same — Paystack pulls both halves back. We
+  pre-allocate a reserve (~1% of net) against this.
+- **Tenant's wallet top-ups via cash at the kiosk** (out of band).
+  These bypass our split. We charge a flat per-print fee on
+  cash-funded jobs instead — recorded as a `commissionAmount`
+  entry on each print, deducted from the next payout. Same
+  outcome, different accounting path.
+
+**Effort:** ~~4 weeks (Stripe Billing + tenant-scoped Paystack
+keys)~~ → **2 weeks** for Paystack Split integration + commission
+ledger + payout-ready balance tracking. The deleted Stripe
+Billing scope is now Dimension 15 (payouts).
+
+### Dimension 10 — ~~Plan-limit enforcement~~ Fraud & abuse limits
+
+**Revised 2026-05-31.** Plan limits don't exist anymore — there
+are no plans. But the route handlers still need throttles to
+prevent abuse (a tenant uploading 10k PDFs to soak our S3 bill,
+or a single customer brute-forcing pickup codes). What replaces
+plan-limit enforcement is a thinner **abuse-prevention** layer.
+
+~~Subscriptions only matter if we enforce them.~~
+
+**~~Limits to enforce:~~** (struck — see new list below)
+
+- ~~Kiosks per tenant~~ — unlimited; commission scales naturally.
+- ~~Print jobs per month~~ — unlimited; commission scales naturally.
+- ~~Active customers~~ — unlimited; commission scales naturally.
+- ~~Storage~~ — see new list.
+
+**Abuse limits we DO enforce:**
+
+- **Per-tenant upload bytes per 24h.** Generous default (e.g.
+  5 GB) — only catches the obvious abuser. Bumped manually by
+  the platform admin for legit high-volume tenants.
+- **Per-customer pickup-code attempts per hour.** Already exists
+  in v1 as a rate-limit; just gets a tenant-scoped key.
+- **Per-IP signup rate.** Already exists in v1.
+- **Sanity check on commission revenue per tenant.** If a tenant
+  is generating ₦0 of commission for 30 days but eating storage,
+  alert the platform admin (likely abandoned).
+
+**Implementation:**
+
+- New service `services/abuseLimits.service.ts` (renamed from
+  the planned `limits.service.ts`). Smaller surface — just the
+  abuse checks above.
+- ~~Background job that recomputes monthly counters at the start
+  of each billing period.~~ Not needed; commission is recorded
+  per-transaction, not aggregated per-month.
+- ~~Soft limits vs hard limits~~ — still applies, but only for
+  abuse: at the limit, reject with HTTP 429 (Too Many Requests),
+  not 402 (Payment Required). Nobody has a payment required.
+
+**Effort:** ~~2 weeks~~ → **1 week.** Most of the work is
+re-keying existing rate-limit code with `tenantId`.
 
 ### Dimension 10 — Plan-limit enforcement
 
@@ -582,6 +680,94 @@ customer-facing surface a real product.
 
 **Effort:** ongoing v2/v3.
 
+### Dimension 15 — Payouts to tenants (added 2026-05-31)
+
+The commission model (Dimension 9) means **we hold tenant money
+between charge and payout**. That obligates us to a payout
+ledger, a scheduler, and a Paystack Transfers integration.
+
+**Money-flow recap:**
+
+```
+Customer pays ₦200
+   │
+   ▼ Paystack Split at processor
+   ├──→ ₦20 → PrintLoop main account (commission, ours)
+   └──→ ₦180 → Tenant Paystack subaccount (their money)
+```
+
+Tenant funds sit in the Paystack subaccount until we trigger a
+Transfer to their bank. We're not custodians of cash in our DB —
+the money lives at Paystack — but we ARE responsible for
+scheduling the payout, recording the audit trail, and proving
+to the tenant what they're owed.
+
+**New entities:**
+
+- `payout.entity.ts` — one row per outgoing transfer.
+  - `tenantId`, `amount`, `currency`, `status`
+    (`pending`|`processing`|`paid`|`failed`),
+    `paystackTransferReference`, `requestedAt`, `paidAt`,
+    `failureReason`, `feeAmount` (Paystack's transfer fee), `notes`.
+- `payoutSchedule.entity.ts` — per-tenant config.
+  - `tenantId`, `cadence` (`weekly`|`daily`|`manual`),
+    `dayOfWeek` (for weekly), `minPayoutAmount` (default ₦5,000),
+    `bankCode`, `accountNumber`, `accountName`, `recipientCode`
+    (Paystack Transfer Recipient ID).
+
+**Workflow:**
+
+1. **At signup** — tenant adds a bank account. We call Paystack
+   `POST /transferrecipient` to create a transfer recipient,
+   store the recipient code. (Same flow as a Bolt driver
+   onboarding their bank.)
+2. **On every customer payment** — `transaction.commissionAmount`
+   + the tenant's net amount are recorded. The tenant's
+   "available balance" is computed live as
+   `SUM(transactions.net) - SUM(payouts.amount WHERE status IN
+   ('pending','processing','paid'))`.
+3. **Scheduled payout job** (new BullMQ scheduled task — fits in
+   the existing `workers/scheduled.worker.ts`):
+   - Runs daily.
+   - For each tenant whose `payoutSchedule.cadence` matches and
+     whose available balance ≥ `minPayoutAmount`, calls
+     `POST /transfer` with the available balance.
+   - Creates a `payout` row in `pending` status.
+4. **Paystack webhook** (`transfer.success`, `transfer.failed`)
+   updates the payout row. On `transfer.failed`, the funds stay
+   in the tenant's subaccount; we email the tenant + platform
+   admin.
+5. **Manual payout** — `POST /api/tenant/payouts/request` for
+   instant payout (₦100 fee deducted from the payout amount).
+
+**Tenant dashboard surface:**
+
+- "Available balance" + "Pending payout" + "Next payout date"
+  widget on the tenant admin home.
+- Payout history list (one row per payout, with downloadable
+  receipt).
+- Bank account management (one account per tenant in v1;
+  multiple in v2).
+
+**Compliance hooks:**
+
+- Each payout row is an immutable audit-log entry.
+- Monthly tenant statement (PDF) — required for tenants to file
+  their own taxes; we generate from the `transactions` table.
+- We're acting as a **payment facilitator** under CBN rules —
+  consult a lawyer before launch (parked in Dimension 13).
+
+**Reverses / refunds:**
+
+- A refund issued AFTER a payout has been disbursed → we deduct
+  from the tenant's next payout. If they don't have enough
+  balance, we suspend payouts until they top up the subaccount
+  manually. Edge case — document the policy in ToS.
+
+**Effort:** 1–2 weeks (Paystack Transfers integration + payout
+ledger + scheduled job + tenant dashboard widget). Less if we
+reuse the existing wallet pattern.
+
 ---
 
 ## 3) Phased delivery plan
@@ -618,18 +804,25 @@ tenant's URL.
 tenant, install the kiosk app, and print a real test page —
 without anyone on the SaaS team touching their setup.
 
-### Phase C — Billing (4–6 weeks)
+### Phase C — Commission billing + payouts (3–4 weeks)
 
-**Goal:** tenants pay us; we can enforce plan limits.
+**Goal:** tenants get paid; we get a cut; nobody sees an invoice.
 
-- Dimension 9.B (Stripe Billing for the SaaS subscription): 3w
-- Dimension 9.A (tenant-scoped Paystack keys for their
-  customers): 1w
-- Dimension 10 (plan-limit enforcement): 2w
+~~Dimension 9.B (Stripe Billing for the SaaS subscription): 3w~~
+~~Dimension 10 (plan-limit enforcement): 2w~~
 
-**Milestone:** a tenant signs up on a free trial, gets to the
-end of trial, enters Stripe card details, gets billed monthly.
-A second tenant hits their kiosk limit, sees the upgrade prompt.
+- Dimension 9 (Paystack Split — single split-flow charges with
+  commission going to PrintLoop main account, remainder to
+  tenant subaccount): 2w
+- Dimension 15 (payout ledger + scheduled payouts to tenant
+  bank accounts via Paystack Transfers API): 1w
+- Dimension 10 (abuse limits — rate-limits keyed by tenant): 1w
+
+**Milestone:** a customer pays ₦200 at Tenant A's kiosk; ₦20
+lands in PrintLoop's main Paystack account automatically; ₦180
+shows in Tenant A's "available balance"; the weekly payout job
+disburses ₦180 to Tenant A's bank on schedule with a receipt
+email. No invoice, no card, no monthly debit ever runs.
 
 ### Phase D — Branding + custom domains (4–6 weeks)
 
@@ -717,36 +910,49 @@ print jobs.
 
 ## 5) Pricing & cost model
 
-A model to anchor the conversation. Adjust to your unit
-economics.
+**Rewritten 2026-05-31** for the Bolt-Nigeria commission model.
+Original subscription-tier table preserved below as an appendix.
 
-### Tenant-facing pricing
+### Tenant-facing pricing — commission per print
 
-| Tier | Price/month | Kiosks | Jobs/month | Notes |
-|---|---|---|---|---|
-| **Free trial** | $0 (14 days) | 1 | 50 | Includes everything; expires. |
-| **Starter** | $19 | 1 | 200 | Single-shop owner. |
-| **Growth** | $79 | 5 | 2,000 | Small chain or department. |
-| **Pro** | $249 | 25 | 10,000 | University / large network. |
-| **Enterprise** | Talk to sales | Unlimited | Unlimited | Volume + SLA + custom domain (if not by default). |
+| Lever | Default | Notes |
+|---|---|---|
+| **Commission %** | **10%** of customer gross spend (NGN) | Deducted via Paystack Split at the moment of charge — tenant never writes us a cheque. |
+| **Sign-up fee** | ₦0 | Free to onboard. We earn nothing until they earn something. |
+| **Monthly fee** | ₦0 | None. No card on file. |
+| **Per-kiosk fee** | ₦0 | None — unlimited kiosks per tenant. |
+| **Minimum payout** | ₦5,000 | Below this, balance rolls to next payout cycle. |
+| **Payout schedule** | Weekly (Fri) | Tenant can request "instant" payout for a flat ₦100 fee. |
+| **Custom commission** | Negotiable from 7% (high volume) up to 15% (high-touch onboarded enterprise) | Stored per-tenant in `tenant.commissionPct`. |
 
-**Overage:** $0.005–$0.01 per print job above the plan limit
-(soft cap; tenant warned at 80%).
+**Why 10%:**
+- Bolt Nigeria sits at ~20% on rides; printing margins are
+  thinner for the tenant (paper + toner + electricity + rent eat
+  most of the ticket), so we go lower.
+- 10% leaves the tenant a meaningful margin even on the cheapest
+  print (₦5 → tenant nets ₦4.50 — still profitable).
+- Lets us out-compete a flat ₦19,000/month subscription for any
+  tenant doing less than ~190,000 NGN/month in prints, which is
+  the vast majority of single-shop owners in our target market.
 
-**Add-ons** (rev-share or per-tenant):
-- Custom domain on Starter: $5/mo.
-- White-glove kiosk setup (we install + ship): $250 one-time
-  per kiosk.
-- SLA / support tier: +$200/mo for 99.9% + 4-hour response.
+**Add-ons (one-off, never recurring):**
+- **White-glove kiosk setup** (we ship + install hardware):
+  ₦150,000 one-time per kiosk. Optional.
+- **Custom domain on free tier:** ₦2,500 one-time setup, then
+  free (we eat the Cloudflare for SaaS line-item cost).
+- **SLA tier** for enterprise: negotiated, billed via invoice
+  the old-fashioned way (rare; <5% of tenants).
 
 ### Tenant collecting from THEIR customers
 
-Tenants charge their own customers via Paystack (NGN) or Stripe
-(USD/EUR). Money flows directly to the tenant's account.
+Single processor: **Paystack** (Nigeria-only in v1). Each
+tenant onboards a Paystack subaccount during setup (Dimension 5);
+that subaccount code lives on `tenant.paystackSubaccountCode`.
 
-**Optional platform fee** on customer payments (if you want
-revenue beyond the subscription): 1–2% of the customer's print
-spend, deducted via Paystack Split.
+Every customer charge initialised via `paystack.service.ts`
+passes `subaccount` + `transaction_charge` to Paystack. The
+split happens at the processor — we receive one webhook, both
+amounts already split, both ledger entries recorded.
 
 ### Infrastructure cost per tenant (rough)
 
@@ -759,11 +965,57 @@ spend, deducted via Paystack Split.
 | Email (Resend 3000 emails/mo) | ~$0.40 |
 | **Total infra** | **~$1–$3 per tenant per month** |
 
-Sentry, PostHog, BetterStack are fixed monthly costs that don't
-scale per-tenant.
+### Break-even per tenant under the commission model
 
-**Gross margin on Starter ($19) tier:** ~$15/mo per tenant
-once mature. Healthy.
+Infra cost: ~₦2,500/month per tenant (USD-NGN at ₦1,600).
+Commission income: ₦25,000/month if tenant does ₦250,000 in
+prints (10% commission).
+
+| Tenant volume (₦/mo gross prints) | Our commission @10% | Net margin |
+|---|---|---|
+| ₦25,000 (tiny single shop, ~5000 pages/mo) | ₦2,500 | ~₦0 (break-even) |
+| ₦100,000 (active shop) | ₦10,000 | ₦7,500 |
+| ₦500,000 (busy print shop) | ₦50,000 | ₦47,500 |
+| ₦2,000,000 (university dept) | ₦200,000 | ₦197,500 |
+| ₦10,000,000 (large campus chain) | ₦1,000,000 | ₦997,500 |
+
+The model self-selects: tenants who don't generate revenue cost
+us almost nothing; tenants who scale, we scale with.
+
+### Comparison: subscription vs commission (a tenant doing ₦200,000/mo in prints)
+
+| Model | Tenant pays us | Tenant net keeps |
+|---|---|---|
+| **Old subscription** ($19 Starter ≈ ₦30,000) | ₦30,000 flat | ₦170,000 |
+| **New commission @10%** | ₦20,000 (auto-split) | ₦180,000 |
+
+Commission wins for the tenant at this volume *and* for us at
+higher volumes — at ₦500,000/mo gross, commission pays us ₦50k
+where the subscription would still be ₦30k.
+
+### Appendix — original subscription model (deprecated 2026-05-31)
+
+~~| Tier | Price/month | Kiosks | Jobs/month | Notes |~~
+~~|---|---|---|---|---|~~
+~~| **Free trial** | $0 (14 days) | 1 | 50 | Includes everything; expires. |~~
+~~| **Starter** | $19 | 1 | 200 | Single-shop owner. |~~
+~~| **Growth** | $79 | 5 | 2,000 | Small chain or department. |~~
+~~| **Pro** | $249 | 25 | 10,000 | University / large network. |~~
+~~| **Enterprise** | Talk to sales | Unlimited | Unlimited | Volume + SLA + custom domain (if not by default). |~~
+
+~~**Overage:** $0.005–$0.01 per print job above the plan limit
+(soft cap; tenant warned at 80%).~~
+
+~~**Add-ons:** Custom domain on Starter: $5/mo. White-glove kiosk
+setup: $250 one-time. SLA tier: +$200/mo.~~
+
+~~**Optional platform fee on customer payments:** 1–2%.~~
+
+Kept here for reference / unwind option only. If the commission
+model fails to land with tenants (e.g. they prefer predictable
+monthly costs), we can fall back to this tiered list without
+schema changes — `tenant.commissionPct` just gets set to 0 and a
+`subscription_plan_id` field gets added.
 
 ---
 

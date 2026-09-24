@@ -36,17 +36,12 @@ export const DEFAULT_SETTINGS: DefaultSetting[] = [
   { key: 'maxGroupParticipants', value: '40', valueType: 'number', category: 'Jobs', description: 'Maximum participants allowed in one group session.' },
 
   // ── Payments ───────────────────────────────────────────────────────────
-  { key: 'walletMinTopUp', value: '100', valueType: 'number', category: 'Payments', description: 'Minimum wallet top-up amount (NGN).' },
-  { key: 'walletMaxTopUp', value: '50000', valueType: 'number', category: 'Payments', description: 'Maximum single wallet top-up amount (NGN).' },
-  { key: 'walletMaxBalance', value: '100000', valueType: 'number', category: 'Payments', description: 'Cap on total wallet balance to limit fraud exposure (NGN).' },
-  { key: 'newUserSignupBonus', value: '0', valueType: 'number', category: 'Payments', description: 'Wallet credit automatically granted to new users (NGN).' },
-  { key: 'paystackEnabled', value: 'true', valueType: 'boolean', category: 'Payments', description: 'Allow card / bank top-ups via Paystack.' },
+  { key: 'paystackEnabled', value: 'true', valueType: 'boolean', category: 'Payments', description: 'Allow card / transfer / USSD payments via Paystack.' },
   { key: 'currency', value: 'NGN', valueType: 'string', category: 'Payments', description: 'Platform settlement currency.', isReadOnly: true },
 
   // ── Notifications ──────────────────────────────────────────────────────
-  { key: 'emailNotificationsEnabled', value: 'true', valueType: 'boolean', category: 'Notifications', description: 'Send transactional emails (receipts, refunds, invites).' },
-  { key: 'smsNotificationsEnabled', value: 'false', valueType: 'boolean', category: 'Notifications', description: 'Send SMS notifications for job-ready and refunds.' },
-  { key: 'lowBalanceThreshold', value: '200', valueType: 'number', category: 'Notifications', description: 'Warn users when wallet balance drops below this (NGN).' },
+  { key: 'emailNotificationsEnabled', value: 'true', valueType: 'boolean', category: 'Notifications', description: 'Send transactional emails (receipts, job-ready).' },
+  { key: 'smsNotificationsEnabled', value: 'false', valueType: 'boolean', category: 'Notifications', description: 'Send SMS notifications for job-ready codes.' },
 
   // ── Branding ───────────────────────────────────────────────────────────
   { key: 'companyName', value: 'PrintLoop', valueType: 'string', category: 'Branding', description: 'Display name used across emails and the UI.' },
@@ -66,7 +61,7 @@ export const DEFAULT_SETTINGS: DefaultSetting[] = [
   { key: 'ippPath', value: '/ipp/print', valueType: 'string', category: 'Printing', description: 'IPP request path. IPP Everywhere/AirPrint = /ipp/print; CUPS queues = /printers/<queue-name>.' },
   { key: 'ippTlsRejectUnauthorized', value: 'false', valueType: 'boolean', category: 'Printing', description: 'Verify the printer TLS certificate. Leave off for self-signed appliance certs.' },
   { key: 'ippVersion', value: '2.0', valueType: 'string', category: 'Printing', description: 'IPP protocol version sent in requests (1.0 / 1.1 / 2.0). Sharp MX-series needs 1.1.' },
-  { key: 'ippTransport', value: 'ipp', valueType: 'string', category: 'Printing', description: 'Print transport: "ipp" (standard, default) or "raw9100" (TCP raw socket + PJL, for printers whose IPP filter drops anonymous jobs — Sharp MX-series).' },
+  { key: 'ippTransport', value: 'ipp', valueType: 'string', category: 'Printing', description: 'Print transport: "ipp" (standard, default), "raw9100" (TCP raw socket + PJL), "lpr" (LPR/LPD RFC 1179), or "email" (email-to-print/ePrint attachments).' },
   { key: 'ippRawPort', value: '9100', valueType: 'number', category: 'Printing', description: 'TCP port used by the raw9100 transport.' },
   { key: 'printDispatchMode', value: 'cloud-push', valueType: 'string', category: 'Printing', description: 'How printer dispatch works: "cloud-push" (backend opens TCP to printer — needs LAN reachability or Tailscale) or "kiosk-pull" (a local agent on the kiosk box fetches each job + prints; no network bridge from cloud needed). Recommended: kiosk-pull for cloud deployments.' },
 

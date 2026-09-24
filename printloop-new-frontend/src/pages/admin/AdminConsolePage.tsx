@@ -19,36 +19,48 @@ import {
 import { RootState } from "@/store";
 import { ROUTES } from "@/constants/routes";
 import PrintersTab from "@/pages/admin/tabs/PrintersTab";
+import PrinterProfilesTab from "@/pages/admin/tabs/PrinterProfilesTab";
 import JobsTab from "@/pages/admin/tabs/JobsTab";
 import ReportsTab from "@/pages/admin/tabs/ReportsTab";
 import OptionsTab from "@/pages/admin/tabs/OptionsTab";
 import TransactionsTab from "@/pages/admin/tabs/TransactionsTab";
 import PromotionsTab from "@/pages/admin/tabs/PromotionsTab";
+import BlogTab from "@/pages/admin/tabs/BlogTab";
+import OperatorQueuePage from "@/pages/admin/OperatorQueuePage";
+import DisputesTab from "@/pages/admin/tabs/DisputesTab";
 
 // ─── Types ─────────────────────────────────────────────────────────────────
 type Tab =
   | "dashboard"
+  | "operator"
   | "users"
   | "printers"
+  | "printerProfiles"
   | "jobs"
   | "pricing"
   | "transactions"
   | "promotions"
+  | "blog"
   | "reports"
   | "options"
-  | "appLog";
+  | "appLog"
+  | "disputes";
 
 const tabs: { key: Tab; label: string }[] = [
   { key: "dashboard", label: "Dashboard" },
+  { key: "operator", label: "Operator Queue" },
   { key: "users", label: "Users & Admins" },
   { key: "printers", label: "Printers (Kiosks)" },
+  { key: "printerProfiles", label: "Printer Profiles" },
   { key: "jobs", label: "Print Jobs" },
   { key: "pricing", label: "Pricing & Charging" },
   { key: "transactions", label: "Transactions" },
   { key: "promotions", label: "Promotions" },
+  { key: "blog", label: "Blog" },
   { key: "reports", label: "Reports" },
   { key: "options", label: "Options" },
   { key: "appLog", label: "App Log" },
+  { key: "disputes", label: "Disputes" },
 ];
 
 // Permissions an admin can be granted (mirrors backend Permission enum).
@@ -62,8 +74,8 @@ const ALL_PRIVILEGES = [
   "manage_pricing",
   "view_promotions",
   "manage_promotions",
+  "manage_blog",
   "view_transactions",
-  "issue_refunds",
   "view_users",
   "manage_users",
   "block_users",
@@ -955,24 +967,32 @@ export default function AdminConsolePage() {
     switch (tab) {
       case "dashboard":
         return <DashboardTab />;
+      case "operator":
+        return <OperatorQueuePage />;
       case "users":
         return <UsersTab canManageAdmins={canManageAdmins} />;
       case "printers":
         return <PrintersTab canManage={can("manage_kiosks")} />;
+      case "printerProfiles":
+        return <PrinterProfilesTab canManage={can("manage_kiosks")} />;
       case "jobs":
         return <JobsTab canManage={can("requeue_jobs")} />;
       case "pricing":
         return <PricingTab canManage={can("manage_pricing")} />;
       case "transactions":
-        return <TransactionsTab canRefund={can("issue_refunds")} />;
+        return <TransactionsTab />;
       case "promotions":
         return <PromotionsTab canManage={can("manage_promotions")} />;
+      case "blog":
+        return <BlogTab canManage={can("manage_blog")} />;
       case "reports":
         return <ReportsTab />;
       case "options":
         return <OptionsTab canManage={can("manage_settings")} />;
       case "appLog":
         return <AppLogTab />;
+      case "disputes":
+        return <DisputesTab canResolve={can("requeue_jobs")} />;
       default:
         return null;
     }

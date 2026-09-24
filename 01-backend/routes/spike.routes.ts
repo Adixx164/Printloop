@@ -27,6 +27,10 @@ import {
   rasterRenderAvailable,
   type PrinterLang,
 } from '../services/documentConvert.service';
+import {
+  convertOfficeAvailable,
+  conversionEnabled,
+} from '../services/documentConversion.service';
 
 const router = Router();
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 50 * 1024 * 1024 } });
@@ -48,15 +52,18 @@ function requireSuperAdmin(req: Request, res: Response, next: NextFunction): voi
  * deploy) is visible BEFORE a customer hits it.
  */
 router.get('/diag', requireSuperAdmin, async (_req: Request, res: Response) => {
-  const [ghostscript, rasterRender] = await Promise.all([
+  const [ghostscript, rasterRender, officeConvert] = await Promise.all([
     ghostscriptAvailable(),
     rasterRenderAvailable(),
+    convertOfficeAvailable(),
   ]);
   res.json({
     success: true,
     data: {
       ghostscript, // grayscale (toGrayscale) + the render spike below
       rasterRender, // signature flatten (pdfjs-dist + @napi-rs/canvas)
+      officeConvertEnabled: conversionEnabled(), // V2-48 — DOC_CONVERTER set?
+      officeConvert, // V2-48 — converter actually reachable right now?
       node: process.version,
       platform: `${process.platform}/${process.arch}`,
     },

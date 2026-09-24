@@ -2,10 +2,6 @@ import { apiSlice } from "@/store/services/apiSlice";
 
 export const jobsApi = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
-    getPrintOptions: builder.query<any, void>({
-      query: () => "customer/print-jobs/options",
-      transformResponse: (r: any) => r?.response || r?.data || r,
-    }),
     /**
      * Live pricing matrix — what the admin sets is what's displayed.
      * Hits the PUBLIC `/api/pricing` so anonymous flows (group-participant
@@ -15,11 +11,6 @@ export const jobsApi = apiSlice.injectEndpoints({
     getPricing: builder.query<any, void>({
       query: () => "pricing",
       providesTags: ["Pricing"],
-      transformResponse: (r: any) => r?.response || r?.data || r,
-    }),
-    /** Authoritative server-side quote (same calc as the job-create path). */
-    getQuote: builder.mutation<any, any>({
-      query: (body) => ({ url: "customer/print-jobs/quote", method: "POST", body }),
       transformResponse: (r: any) => r?.response || r?.data || r,
     }),
     listJobs: builder.query<any, void>({
@@ -41,6 +32,18 @@ export const jobsApi = apiSlice.injectEndpoints({
       query: (fd) => ({ url: "customer/print-jobs/batch", method: "POST", body: fd }),
       invalidatesTags: ["Jobs"],
     }),
+    // V2-53: wallet is gone — every job pays via the Paystack hosted
+    // checkout. Returns { authorizationUrl, reference } to open.
+    initializeJobPayment: builder.mutation<any, { jobId: string }>({
+      query: (body) => ({ url: "payments/initialize-job-payment", method: "POST", body }),
+      transformResponse: (r: any) => {
+        const unwrapped = r?.response || r?.data || r;
+        if (unwrapped?.authorization_url && !unwrapped?.authorizationUrl) {
+          return { ...unwrapped, authorizationUrl: unwrapped.authorization_url };
+        }
+        return unwrapped;
+      },
+    }),
     uploadFile: builder.mutation<any, FormData>({
       query: (formData) => ({
         url: "files/upload",
@@ -48,15 +51,18 @@ export const jobsApi = apiSlice.injectEndpoints({
         body: formData,
       }),
     }),
+    submitDispute: builder.mutation<any, { printJobId: string; reason: string }>({
+      query: (body) => ({ url: "customer/disputes", method: "POST", body }),
+    }),
   }),
 });
 
 export const {
-  useGetPrintOptionsQuery,
   useGetPricingQuery,
-  useGetQuoteMutation,
   useListJobsQuery,
   useCreateJobMutation,
   useCreateBatchJobMutation,
+  useInitializeJobPaymentMutation,
   useUploadFileMutation,
+  useSubmitDisputeMutation,
 } = jobsApi;

@@ -1,8 +1,9 @@
 import { useMemo, useState } from "react";
-import { Copy, QrCode } from "lucide-react";
+import { Copy, QrCode, AlertTriangle } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import { toast } from "sonner";
-import { useListJobsQuery } from "@/store/services/jobsApi";
+import { useListJobsQuery, useSubmitDisputeMutation, useUploadFileMutation } from "@/store/services/jobsApi";
+import { useSubmitShopReviewMutation } from "@/store/services/discoveryApi";
 
 type JobStatus = "all" | "ready" | "done" | "expired" | "refunded" | "printing" | "failed";
 
@@ -18,6 +19,9 @@ type Job = {
   createdAt?: string;
   expiresAt?: string;
   refundedAt?: string;
+  tenantId?: string | null;
+  tenantSlug?: string | null;
+  tenantName?: string | null;
 };
 
 function getJobs(data: any): Job[] {
@@ -54,6 +58,85 @@ export default function PrintJobsPage() {
     { k: "refunded" as const, l: `REFUNDED · ${allJobs.filter((j) => j.status === "refunded").length}` },
     { k: "failed" as const, l: `FAILED · ${allJobs.filter((j) => j.status === "failed").length}` },
   ];
+
+  const [submitDispute, { isLoading: isDisputing }] = useSubmitDisputeMutation();
+
+  const [submitReview, { isLoading: isSubmittingReview }] = useSubmitShopReviewMutation();
+  const [uploadFile] = useUploadFileMutation();
+
+  const [reviewingJob, setReviewingJob] = useState<Job | null>(null);
+  const [rating, setRating] = useState<number>(5);
+  const [comment, setComment] = useState<string>("");
+  const [selectedPhoto, setSelectedPhoto] = useState<File | null>(null);
+  const [uploadedPhotoUrl, setUploadedPhotoUrl] = useState<string | null>(null);
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState<boolean>(false);
+
+  const handleOpenReview = (job: Job) => {
+    setReviewingJob(job);
+  };
+
+  const handleCloseReview = () => {
+    setReviewingJob(null);
+    setRating(5);
+    setComment("");
+    setSelectedPhoto(null);
+    setUploadedPhotoUrl(null);
+    setIsUploadingPhoto(false);
+  };
+
+  const handlePhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setSelectedPhoto(file);
+    setIsUploadingPhoto(true);
+    const fd = new FormData();
+    fd.append("file", file);
+
+    try {
+      const res = await uploadFile(fd).unwrap();
+      if (res?.data?.fileURL) {
+        setUploadedPhotoUrl(res.data.fileURL);
+        toast.success("Photo uploaded successfully.");
+      } else {
+        toast.error("Failed to get photo URL from server.");
+      }
+    } catch (err: any) {
+      toast.error(err?.data?.message || "Failed to upload photo.");
+    } finally {
+      setIsUploadingPhoto(false);
+    }
+  };
+
+  const handleReviewSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!reviewingJob || !reviewingJob.tenantSlug) return;
+
+    try {
+      await submitReview({
+        slug: reviewingJob.tenantSlug,
+        rating,
+        comment: comment.trim() || undefined,
+        photoUrl: uploadedPhotoUrl || undefined,
+      }).unwrap();
+      toast.success("Thank you! Your review has been submitted.");
+      handleCloseReview();
+    } catch (err: any) {
+      toast.error(err?.data?.message || "Failed to submit review.");
+    }
+  };
+
+  const handleDispute = async (jobId: string) => {
+    const reason = prompt("Describe the issue with this print job (e.g., paper jam, poor print quality, didn't print):");
+    if (!reason?.trim()) return;
+
+    try {
+      await submitDispute({ printJobId: jobId, reason: reason.trim() }).unwrap();
+      toast.success("Dispute filed successfully. A shop administrator will review it.");
+    } catch (err: any) {
+      toast.error(err?.data?.message || "Failed to file dispute.");
+    }
+  };
 
   const copyCode = async (code: string) => {
     try {
@@ -99,14 +182,14 @@ export default function PrintJobsPage() {
 
       {/* ── Desktop table ─────────────────────────────────────────── */}
       <div className="hidden md:block border-2 border-ink">
-        <div className="bg-ink text-paper grid grid-cols-[30px_1fr_130px_92px_80px_96px_72px] gap-3 px-3 py-2 text-[10px] tracking-editorial font-bold">
+        <div className="bg-ink text-paper grid grid-cols-[30px_1fr_110px_85px_70px_80px_150px] gap-3 px-3 py-2 text-[10px] tracking-editorial font-bold">
           <div>#</div>
           <div>JOB</div>
           <div>CODE</div>
           <div>DATE</div>
           <div>COST</div>
           <div>STATUS</div>
-          <div>QR</div>
+          <div>ACTION</div>
         </div>
         {filtered.map((job, index) => {
           const qrValue = job.qrPayload || `printloop://release/${job.code}`;
@@ -119,7 +202,7 @@ export default function PrintJobsPage() {
                 job.status === "ready" ? "bg-persimmon text-paper" : "hover:bg-paper-light"
               } transition-colors border-b border-ink/10 last:border-0`}
             >
-              <div className="grid grid-cols-[30px_1fr_130px_92px_80px_96px_72px] gap-3 px-3 py-3 cursor-pointer items-center">
+              <div className="grid grid-cols-[30px_1fr_110px_85px_70px_80px_150px] gap-3 px-3 py-3 cursor-pointer items-center">
                 <div
                   className={`pl-serif italic font-bold text-base ${
                     job.status === "ready" ? "text-paper" : "text-ochre"
@@ -169,17 +252,46 @@ export default function PrintJobsPage() {
                     {job.status.toUpperCase()}
                   </span>
                 </div>
-                <button
-                  onClick={() => setOpenQr(qrIsOpen ? null : job.id)}
-                  className={`inline-flex items-center justify-center border-2 rounded-md h-9 transition-all ${
-                    job.status === "ready"
-                      ? "border-paper text-paper hover:bg-paper hover:text-persimmon"
-                      : "border-ink hover:bg-ink hover:text-paper"
-                  }`}
-                  title="Show QR code"
-                >
-                  <QrCode size={17} />
-                </button>
+                {job.status === "ready" ? (
+                  <button
+                    onClick={() => setOpenQr(qrIsOpen ? null : job.id)}
+                    className="inline-flex items-center justify-center border-2 rounded-md h-9 w-9 border-paper text-paper hover:bg-paper hover:text-persimmon transition-all"
+                    title="Show QR code"
+                  >
+                    <QrCode size={17} />
+                  </button>
+                ) : job.status === "done" ? (
+                  <div className="flex gap-1">
+                    <button
+                      onClick={() => handleDispute(job.id)}
+                      disabled={isDisputing}
+                      className="inline-flex items-center justify-center border-2 border-persimmon text-persimmon hover:bg-persimmon hover:text-paper rounded-md h-9 px-2 text-[10px] font-bold transition-all disabled:opacity-50"
+                      title="Dispute print job"
+                    >
+                      DISPUTE
+                    </button>
+                    {job.tenantSlug && (
+                      <button
+                        onClick={() => handleOpenReview(job)}
+                        className="inline-flex items-center justify-center border-2 border-ink bg-ink text-paper hover:bg-persimmon hover:text-paper rounded-md h-9 px-2 text-[10px] font-bold transition-all"
+                        title="Leave a Review"
+                      >
+                        REVIEW
+                      </button>
+                    )}
+                  </div>
+                ) : job.status === "failed" ? (
+                  <button
+                    onClick={() => handleDispute(job.id)}
+                    disabled={isDisputing}
+                    className="inline-flex items-center justify-center border-2 border-persimmon text-persimmon hover:bg-persimmon hover:text-paper rounded-md h-9 px-2 text-[10px] font-bold transition-all disabled:opacity-50"
+                    title="Dispute print job"
+                  >
+                    DISPUTE
+                  </button>
+                ) : (
+                  <span className="text-fog text-xs">—</span>
+                )}
               </div>
               {qrIsOpen && (
                 <div className="px-3 pb-4 animate-fadein">
@@ -261,17 +373,37 @@ export default function PrintJobsPage() {
                 </div>
 
                 {/* QR toggle */}
-                <button
-                  onClick={() => setOpenQr(qrIsOpen ? null : job.id)}
-                  className={`w-full inline-flex items-center justify-center gap-2 border-2 px-3 py-2.5 rounded text-[11px] font-bold tracking-editorial transition-all ${
-                    isReady
-                      ? "border-paper text-paper active:bg-paper active:text-persimmon"
-                      : "border-ink active:bg-ink active:text-paper"
-                  }`}
-                >
-                  <QrCode size={15} />
-                  {qrIsOpen ? "HIDE QR" : "SHOW QR FOR KIOSK"}
-                </button>
+                {isReady && (
+                  <button
+                    onClick={() => setOpenQr(qrIsOpen ? null : job.id)}
+                    className="w-full inline-flex items-center justify-center gap-2 border-2 px-3 py-2.5 rounded text-[11px] font-bold tracking-editorial transition-all border-paper text-paper active:bg-paper active:text-persimmon"
+                  >
+                    <QrCode size={15} />
+                    {qrIsOpen ? "HIDE QR" : "SHOW QR FOR KIOSK"}
+                  </button>
+                )}
+
+                {/* Dispute button */}
+                {(job.status === "done" || job.status === "failed") && (
+                  <button
+                    onClick={() => handleDispute(job.id)}
+                    disabled={isDisputing}
+                    className="w-full inline-flex items-center justify-center gap-2 border-2 border-persimmon text-persimmon active:bg-persimmon active:text-paper px-3 py-2.5 rounded text-[11px] font-bold tracking-editorial transition-all disabled:opacity-50"
+                  >
+                    <AlertTriangle size={15} />
+                    DISPUTE PRINT JOB
+                  </button>
+                )}
+
+                {/* Review button */}
+                {job.status === "done" && job.tenantSlug && (
+                  <button
+                    onClick={() => handleOpenReview(job)}
+                    className="w-full mt-2 inline-flex items-center justify-center gap-2 border-2 border-ink bg-ink text-paper active:bg-persimmon active:text-paper px-3 py-2.5 rounded text-[11px] font-bold tracking-editorial transition-all"
+                  >
+                    LEAVE SHOP REVIEW
+                  </button>
+                )}
 
                 {job.status === "refunded" && (
                   <div className="text-[10px] font-bold mt-3">
@@ -302,6 +434,125 @@ export default function PrintJobsPage() {
           </li>
         )}
       </ul>
+
+      {/* Review Modal */}
+      {reviewingJob && (
+        <div className="fixed inset-0 bg-ink/75 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <form
+            onSubmit={handleReviewSubmit}
+            className="bg-paper border-4 border-ink shadow-[8px_8px_0_#000] p-6 max-w-md w-full rounded flex flex-col gap-4 animate-fadein relative"
+          >
+            {/* Close button */}
+            <button
+              type="button"
+              onClick={handleCloseReview}
+              className="absolute top-3 right-3 text-ink bg-paper border-2 border-ink p-1 font-bold hover:bg-persimmon hover:text-paper leading-none transition-colors w-7 h-7 flex items-center justify-center rounded"
+              aria-label="Close"
+            >
+              ✕
+            </button>
+
+            <div>
+              <div className="editorial-label text-persimmon mb-0.5">LEAVE A REVIEW</div>
+              <h2 className="pl-serif text-2xl font-bold tracking-tight leading-tight">
+                {reviewingJob.tenantName || "Rate Print Shop"}
+              </h2>
+              <p className="text-xs text-ink/60 mt-1 italic">
+                Share your print experience for job code <span className="font-mono font-bold">{reviewingJob.code}</span>.
+              </p>
+            </div>
+
+            {/* Stars */}
+            <div className="flex flex-col gap-1">
+              <label className="text-[10px] tracking-editorial font-extrabold text-ink/75 uppercase text-center">
+                Rating
+              </label>
+              <div className="flex gap-1.5 justify-center my-1">
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <button
+                    key={star}
+                    type="button"
+                    onClick={() => setRating(star)}
+                    className={`w-10 h-10 text-lg font-bold border-2 border-ink flex items-center justify-center transition-colors rounded ${
+                      star <= rating ? "bg-ochre text-ink" : "bg-paper text-ink/40 hover:bg-ochre/25"
+                    }`}
+                  >
+                    ★
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Comment */}
+            <div className="flex flex-col gap-1">
+              <label className="text-[10px] tracking-editorial font-extrabold text-ink/75 uppercase">
+                Comment (optional)
+              </label>
+              <textarea
+                value={comment}
+                onChange={(e) => setComment(e.target.value)}
+                placeholder="What went well? How was the service?"
+                rows={3}
+                className="border-2 border-ink p-2 text-sm bg-white font-medium focus:outline-none focus:ring-2 focus:ring-persimmon/55"
+              />
+            </div>
+
+            {/* Photo upload */}
+            <div className="flex flex-col gap-1">
+              <label className="text-[10px] tracking-editorial font-extrabold text-ink/75 uppercase">
+                Attach Photo (optional)
+              </label>
+              <div className="border-2 border-dashed border-ink/40 p-4 bg-white text-center relative flex flex-col items-center justify-center min-h-[96px]">
+                {uploadedPhotoUrl ? (
+                  <div className="flex flex-col items-center gap-2">
+                    <img src={uploadedPhotoUrl} alt="Preview" className="max-h-24 object-cover border-2 border-ink" />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedPhoto(null);
+                        setUploadedPhotoUrl(null);
+                      }}
+                      className="text-[10px] text-persimmon font-bold hover:underline"
+                    >
+                      Remove Photo
+                    </button>
+                  </div>
+                ) : isUploadingPhoto ? (
+                  <p className="text-xs text-gray-500 font-bold animate-pulse">Uploading photo...</p>
+                ) : (
+                  <>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handlePhotoChange}
+                      className="absolute inset-0 opacity-0 cursor-pointer"
+                    />
+                    <p className="text-xs text-gray-500 font-semibold">Click to upload or drag image here</p>
+                  </>
+                )}
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="flex gap-3 justify-end mt-2">
+              <button
+                type="button"
+                onClick={handleCloseReview}
+                className="px-4 py-2 border-2 border-ink bg-paper text-ink font-bold text-xs uppercase hover:bg-gray-100 rounded"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={isSubmittingReview || isUploadingPhoto}
+                className="pl-btn-primary py-2 px-4 justify-center text-center font-extrabold text-xs uppercase disabled:opacity-50"
+              >
+                {isSubmittingReview ? "Submitting..." : "Submit Review"}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
     </div>
   );
 }

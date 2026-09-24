@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PrintLoop Seed Round</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap">
+
+<style>
+:root {
+    --md-bg: #0E1E38;
+    --md-surface: #142B50;
+    --md-border: #1A3868;
+    --md-text: #F7F7F2;
+    --md-text-muted: rgba(247, 247, 242, 0.68);
+    --md-accent: #00D4AA;
+    --md-accent-soft: rgba(0, 212, 170, 0.14);
+    --md-code-bg: #122648;
+    --md-link: #00D4AA;
+    --md-link-hover: #08FECE;
+    --md-success: #10A85C;
+    --md-warn: #C87C10;
+    --md-font-heading: 'Inter', system-ui, -apple-system, sans-serif;
+    --md-font-body: 'Inter', system-ui, -apple-system, sans-serif;
+    --md-font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; height: 100%; overflow: hidden; }
+body {
+    background: var(--md-bg);
+    color: var(--md-text);
+    font-family: var(--md-font-body);
+    font-size: 22px;
+    line-height: 1.45;
+}
+
+/* Slide layout — each slide is a viewport-sized panel */
+.deck { width: 100vw; height: 100vh; position: relative; }
+.slide {
+    position: absolute;
+    inset: 0;
+    display: none;
+    flex-direction: column;
+    justify-content: center;
+    padding: 4vh 8vw;
+    overflow: auto;
+}
+.slide.active { display: flex; }
+.slide h1, .slide h2, .slide h3 {
+    font-family: var(--md-font-heading);
+    margin: 0 0 0.6em;
+    line-height: 1.15;
+    font-weight: 700;
+}
+.slide h1 { font-size: 3rem; }
+.slide h2 { font-size: 2.5rem; }
+.slide h3 { font-size: 1.875rem; }
+.slide p { margin: 0.5em 0 1em; font-size: 1.25rem; }
+.slide ul, .slide ol { padding-left: 1.5em; font-size: 1.25rem; }
+.slide li { margin: 0.4em 0; }
+.slide a { color: var(--md-link); }
+.slide code {
+    background: var(--md-code-bg);
+    padding: 0.1em 0.3em;
+    border-radius: 4px;
+    font-family: var(--md-font-mono);
+    font-size: 0.9em;
+}
+.slide pre {
+    background: var(--md-code-bg);
+    border: 1px solid var(--md-border);
+    border-radius: 8px;
+    padding: 1rem 1.25rem;
+    font-family: var(--md-font-mono);
+    font-size: 1rem;
+    overflow: auto;
+    margin: 0.75em 0;
+}
+.slide pre code { background: transparent; padding: 0; }
+.slide table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1em 0;
+    font-size: 1.125rem;
+}
+.slide th, .slide td { border: 1px solid var(--md-border); padding: 0.5em 0.75em; text-align: left; }
+.slide th { background: var(--md-surface); font-weight: 600; }
+.slide td.align-center, .slide th.align-center { text-align: center; }
+.slide td.align-right, .slide th.align-right { text-align: right; }
+.slide blockquote {
+    border-left: 4px solid var(--md-accent);
+    margin: 1em 0;
+    padding: 0.4em 1em;
+    color: var(--md-text-muted);
+    font-style: italic;
+    font-size: 1.25rem;
+}
+.slide hr { border: 0; border-top: 1px solid var(--md-border); margin: 1.5em 0; }
+
+.slide .callout {
+    border-left: 4px solid var(--md-accent);
+    background: var(--md-accent-soft);
+    padding: 0.75em 1em;
+    margin: 1em 0;
+    border-radius: 0 8px 8px 0;
+}
+.slide .callout-label {
+    font-family: var(--md-font-heading);
+    font-weight: 700;
+    font-size: 0.875rem;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--md-accent);
+    margin-bottom: 0.25em;
+    display: flex;
+    gap: 0.5em;
+    align-items: center;
+}
+.slide .callout-note { border-left-color: var(--md-link); }
+.slide .callout-tip { border-left-color: var(--md-success); }
+.slide .callout-warning { border-left-color: var(--md-warn); }
+.slide .callout-caution { border-left-color: var(--md-warn); }
+
+/* Chrome (slide counter + hint) */
+.chrome {
+    position: fixed;
+    bottom: 1rem;
+    right: 1.25rem;
+    font-family: var(--md-font-mono);
+    font-size: 0.875rem;
+    color: var(--md-text-muted);
+    user-select: none;
+}
+.chrome a { color: var(--md-text-muted); margin-right: 0.5rem; }
+.chrome a:hover { color: var(--md-accent); }
+
+/* Progress bar */
+.progress {
+    position: fixed;
+    top: 0; left: 0;
+    height: 3px;
+    background: var(--md-accent);
+    transition: width 0.2s ease;
+    z-index: 100;
+}
+
+/* Presenter mode (P key toggles body class) */
+body.presenter .deck { width: 60vw; }
+body.presenter .presenter-panel { display: flex; }
+.presenter-panel {
+    display: none;
+    position: fixed;
+    top: 0; right: 0;
+    width: 40vw;
+    height: 100vh;
+    background: var(--md-surface);
+    border-left: 1px solid var(--md-border);
+    flex-direction: column;
+    padding: 1.5rem 1.5rem;
+    font-size: 1rem;
+    overflow: auto;
+}
+.presenter-panel h3 {
+    font-family: var(--md-font-heading);
+    font-size: 0.875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--md-text-muted);
+    margin: 0 0 0.5rem;
+    border-bottom: 1px solid var(--md-border);
+    padding-bottom: 0.4rem;
+}
+.presenter-panel .clock { font-family: var(--md-font-mono); font-size: 1.5rem; margin-bottom: 1rem; }
+.presenter-panel .notes { flex: 1; line-height: 1.5; color: var(--md-text); margin-bottom: 1rem; white-space: pre-wrap; }
+.presenter-panel .next-preview {
+    background: var(--md-bg);
+    border: 1px solid var(--md-border);
+    border-radius: 8px;
+    padding: 0.75rem 1rem;
+    font-size: 0.875rem;
+    max-height: 25vh;
+    overflow: hidden;
+    opacity: 0.7;
+}
+.presenter-panel .next-preview h4 {
+    font-family: var(--md-font-heading);
+    margin: 0 0 0.3em;
+    font-size: 1rem;
+    color: var(--md-accent);
+}
+
+/* Print: all slides visible, one per page */
+@media print {
+    html, body { height: auto; overflow: visible; }
+    .chrome, .progress, .presenter-panel { display: none !important; }
+    .deck, body.presenter .deck { width: 100%; height: auto; }
+    .slide {
+        display: flex !important;
+        position: relative;
+        height: 100vh;
+        page-break-after: always;
+        break-after: page;
+    }
+    .slide:last-child { page-break-after: auto; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; }
+}
+</style>
+</head>
+<body class="style-technical">
+<div id="progress" class="progress"></div>
+<div class="deck">
+<section class="slide" id="slide-1" data-notes=""><h1>Strategy Brief: Raise Seed Round for PrintLoop</h1></section>
+<section class="slide" id="slide-2" data-notes=""><h1>Context</h1><ul><li><strong>Company:</strong> PrintLoop — campus print marketplace (Nigeria)</li><li><strong>Stage:</strong> Pre-seed, pre-revenue, product live (multi-tenant SaaS v2)</li><li><strong>Ask:</strong> ₦15M NGN (~$9K USD) for 18-month runway</li><li><strong>Use of funds:</strong> Software completion (multi-tenancy, payments, kiosk agent), marketing (campus ambassadors, WhatsApp/IG/TikTok content), 2 kiosk hardware units</li></ul></section>
+<section class="slide" id="slide-3" data-notes=""><h1>Problem (validated)</h1><p>University students in Nigeria describe printing as: "slow, lots of queue, inconsistent quality." Current alternative: campus business centres (₦100-200/page, 45-min queue, limited hours).</p></section>
+<section class="slide" id="slide-4" data-notes=""><h1>Customer (ICP)</h1><p><strong>Primary:</strong> "Chinedu, 300-level Civil Engineering, UNILAG. Prints 3×/week. Uses Biz Centre Akoka. Pays ₦20/page. Hates 45-min queue. Has smartphone, pays via USSD/bank app." <strong>Secondary:</strong> Kiosk owners — "Mr. Yusuf, owns HP LaserJet at UNILAG gate. Makes ₦12k/week cyber cafe. Wants zero-rent, customer-bringing model."</p></section>
+<section class="slide" id="slide-5" data-notes=""><h1>Distribution (tested, repeatable)</h1><ol><li><strong>WhatsApp broadcast</strong> — UNILAG 300-level group chats (organic, zero CAC)</li><li><strong>Campus ambassadors</strong> — 5 students/hostel, ₦5k/month + commission</li><li><strong>Short-form video</strong> — IG Reels/TikTok/YouTube Shorts targeting "UNILAG printing" / "Nile University printing" searches</li><li><strong>Referral loop</strong> — "Refer a friend, get ₦200 credit"</li></ol></section>
+<section class="slide" id="slide-6" data-notes=""><h1>Defensibility</h1><p><strong>Switching costs (primary):</strong></p>
+<ul><li>Student: saved cards, order history, campus-specific pricing, loyalty credits</li><li>Kiosk: Paystack subaccount split, payout history, tenant dashboard, printer pairing</li><li>Network effect: more students → more kiosk revenue → more kiosks join → better coverage → more students</li></ul></section>
+<section class="slide" id="slide-7" data-notes=""><h1>Market Size</h1><ul><li><strong>TAM:</strong> 2.1M university students in Nigeria × ₦500/month avg print spend = ₦1.05B/year</li><li><strong>SAM (Phase 1):</strong> 12 universities in Lagos/Abuja = 400k students = ₦200M/year</li><li><strong>SOM (Year 1):</strong> 3 universities, 5% penetration = 600 students = ₦3M ARR</li></ul></section>
+<section class="slide" id="slide-8" data-notes=""><h1>Business Model</h1><ul><li><strong>Student:</strong> ₦5/page B&amp;W, ₦25/page color (Paystack: card/USSD/transfer)</li><li><strong>Kiosk:</strong> PrintLoop takes 10% commission only on completed jobs</li><li><strong>No subscription, no wallet</strong> — pay per job, code-based collection</li></ul></section>
+<section class="slide" id="slide-9" data-notes=""><h1>Traction (v2 platform)</h1><ul><li>Multi-tenant SaaS: tenant isolation, subaccounts, white-label branding</li><li>Paystack integration: live test keys, webhook handling, subaccount splits</li><li>Kiosk agent: IPP + raw9100 + OS spooler (near-universal printer compatibility)</li><li>Render worker: cloud PDF→PWG-Raster, HMAC callback, BullMQ queue</li><li>87 backend tests passing, CI/CD pipeline, Docker images</li></ul></section>
+<section class="slide" id="slide-10" data-notes=""><h1>Financials</h1><table><thead><tr><th class="align-left">Metric</th><th class="align-left">Value</th></tr></thead><tbody><tr><td class="align-left">Ask</td><td class="align-left">₦15M NGN ($9K USD)</td></tr><tr><td class="align-left">Runway</td><td class="align-left">18 months</td></tr><tr><td class="align-left">Burn</td><td class="align-left">~₦833k/month</td></tr><tr><td class="align-left">Payback target</td><td class="align-left">24 months</td></tr><tr><td class="align-left">Break-even</td><td class="align-left">1,200 active students/month</td></tr></tbody></table></section>
+<section class="slide" id="slide-11" data-notes=""><h1>Risks &amp; Mitigations</h1><table><thead><tr><th class="align-left">Risk</th><th class="align-left">Likelihood</th><th class="align-left">Impact</th><th class="align-left">Mitigation</th></tr></thead><tbody><tr><td class="align-left">Paystack webhook reliability</td><td class="align-left">Medium</td><td class="align-left">High</td><td class="align-left">Idempotent handling, manual fallback, retry logic</td></tr><tr><td class="align-left">Kiosk onboarding friction</td><td class="align-left">High</td><td class="align-left">High</td><td class="align-left">Self-serve wizard, QR pairing, remote support</td></tr><tr><td class="align-left">Student acquisition cost</td><td class="align-left">Medium</td><td class="align-left">Medium</td><td class="align-left">Organic WhatsApp + ambassadors + viral loops</td></tr><tr><td class="align-left">Power/internet at kiosks</td><td class="align-left">High</td><td class="align-left">High</td><td class="align-left">OS spooler fallback, offline queue, battery backup</td></tr><tr><td class="align-left">Competitor (campus biz centres)</td><td class="align-left">High</td><td class="align-left">Medium</td><td class="align-left">Price parity + speed + convenience + loyalty</td></tr></tbody></table></section>
+<section class="slide" id="slide-12" data-notes=""><h1>Milestones (Next 18 Months)</h1><table><thead><tr><th class="align-left">Month</th><th class="align-left">Milestone</th></tr></thead><tbody><tr><td class="align-left">1-2</td><td class="align-left">3 universities live, 500 students, 5 kiosks</td></tr><tr><td class="align-left">3-6</td><td class="align-left">1,200 students, break-even on variable costs</td></tr><tr><td class="align-left">6-12</td><td class="align-left">10 universities, 5k students, ₦10M ARR</td></tr><tr><td class="align-left">12-18</td><td class="align-left">20 universities, ₦50M ARR, Series A ready</td></tr></tbody></table></section>
+<section class="slide" id="slide-13" data-notes=""><h1>Decision Required</h1><ul><li><strong>Proceed with seed raise?</strong> (Y/N)</li><li><strong>If Y:</strong> Target investors — angel (Nigerian founders), micro-VC (Future Africa, Launch Africa), revenue-based financing (GetEquity)</li><li><strong>If N:</strong> Bootstrap to profitability, reinvest kiosk commissions</li></ul></section>
+</div>
+
+<aside class="presenter-panel" aria-label="Presenter view (toggle with P)">
+    <h3>Clock</h3>
+    <div class="clock">--:--:--</div>
+    <h3>Speaker notes</h3>
+    <div class="notes"></div>
+    <div class="next-preview"></div>
+</aside>
+
+<div class="chrome">
+    <a href="#" onclick="event.preventDefault(); document.dispatchEvent(new KeyboardEvent('keydown', {key:'P'}))">P · presenter</a>
+    <span id="counter">1 / 13</span>
+</div>
+
+<script>
+(function () {
+    "use strict";
+    var slides = document.querySelectorAll(".slide");
+    var total = slides.length;
+    var current = 0;
+    var presenter = false;
+
+    function show(idx) {
+        idx = Math.max(0, Math.min(total - 1, idx));
+        slides.forEach(function (s, i) {
+            s.classList.toggle("active", i === idx);
+        });
+        current = idx;
+        document.getElementById("counter").textContent = (current + 1) + " / " + total;
+        var prog = document.getElementById("progress");
+        if (prog) prog.style.width = (100 * (current + 1) / total) + "%";
+        if (location.hash !== "#" + (current + 1)) {
+            history.replaceState(null, "", "#" + (current + 1));
+        }
+        updatePresenterPanel();
+    }
+
+    function next() { show(current + 1); }
+    function prev() { show(current - 1); }
+    function first() { show(0); }
+    function last() { show(total - 1); }
+
+    function togglePresenter() {
+        presenter = !presenter;
+        document.body.classList.toggle("presenter", presenter);
+        updatePresenterPanel();
+    }
+
+    function updatePresenterPanel() {
+        var panel = document.querySelector(".presenter-panel");
+        if (!panel) return;
+        var notes = slides[current].getAttribute("data-notes") || "(no notes for this slide)";
+        panel.querySelector(".notes").textContent = notes;
+        var preview = panel.querySelector(".next-preview");
+        if (current + 1 < total) {
+            var nextSlide = slides[current + 1];
+            var title = nextSlide.querySelector("h1, h2") ;
+            preview.innerHTML = "<h4>Up next (#" + (current + 2) + ")</h4>" +
+                (title ? title.outerHTML : "<em>(no title)</em>");
+            preview.style.display = "block";
+        } else {
+            preview.innerHTML = "<h4>End of deck</h4>";
+        }
+    }
+
+    function tickClock() {
+        var now = new Date();
+        var hh = String(now.getHours()).padStart(2, "0");
+        var mm = String(now.getMinutes()).padStart(2, "0");
+        var ss = String(now.getSeconds()).padStart(2, "0");
+        var el = document.querySelector(".presenter-panel .clock");
+        if (el) el.textContent = hh + ":" + mm + ":" + ss;
+    }
+
+    document.addEventListener("keydown", function (e) {
+        if (e.metaKey || e.ctrlKey || e.altKey) return;
+        switch (e.key) {
+            case "ArrowRight":
+            case "PageDown":
+            case " ":
+                e.preventDefault(); next(); break;
+            case "ArrowLeft":
+            case "PageUp":
+                e.preventDefault(); prev(); break;
+            case "Home": e.preventDefault(); first(); break;
+            case "End":  e.preventDefault(); last();  break;
+            case "p":
+            case "P":
+                e.preventDefault(); togglePresenter(); break;
+            case "Escape":
+                if (presenter) { e.preventDefault(); togglePresenter(); }
+                break;
+        }
+    });
+
+    // Mount the initial slide (respect URL hash, otherwise slide 1)
+    var initial = 0;
+    if (location.hash) {
+        var n = parseInt(location.hash.slice(1), 10);
+        if (!isNaN(n) && n >= 1 && n <= total) initial = n - 1;
+    }
+    show(initial);
+    setInterval(tickClock, 1000);
+    tickClock();
+})();
+</script>
+</body>
+</html>

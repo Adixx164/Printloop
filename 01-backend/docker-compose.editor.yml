@@ -1,0 +1,68 @@
+version: '3.8'
+
+services:
+  # LibreOffice Headless for document conversion (PDF/DOCX/ODT → Univer JSON)
+  libreoffice:
+    image: libreoffice/headless:latest
+    restart: unless-stopped
+    ports:
+      - "9980:9980"  # HTTP health check
+      - "2002:2002"  # UNO socket
+    environment:
+      - UNO_URL=socket,host=0.0.0.0,port=2002;urp;StarOffice.ComponentContext
+      - LIBREOFFICE_MAX_INSTANCES=5
+      - LIBREOFFICE_TIMEOUT=300
+    volumes:
+      - ./data/fonts:/usr/share/fonts/truetype/custom:ro
+      - ./data/temp:/tmp/libreoffice:rw
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: '2'
+        reservations:
+          memory: 1G
+          cpus: '1'
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9980/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+
+  # Coturn TURN/STUN server for WebRTC NAT traversal
+  coturn:
+    image: coturn/coturn:latest
+    restart: unless-stopped
+    ports:
+      - "3478:3478"       # STUN/TURN UDP
+      - "3478:3478/tcp"   # TURN TCP
+      - "5349:5349"       # TURN TLS
+      - "49152-65535:49152-65535/udp"  # Relay ports
+    environment:
+      - TURN_SERVER_NAME=turn.printloop.app
+      - TURN_REALM=printloop.app
+      - TURN_USERNAME=editor
+      - TURN_PASSWORD=${COTURN_PASSWORD:-changeme}
+      - TURN_MIN_PORT=49152
+      - TURN_MAX_PORT=65535
+      - TURN_EXTERNAL_IP=${SERVER_PUBLIC_IP}
+    command: >
+      -n --no-dtls --no-tls
+      --lt-cred-mech
+      --realm=printloop.app
+      --user=editor:${COTURN_PASSWORD:-changeme}
+      --external-ip=${SERVER_PUBLIC_IP}
+      --min-port=49152
+      --max-port=65535
+      --log-file=stdout
+      --verbose
+    healthcheck:
+      test: ["CMD", "turnadmin", "-k", "-u", "editor", "-r", "printloop.app", "-p", "${COTURN_PASSWORD:-changeme}"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+networks:
+  default:
+    name: printloop-editor-network

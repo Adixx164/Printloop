@@ -5,6 +5,7 @@ import { PrintJob, PrintJobStatus } from '../entities/printJob.entity';
 import { Payment } from '../entities/payment.entity';
 import { Kiosk, KioskStatus } from '../entities/kiosk.entity';
 import { GroupSession, GroupSessionStatus } from '../entities/groupSession.entity';
+import { Tenant } from '../entities/tenant.entity';
 
 export interface DashboardStats {
   users: {
@@ -62,7 +63,17 @@ export class AdminDashboardService {
     this.sessionRepo = AppDataSource.getRepository(GroupSession);
   }
 
-  async getStats(): Promise<DashboardStats> {
+  /**
+   * Aggregate stats for a single tenant's admin dashboard.
+   *
+   * **Tenant-scoped as of V2-11.** Every query in here used to return
+   * cross-tenant counts (every user, every job, every kiosk). Now
+   * each clause is filtered by `tenant.id`. SUPER_ADMIN platform
+   * stats (cross-tenant aggregates) belong on a separate
+   * platform-console method later in Dimension 11.
+   */
+  async getStats(tenant: Tenant): Promise<DashboardStats> {
+    const tid = tenant.id;
     const startOfDay = new Date();
     startOfDay.setHours(0, 0, 0, 0);
 
@@ -100,51 +111,67 @@ export class AdminDashboardService {
       groupSessionsClosed,
       groupSessionsMonth,
     ] = await Promise.all([
-      this.userRepo.count(),
-      this.userRepo.createQueryBuilder('u').where('u.lastLoginAt >= :d', { d: startOfDay }).getCount(),
-      this.userRepo.createQueryBuilder('u').where('u.lastLoginAt >= :d', { d: startOfWeek }).getCount(),
-      this.userRepo.count({ where: { isBlocked: true } }),
+      this.userRepo.count({ where: { tenantId: tid } }),
+      this.userRepo
+        .createQueryBuilder('u')
+        .where('u.tenantId = :tid', { tid })
+        .andWhere('u.lastLoginAt >= :d', { d: startOfDay })
+        .getCount(),
+      this.userRepo
+        .createQueryBuilder('u')
+        .where('u.tenantId = :tid', { tid })
+        .andWhere('u.lastLoginAt >= :d', { d: startOfWeek })
+        .getCount(),
+      this.userRepo.count({ where: { tenantId: tid, isBlocked: true } }),
 
-      this.jobRepo.count(),
+      this.jobRepo.count({ where: { tenantId: tid } }),
       this.jobRepo
         .createQueryBuilder('j')
-        .where('j.status = :s', { s: PrintJobStatus.DONE })
+        .where('j.tenantId = :tid', { tid })
+        .andWhere('j.status = :s', { s: PrintJobStatus.DONE })
         .andWhere('j.completedAt >= :d', { d: startOfDay })
         .getCount(),
-      this.jobRepo.count({ where: { status: PrintJobStatus.READY } }),
+      this.jobRepo.count({ where: { tenantId: tid, status: PrintJobStatus.READY } }),
       this.jobRepo
         .createQueryBuilder('j')
-        .where('j.status = :s', { s: PrintJobStatus.FAILED })
+        .where('j.tenantId = :tid', { tid })
+        .andWhere('j.status = :s', { s: PrintJobStatus.FAILED })
         .andWhere('j.updatedAt >= :d', { d: startOfDay })
         .getCount(),
       this.jobRepo
         .createQueryBuilder('j')
         .select('j.status', 'status')
         .addSelect('COUNT(*)', 'count')
+        .where('j.tenantId = :tid', { tid })
         .groupBy('j.status')
         .getRawMany(),
 
-      this.sumRevenue(startOfDay),
-      this.sumRevenue(startOfWeek),
-      this.sumRevenue(startOfMonth),
-      this.sumRevenue(),
-      this.revenueByDay(thirtyDaysAgo),
+      this.sumRevenue(tid, startOfDay),
+      this.sumRevenue(tid, startOfWeek),
+      this.sumRevenue(tid, startOfMonth),
+      this.sumRevenue(tid),
+      this.revenueByDay(tid, thirtyDaysAgo),
 
-      this.sumPages(startOfDay),
-      this.sumPages(startOfWeek),
-      this.sumPages(startOfMonth),
-      this.sumPages(),
+      this.sumPages(tid, startOfDay),
+      this.sumPages(tid, startOfWeek),
+      this.sumPages(tid, startOfMonth),
+      this.sumPages(tid),
 
       this.kioskRepo
         .createQueryBuilder('k')
         .select('k.status', 'status')
         .addSelect('COUNT(*)', 'count')
+        .where('k.tenantId = :tid', { tid })
         .groupBy('k.status')
         .getRawMany(),
 
-      this.sessionRepo.count({ where: { status: GroupSessionStatus.OPEN } }),
-      this.sessionRepo.count({ where: { status: GroupSessionStatus.CLOSED } }),
-      this.sessionRepo.createQueryBuilder('s').where('s.createdAt >= :d', { d: startOfMonth }).getCount(),
+      this.sessionRepo.count({ where: { tenantId: tid, status: GroupSessionStatus.OPEN } }),
+      this.sessionRepo.count({ where: { tenantId: tid, status: GroupSessionStatus.CLOSED } }),
+      this.sessionRepo
+        .createQueryBuilder('s')
+        .where('s.tenantId = :tid', { tid })
+        .andWhere('s.createdAt >= :d', { d: startOfMonth })
+        .getCount(),
     ]);
 
     const kioskByStatus: Record<string, number> = {};
@@ -192,35 +219,39 @@ export class AdminDashboardService {
     };
   }
 
-  private async sumRevenue(since?: Date): Promise<number> {
+  private async sumRevenue(tenantId: string, since?: Date): Promise<number> {
     const qb = this.paymentRepo
       .createQueryBuilder('p')
       .select('COALESCE(SUM(p.amount), 0)', 'total')
-      .where('p.status = :s', { s: 'SUCCESS' });
+      .where('p.tenantId = :tid', { tid: tenantId })
+      .andWhere('p.status = :s', { s: 'SUCCESS' });
     if (since) qb.andWhere('p.createdAt >= :d', { d: since });
     const result = await qb.getRawOne();
     return parseFloat(result?.total || '0');
   }
 
-  private async sumPages(since?: Date): Promise<number> {
+  private async sumPages(tenantId: string, since?: Date): Promise<number> {
     const qb = this.jobRepo
       .createQueryBuilder('j')
       .select('COALESCE(SUM(j.totalPages), 0)', 'total')
-      .where('j.status = :s', { s: PrintJobStatus.DONE });
+      .where('j.tenantId = :tid', { tid: tenantId })
+      .andWhere('j.status = :s', { s: PrintJobStatus.DONE });
     if (since) qb.andWhere('j.completedAt >= :d', { d: since });
     const result = await qb.getRawOne();
     return parseInt(result?.total || '0');
   }
 
   private async revenueByDay(
-    since: Date
+    tenantId: string,
+    since: Date,
   ): Promise<Array<{ date: string; revenue: number; jobCount: number }>> {
     const result = await this.paymentRepo
       .createQueryBuilder('p')
       .select('DATE(p.createdAt)', 'date')
       .addSelect('COALESCE(SUM(p.amount), 0)', 'revenue')
       .addSelect('COUNT(*)', 'jobCount')
-      .where('p.status = :s', { s: 'SUCCESS' })
+      .where('p.tenantId = :tid', { tid: tenantId })
+      .andWhere('p.status = :s', { s: 'SUCCESS' })
       .andWhere('p.createdAt >= :d', { d: since })
       .groupBy('DATE(p.createdAt)')
       .orderBy('DATE(p.createdAt)', 'ASC')

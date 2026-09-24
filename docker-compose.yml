@@ -1,0 +1,163 @@
+# PrintLoop SaaS — full local stack on Postgres (V2-21).
+#
+# Brings up the whole platform the way production runs it: managed-style
+# Postgres + Redis, the API, the background worker (separate process so
+# scheduled jobs don't double-fire), and the render-worker. One command:
+#
+#   docker compose up --build
+#
+# Then: API at http://localhost:4000, health at /health.
+#
+# This is the first time the stack runs on Postgres rather than SQLite —
+# the driver auto-selects from DATABASE_URL (see config/database.ts), so
+# the Postgres baseline migration (PostgresBaseline1718100000000) builds
+# the schema and runSeed populates demo data on first boot.
+#
+# Secrets here are DEV defaults. For real deploys use the platform's
+# secret store and the values documented in .env.production.example.
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: printloop
+      POSTGRES_PASSWORD: printloop_dev
+      POSTGRES_DB: printloop
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U printloop -d printloop"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  # Office → PDF conversion black box (V2-48, BLACK-BOXES.md #1).
+  # Stateless LibreOffice-over-HTTP: the API POSTs a .docx/.pptx/.xlsx
+  # and gets a faithful PDF back. Concurrency-safe (unlike a bare
+  # soffice CLI), so it scales with the API.
+  gotenberg:
+    image: gotenberg/gotenberg:8
+    ports:
+      - "3000:3000"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Etherpad — collaborative document editor (V2-XX Edit & Print).
+  # Used by shops to edit customer documents before printing.
+  etherpad:
+    image: etherpad/etherpad:latest
+    ports:
+      - "9001:9001"
+    environment:
+      ETHERPAD_DB_TYPE: postgres
+      ETHERPAD_DB_HOST: postgres
+      ETHERPAD_DB_PORT: "5432"
+      ETHERPAD_DB_NAME: etherpad
+      ETHERPAD_DB_USER: printloop
+      ETHERPAD_DB_PASSWORD: printloop_dev
+      ETHERPAD_TITLE: PrintLoop Edit
+      ETHERPAD_DEFAULT_PAD_TEXT: "Welcome to PrintLoop collaborative editing.\nEdit the document and click 'Save' when done."
+      ETHERPAD_SKIN_NAME: colibris
+      ETHERPAD_SESSION_KEY: dev-etherpad-session-key-change-in-prod
+      ETHERPAD_API_KEY: dev-etherpad-api-key-change-in-prod
+      ETHERPAD_TRUST_PROXY: "true"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:9001/health"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+
+  api:
+    build: ./01-backend
+    command: ["npm", "start"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      gotenberg:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: "4000"
+      DATABASE_URL: postgres://printloop:printloop_dev@postgres:5432/printloop
+      DB_SSL: "false"
+      REDIS_URL: redis://redis:6379
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      JWT_SECRET: dev-compose-secret-change-in-prod-please-32chars
+      COMMISSION_PCT_DEFAULT: "0.10"
+      PRINTLOOP_APEX_DOMAINS: printloop.app,printloop.test,localhost
+      RENDER_CALLBACK_SECRET: dev-render-callback-secret
+      ALLOWED_ORIGINS: http://localhost:5173
+      LOG_LEVEL: info
+      # Office → PDF conversion (V2-48).
+      DOC_CONVERTER: gotenberg
+      GOTENBERG_URL: http://gotenberg:3000
+      # Etherpad (V2-XX Edit & Print).
+      ETHERPAD_URL: http://etherpad:9001
+      ETHERPAD_API_KEY: dev-etherpad-api-key-change-in-prod
+    ports:
+      - "4000:4000"
+
+  # Background worker — same image, different entrypoint. ONLY this
+  # process registers the repeatable scheduled jobs (initScheduledJobs),
+  # so scaling `api` horizontally never double-fires payouts/cleanups.
+  worker:
+    build: ./01-backend
+    command: ["npm", "run", "worker"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgres://printloop:printloop_dev@postgres:5432/printloop
+      DB_SSL: "false"
+      REDIS_URL: redis://redis:6379
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      JWT_SECRET: dev-compose-secret-change-in-prod-please-32chars
+      COMMISSION_PCT_DEFAULT: "0.10"
+      LOG_LEVEL: info
+
+  # Cloud render worker (PDF → PWG-Raster). Consumes the 'render' queue
+  # and calls back to the API. Requires S3 for artifacts in production;
+  # for local-only the render path falls back to READY-direct when the
+  # bucket isn't reachable.
+  render-worker:
+    build: ./render-worker
+    depends_on:
+      redis:
+        condition: service_healthy
+      api:
+        condition: service_started
+    environment:
+      REDIS_URL: redis://redis:6379
+      PRINTLOOP_API_URL: http://api:4000
+      RENDER_CALLBACK_SECRET: dev-render-callback-secret
+      S3_BUCKET: printloop-dev
+      AWS_REGION: us-east-1
+      WORKER_CONCURRENCY: "2"
+
+volumes:
+  pgdata:

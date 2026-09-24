@@ -1,0 +1,21 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "skills": {
+    "paths": [
+      ".opencode/skills",
+      "C:/Users/abdur/.claude/plugins",
+      "C:/Users/abdur/claude-skills"
+    ]
+  },
+  "plugin": [
+    "C:/Users/abdur/.claude/plugins/marketplaces/claude-plugins-official/plugins/playground",
+    "C:/Users/abdur/.claude/plugins/marketplaces/claude-plugins-official/plugins/plugin-dev",
+    "C:/Users/abdur/.claude/plugins/marketplaces/claude-plugins-official/plugins/pr-review-toolkit",
+    "C:/Users/abdur/.claude/plugins/marketplaces/claude-plugins-official/plugins/project-artifact",
+    "C:/Users/abdur/.claude/plugins/marketplaces/claude-plugins-official/plugins/ralph-loop",
+    "C:/Users/abdur/.claude/plugins/marketplaces/claude-plugins-official/plugins/receipts",
+    "C:/Users/abdur/.claude/plugins/marketplaces/claude-plugins-official/plugins/security-guidance",
+    "C:/Users/abdur/.claude/plugins/marketplaces/claude-plugins-official/plugins/session-report",
+    "C:/Users/abdur/.claude/plugins/marketplaces/claude-plugins-official/plugins/skill-creator"
+  ]
+}

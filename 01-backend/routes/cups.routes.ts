@@ -15,11 +15,52 @@ import {
 import { getUploadLimits } from '../utils/limits';
 import { applyPromotion } from '../services/promotion.service';
 import { computeCost, type PrintConfiguration } from '../services/pricing.service';
-import { tryDebit } from '../services/wallet.service';
+import { PaystackService } from '../services/paystack.service';
 import { makeCode } from '../utils/releaseCode';
+import type { Tenant } from '../entities/tenant.entity';
 
 const router = Router();
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 50 * 1024 * 1024 } });
+
+/**
+ * Init the Paystack hosted checkout for a CUPS job (V2-55). Null when
+ * Paystack isn't configured (local dev) or the init fails — the job
+ * stays PENDING either way, so nothing prints unpaid.
+ */
+async function initCheckout(
+  user: User,
+  jobId: string,
+  cost: number,
+  tenant: Tenant | undefined,
+): Promise<string | null> {
+  if (!process.env.PAYSTACK_SECRET_KEY) return null;
+  try {
+    const paystack = new PaystackService();
+    const data = await paystack.initializeJobPayment(
+      user.id,
+      jobId,
+      cost,
+      user.email,
+      tenant ?? undefined,
+    );
+    return data?.authorization_url ?? null;
+  } catch (err: any) {
+    console.warn('[cups] checkout init failed:', err?.message);
+    return null;
+  }
+}
+
+/** The plain-text line the CUPS backend puts on the job's state message. */
+function cupsStatusMessage(
+  code: string | null,
+  cost: number,
+  payUrl: string | null,
+): string {
+  if (payUrl) {
+    return `PrintLoop release code: ${code} (₦${cost}). Pay at: ${payUrl}`;
+  }
+  return `PrintLoop release code: ${code} (₦${cost})`;
+}
 
 /** One-shot warning if anyone tries the legacy `?token=` path in prod. */
 let warnedQueryTokenInProd = false;
@@ -233,6 +274,14 @@ router.post('/print', upload.single('file'), async (req: Request, res: Response)
         where: { userId: user.id, idempotencyKey },
       });
       if (existing) {
+        // The same CUPS job was seen before (retry after `exit 4`).
+        // Return its code + cost, and a fresh checkout link if it still
+        // hasn't been paid (V2-55: CUPS jobs bill via Paystack like web
+        // jobs — no wallet anymore).
+        let payUrl: string | null = null;
+        if (existing.status === PrintJobStatus.PENDING) {
+          payUrl = await initCheckout(user, existing.id, Number(existing.cost), req.tenant);
+        }
         res.json({
           success: true,
           data: {
@@ -241,7 +290,8 @@ router.post('/print', upload.single('file'), async (req: Request, res: Response)
             pages: existing.totalPages,
             copies: (existing.printConfiguration as any)?.copies ?? copies,
             config: existing.printConfiguration,
-            message: `PrintLoop release code: ${existing.code} (₦${Number(existing.cost)})`,
+            payUrl,
+            message: cupsStatusMessage(existing.code, Number(existing.cost), payUrl),
             idempotent: true,
           },
         });
@@ -249,9 +299,10 @@ router.post('/print', upload.single('file'), async (req: Request, res: Response)
       }
     }
 
-    const stored = saveBuffer(pdfBytes, file.originalname || req.body?.title || 'document.pdf');
+    const stored = await saveBuffer(pdfBytes, file.originalname || req.body?.title || 'document.pdf');
     const savedFile = await AppDataSource.getRepository(File).save(
       AppDataSource.getRepository(File).create({
+        tenantId: req.tenant?.id ?? user.tenantId ?? null,
         fileName: file.originalname || req.body?.title || 'document',
         mimeType: file.mimetype || 'application/octet-stream',
         sizeBytes: pdfBytes.length,
@@ -260,31 +311,40 @@ router.post('/print', upload.single('file'), async (req: Request, res: Response)
       }),
     );
 
-    // Atomic wallet debit — single conditional UPDATE, closes the
-    // read-modify-write race two concurrent CUPS submissions could hit.
-    // `debited: false` is fine (best-effort billing matches the customer
-    // app); we still create the job so the user can pay later at the kiosk.
-    await tryDebit(user.id, cost);
-
+    // Billing note (V2-53/55): the wallet is gone. CUPS-ingress jobs are
+    // created with their release code and a cost estimate, but stay
+    // PENDING — the Paystack webhook pays them exactly like web jobs
+    // (completePrintJobPayment reuses the pre-minted code), and the
+    // release gate charges the saved card for any final-cost delta.
+    // Rendering starts after payment, not at creation.
     const job = jobRepo.create();
     Object.assign(job, {
       userId: user.id,
+      tenantId: req.tenant?.id ?? user.tenantId ?? null,
       fileId: savedFile.id,
       fileName: req.body?.title || file.originalname || 'document',
       code: makeCode(6),
       cost,
       totalPages: pageCount,
       jobType: JobType.SINGLE,
-      status: PrintJobStatus.READY,
+      // Created PENDING; the Paystack webhook (completePrintJobPayment)
+      // promotes it to RENDERING → READY after the customer pays, the
+      // same path web jobs take. No render at creation (V2-55).
+      status: PrintJobStatus.PENDING,
       printConfiguration,
       idempotencyKey: idempotencyKey || null,
       expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
     });
     const saved = await jobRepo.save(job);
 
+    // V2-55: bill like a web job — init the Paystack hosted checkout and
+    // hand the link back with the code. Best-effort: no Paystack key
+    // (local dev) → payUrl null and the job waits for payment anyway.
+    const payUrl = await initCheckout(user, saved.id, cost, req.tenant);
+
     // text/plain message the CUPS backend pipes onto job-state-message so it
     // surfaces in `lpq -l` and the system print queue UI.
-    const message = `PrintLoop release code: ${saved.code} (₦${cost})`;
+    const message = cupsStatusMessage(saved.code, cost, payUrl);
     res.json({
       success: true,
       data: {
@@ -293,6 +353,7 @@ router.post('/print', upload.single('file'), async (req: Request, res: Response)
         pages: pageCount,
         copies,
         config: printConfiguration,
+        payUrl,
         message,
       },
     });

@@ -88,36 +88,3 @@ export const kioskAuth = async (
     });
   }
 };
-
-/**
- * Optional middleware for endpoints that work with or without kiosk auth
- * Attaches kiosk if valid key provided, but doesn't block request otherwise
- */
-export const optionalKioskAuth = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-): Promise<void> => {
-  try {
-    const apiKey = req.headers['x-kiosk-key'] as string;
-
-    if (apiKey) {
-      const kioskRepository = AppDataSource.getRepository(Kiosk);
-      const kiosk = await kioskRepository.findOne({
-        where: { apiKey },
-      });
-
-      if (kiosk && kiosk.status !== KioskStatus.DISABLED) {
-        kiosk.lastSeenAt = new Date();
-        await kioskRepository.save(kiosk);
-        req.kiosk = kiosk;
-      }
-    }
-
-    next();
-  } catch (error) {
-    // Silently fail - this is optional auth
-    console.error('Optional kiosk auth error:', error);
-    next();
-  }
-};

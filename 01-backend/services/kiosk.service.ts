@@ -25,6 +25,10 @@ export class KioskService {
    */
   async createKiosk(data: {
     name: string;
+    /** Owning tenant — passed by the controller from req.tenant.id.
+     *  Nullable for the duration of the multi-tenancy cutover; new
+     *  callers must always pass it. */
+    tenantId?: string | null;
     location?: string;
     campus?: string;
     shopId?: string;
@@ -54,29 +58,52 @@ export class KioskService {
   }
 
   /**
-   * Get kiosk by ID
+   * Get kiosk by ID. **Tenant-scoped as of V2-11.** When a tenant
+   * argument is provided, the lookup is filtered by `tenantId` so
+   * Tenant A admins can't fetch Tenant B's kiosks by guessing the
+   * UUID.
+   *
+   * `kioskAuth` middleware (which loads a kiosk by `apiKey`) keeps
+   * the unfiltered variant — kiosks authenticate before the tenant
+   * is known, and the API key itself is the tenant binding.
    */
-  async getKioskById(id: string): Promise<Kiosk | null> {
+  async getKioskById(id: string, tenantId?: string | null): Promise<Kiosk | null> {
+    if (tenantId) {
+      return await this.kioskRepository.findOne({ where: { id, tenantId } });
+    }
     return await this.kioskRepository.findOne({ where: { id } });
   }
 
   /**
-   * Get kiosk by API key
+   * Get kiosk by API key. NOT tenant-scoped — the API key is the
+   * binding (one key = one kiosk = one tenant).
    */
   async getKioskByApiKey(apiKey: string): Promise<Kiosk | null> {
     return await this.kioskRepository.findOne({ where: { apiKey } });
   }
 
   /**
-   * List all kiosks with optional filters
+   * List all kiosks within a tenant. **Tenant-scoped as of V2-11.**
+   * Optional `tenantId` for backwards-compatibility with code that
+   * hasn't been retrofitted yet — passing undefined returns
+   * cross-tenant data and logs a warning so the call-site can be
+   * tracked down.
    */
   async listKiosks(filters?: {
+    tenantId?: string | null;
     status?: KioskStatus;
     campus?: string;
     location?: string;
   }): Promise<Kiosk[]> {
     const query = this.kioskRepository.createQueryBuilder('kiosk');
 
+    if (filters?.tenantId) {
+      query.andWhere('kiosk.tenantId = :__tid', { __tid: filters.tenantId });
+    } else {
+      console.warn(
+        '[kiosk.service] listKiosks called without tenantId — returning cross-tenant data. Retrofit the caller.',
+      );
+    }
     if (filters?.status) {
       query.andWhere('kiosk.status = :status', { status: filters.status });
     }

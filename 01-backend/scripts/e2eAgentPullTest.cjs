@@ -16,11 +16,34 @@
  *
  *   node scripts/e2eAgentPullTest.cjs
  */
+const path = require('node:path');
 const crypto = require('node:crypto');
 const { PDFDocument, StandardFonts } = require('pdf-lib');
 
+try {
+  require('dotenv').config({ path: path.resolve(__dirname, '..', '.env') });
+} catch (e) {
+  // ignore
+}
+
 const sha = (b) => crypto.createHash('sha256').update(b).digest('hex');
 const B = 'http://localhost:4000/api';
+
+let sqlite3;
+try { sqlite3 = require('sqlite3'); } catch { sqlite3 = null; }
+const DB_PATH = path.resolve(__dirname, '..', 'data', 'printloop.sqlite');
+
+function sqlRun(sql, params) {
+  return new Promise((resolve, reject) => {
+    if (!sqlite3) return resolve(null);
+    const db = new sqlite3.Database(DB_PATH, sqlite3.OPEN_READWRITE);
+    db.run(sql, params, function (err) { db.close(); err ? reject(err) : resolve(this.changes); });
+  });
+}
+
+async function topUpWallet(userId, naira) {
+  await sqlRun(`UPDATE wallets SET balance = ? WHERE userId = ?`, [naira, userId]);
+}
 
 async function j(method, url, body, headers) {
   const r = await fetch(B + url, {
@@ -59,6 +82,11 @@ async function fetchBytes(url, headers) {
   if (!tok) throw new Error(`register failed: ${reg.status}`);
   console.log(`2. Registered ${email} → JWT (${reg.status})`);
 
+  const userId = reg.data?.data?.user?.id;
+  if (!userId) throw new Error('register failed to return userId');
+  await topUpWallet(userId, 1000);
+  console.log(`   Topped up wallet for user ${userId} with ₦1000`);
+
   // 3. Multipart upload (real customer single-file path).
   const fd = new FormData();
   fd.append('file', new Blob([srcBytes], { type: 'application/pdf' }), 'pull.pdf');
@@ -85,7 +113,8 @@ async function fetchBytes(url, headers) {
   const kioskKey = rk.data?.data?.kiosk?.apiKey;
   if (!kioskKey) throw new Error('no kiosk key');
   // Switch to kiosk-pull mode for this test, restore at the end.
-  await j('PATCH', '/admin/settings/printDispatchMode', { value: 'kiosk-pull' }, AH);
+  const patchRes = await j('PATCH', '/admin/settings/printDispatchMode', { value: 'kiosk-pull' }, AH);
+  console.log(`PATCH /admin/settings/printDispatchMode status: ${patchRes.status}`, patchRes.data);
   console.log(`4. Kiosk "${k.name}" key=${kioskKey.slice(0, 10)}…, printDispatchMode=kiosk-pull`);
 
   // Wait for settings cache TTL (printPolicy.service caches for 20s).

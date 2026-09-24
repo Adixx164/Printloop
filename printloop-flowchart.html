@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PrintLoop SaaS v2 — Architecture Flowchart</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #f8fafc;
+      --surface: #ffffff;
+      --border: #e2e8f0;
+      --text: #0f172a;
+      --muted: #64748b;
+      --cyan: #0891b2;
+      --cyan-bg: #ecfeff;
+      --emerald: #059669;
+      --emerald-bg: #ecfdf5;
+      --amber: #d97706;
+      --amber-bg: #fffbeb;
+      --rose: #e11d48;
+      --rose-bg: #fff1f2;
+      --violet: #7c3aed;
+      --violet-bg: #f5f3ff;
+      --slate: #475569;
+      --slate-bg: #f8fafc;
+      --line: #94a3b8;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    html, body {
+      font-family: 'Inter', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    .page {
+      max-width: 1440px;
+      margin: 0 auto;
+      padding: 2rem 2rem 3rem;
+    }
+
+    header {
+      margin-bottom: 2rem;
+    }
+
+    header h1 {
+      font-size: 1.4rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    header p {
+      color: var(--muted);
+      font-size: 0.95rem;
+      margin-top: 0.25rem;
+    }
+
+    .legend {
+      display: flex;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+      margin-bottom: 1.5rem;
+    }
+
+    .legend-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-size: 0.8rem;
+      color: var(--muted);
+      background: var(--surface);
+      border: 1px solid var(--border);
+      padding: 0.3rem 0.6rem;
+      border-radius: 999px;
+    }
+
+    .swatch {
+      width: 12px;
+      height: 12px;
+      border-radius: 3px;
+    }
+
+    .canvas {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 1rem;
+      padding: 1.25rem;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+      overflow: auto;
+    }
+
+    svg { display: block; margin: 0 auto; }
+
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1rem;
+      margin-top: 1.25rem;
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 0.9rem;
+      padding: 1rem 1.1rem;
+    }
+
+    .card h3 {
+      font-size: 0.85rem;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.45rem;
+    }
+
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: currentColor;
+      opacity: 0.8;
+    }
+
+    .card ul {
+      list-style: none;
+      font-size: 0.8rem;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    .card li {
+      padding-left: 0.9rem;
+      position: relative;
+    }
+
+    .card li:before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 0.55em;
+      width: 4px;
+      height: 4px;
+      border-radius: 50%;
+      background: currentColor;
+      opacity: 0.5;
+    }
+
+    .card-cyan { color: var(--cyan); }
+    .card-emerald { color: var(--emerald); }
+    .card-amber { color: var(--amber); }
+
+    .footer {
+      text-align: center;
+      margin-top: 1rem;
+      font-size: 0.78rem;
+      color: var(--muted);
+    }
+
+    @media (max-width: 1100px) {
+      .cards { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <header>
+      <h1>PrintLoop SaaS v2 — Architecture Flowchart</h1>
+      <p>Standard system flow: customer request → cloud processing → kiosk print</p>
+    </header>
+
+    <div class="legend">
+      <div class="legend-item"><div class="swatch" style="background:var(--cyan-bg);border:1px solid var(--cyan)"></div>Customer / Frontend</div>
+      <div class="legend-item"><div class="swatch" style="background:var(--emerald-bg);border:1px solid var(--emerald)"></div>Backend / Worker</div>
+      <div class="legend-item"><div class="swatch" style="background:var(--amber-bg);border:1px solid var(--amber)"></div>Cloud / External</div>
+      <div class="legend-item"><div class="swatch" style="background:var(--rose-bg);border:1px solid var(--rose)"></div>Payment / Auth</div>
+      <div class="legend-item"><div class="swatch" style="background:var(--violet-bg);border:1px solid var(--violet)"></div>Data Store</div>
+      <div class="legend-item"><div class="swatch" style="background:var(--slate-bg);border:1px solid var(--slate)"></div>Kiosk / Printer</div>
+    </div>
+
+    <div class="canvas">
+      <svg viewBox="0 0 1340 680" xmlns="http://www.w3.org/2000/svg" width="100%">
+        <defs>
+          <marker id="arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+            <polygon points="0 0, 8 3, 0 6" fill="#64748b"/>
+          </marker>
+        </defs>
+
+        <!-- Flow: left-to-right, top-to-bottom -->
+
+        <!-- START -->
+        <rect x="540" y="18" width="120" height="36" rx="18" fill="#f1f5f9" stroke="#64748b" stroke-width="1.5"/>
+        <text x="600" y="40" text-anchor="middle" font-family="Inter" font-size="11" font-weight="600" fill="#0f172a">Customer starts</text>
+
+        <!-- CUSTOMER: open app -->
+        <rect x="480" y="80" width="240" height="40" rx="6" fill="#ecfeff" stroke="#0891b2" stroke-width="1.4"/>
+        <text x="600" y="105" text-anchor="middle" font-family="Inter" font-size="11" font-weight="600" fill="#0f172a">Open App (/find)</text>
+
+        <!-- CUSTOMER: find shop -->
+        <rect x="460" y="152" width="280" height="40" rx="6" fill="#ecfeff" stroke="#0891b2" stroke-width="1.4"/>
+        <text x="600" y="177" text-anchor="middle" font-family="Inter" font-size="11" font-weight="600" fill="#0f172a">Find Nearest Shop</text>
+
+        <!-- CUSTOMER: view pricing -->
+        <rect x="460" y="224" width="280" height="40" rx="6" fill="#ecfeff" stroke="#0891b2" stroke-width="1.4"/>
+        <text x="600" y="249" text-anchor="middle" font-family="Inter" font-size="11" font-weight="600" fill="#0f172a">View Services + Pricing</text>
+
+        <!-- CUSTOMER: upload -->
+        <rect x="460" y="296" width="280" height="40" rx="6" fill="#ecfeff" stroke="#0891b2" stroke-width="1.4"/>
+        <text x="600" y="321" text-anchor="middle" font-family="Inter" font-size="11" font-weight="600" fill="#0f172a">Upload Document / Image</text>
+
+        <!-- DECISION: shop online? -->
+        <polygon points="600,370 544,408 600,446 656,408" fill="#fff1f2" stroke="#e11d48" stroke-width="1.4"/>
+        <text x="600" y="404" text-anchor="middle" font-family="Inter" font-size="10" font-weight="600" fill="#0f172a">Shop online?</text>
+        <text x="600" y="418" text-anchor="middle" font-family="Inter" font-size="9" fill="#64748b">Live gate</text>
+
+        <!-- CUSTOMER: pay -->
+        <rect x="460" y="474" width="280" height="42" rx="6" fill="#fff1f2" stroke="#e11d48" stroke-width="1.4"/>
+        <text x="600" y="496" text-anchor="middle" font-family="Inter" font-size="11" font-weight="600" fill="#0f172a">Pay (Paystack / Stripe)</text>
+        <text x="600" y="510" text-anchor="middle" font-family="Inter" font-size="9" fill="#e11d48">auth code issued</text>
+
+        <!-- CLOUD: backend -->
+        <rect x="80" y="370" width="220" height="64" rx="8" fill="#ecfdf5" stroke="#059669" stroke-width="1.4"/>
+        <text x="190" y="394" text-anchor="middle" font-family="Inter" font-size="11" font-weight="600" fill="#0f172a">Backend API</text>
+        <text x="190" y="410" text-anchor="middle" font-family="Inter" font-size="9" fill="#64748b">Express + TypeORM</text>
+
+        <!-- CLOUD: render worker -->
+        <rect x="80" y="462" width="220" height="64" rx="8" fill="#ecfdf5" stroke="#059669" stroke-width="1.4"/>
+        <text x="190" y="486" text-anchor="middle" font-family="Inter" font-size="11" font-weight="600" fill="#0f172a">Render Worker</text>
+        <text x="190" y="502" text-anchor="middle" font-family="Inter" font-size="9" fill="#64748b">Ghostscript → PWG-Raster</text>
+
+        <!-- CLOUD: file storage -->
+        <rect x="80" y="554" width="220" height="44" rx="8" fill="#fffbeb" stroke="#d97706" stroke-width="1.4"/>
+        <text x="190" y="576" text-anchor="middle" font-family="Inter" font-size="11" font-weight="600" fill="#0f172a">File Storage (S3 / R2)</text>
+
+        <!-- KIOSK: agent -->
+        <rect x="820" y="370" width="220" height="64" rx="8" fill="#f8fafc" stroke="#475569" stroke-width="1.4"/>
+        <text x="930" y="394" text-anchor="middle" font-family="Inter" font-size="11" font-weight="600" fill="#0f172a">printloop-agent</text>
+        <text x="930" y="410" text-anchor="middle" font-family="Inter" font-size="9" fill="#64748b">heartbeat + job pull</text>
+
+        <!-- KIOSK: local queue -->
+        <rect x="820" y="462" width="220" height="52" rx="8" fill="#f8fafc" stroke="#475569" stroke-width="1.4"/>
+        <text x="930" y="484" text-anchor="middle" font-family="Inter" font-size="11" font-weight="600" fill="#0f172a">Local Queue</text>
+        <text x="930" y="498" text-anchor="middle" font-family="Inter" font-size="9" fill="#64748b">pending jobs + printer state</text>
+
+        <!-- KIOSK: print -->
+        <rect x="820" y="538" width="220" height="44" rx="8" fill="#f8fafc" stroke="#475569" stroke-width="1.4"/>
+        <text x="930" y="565" text-anchor="middle" font-family="Inter" font-size="11" font-weight="600" fill="#0f172a">Print</text>
+
+        <!-- END -->
+        <rect x="540" y="626" width="120" height="36" rx="18" fill="#f1f5f9" stroke="#64748b" stroke-width="1.5"/>
+        <text x="600" y="648" text-anchor="middle" font-family="Inter" font-size="11" font-weight="600" fill="#0f172a">Done</text>
+
+        <!-- DECISION: shop offline? (negative branch) -->
+        <polygon points="360,394 316,412 360,430 404,412" fill="#fff1f2" stroke="#e11d48" stroke-width="1.3"/>
+        <text x="360" y="416" text-anchor="middle" font-family="Inter" font-size="9" font-weight="600" fill="#0f172a">Offline?</text>
+
+        <rect x="150" y="390" width="140" height="32" rx="6" fill="#fee2e2" stroke="#e11d48" stroke-width="1.2"/>
+        <text x="220" y="410" text-anchor="middle" font-family="Inter" font-size="10" font-weight="600" fill="#0f172a">409 SHOP_OFFLINE</text>
+
+        <!-- Lines -->
+        <!-- Start -> Open App -->
+        <line x1="600" y1="54" x2="600" y2="80" stroke="#64748b" stroke-width="1.2" marker-end="url(#arrow)"/>
+
+        <!-- Customer flow down -->
+        <line x1="600" y1="120" x2="600" y2="152" stroke="#64748b" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <line x1="600" y1="192" x2="600" y2="224" stroke="#64748b" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <line x1="600" y1="256" x2="600" y2="296" stroke="#64748b" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <line x1="600" y1="336" x2="600" y2="370" stroke="#64748b" stroke-width="1.2" marker-end="url(#arrow)"/>
+
+        <!-- Decision branch: no -> offline response -->
+        <line x1="544" y1="408" x2="404" y2="408" stroke="#e11d48" stroke-width="1.2" marker-end="url(#arrow)"/>
+
+        <!-- Decision branch: yes -> pay -->
+        <line x1="656" y1="408" x2="820" y2="408" stroke="#0891b2" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <line x1="820" y1="408" x2="820" y2="495" stroke="#64748b" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <line x1="820" y1="538" x2="820" y2="626" stroke="#64748b" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <line x1="860" y1="626" x2="860" y2="646" stroke="#64748b" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <line x1="860" y1="646" x2="600" y2="646" stroke="#64748b" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <line x1="600" y1="646" x2="600" y2="662" stroke="#64748b" stroke-width="1.2" marker-end="url(#arrow)"/>
+
+        <!-- Cloud internals -->
+        <line x1="300" y1="402" x2="460" y2="402" stroke="#059669" stroke-width="1.2" stroke-dasharray="4,3" marker-end="url(#arrow)"/>
+
+        <!-- Cloud internal vertical flow -->
+        <line x1="190" y1="434" x2="190" y2="462" stroke="#059669" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <line x1="190" y1="526" x2="190" y2="554" stroke="#d97706" stroke-width="1.2" marker-end="url(#arrow)"/>
+
+        <!-- Callback into customer flow (payment verified) -->
+        <line x1="300" y1="496" x2="460" y2="496" stroke="#e11d48" stroke-width="1.2" stroke-dasharray="4,3" marker-end="url(#arrow)"/>
+      </svg>
+    </div>
+
+    <div class="cards">
+      <div class="card card-cyan">
+        <h3><span class="dot"></span>Customer value</h3>
+        <ul>
+          <li>Nearest shop discovery</li>
+          <li>Transparent upfront pricing</li>
+          <li>Single / batch / group modes</li>
+          <li>Visible preview + customization</li>
+          <li>SMS/auth code handoff at shop</li>
+        </ul>
+      </div>
+      <div class="card card-emerald">
+        <h3><span class="dot"></span>Shop automation</h3>
+        <ul>
+          <li>Reduced manual quoting</li>
+          <li>Pre-rendered jobs remove delays</li>
+          <li>Queue visibility + verification</li>
+          <li>Standard print stack reusable</li>
+          <li>Less raw-document handling</li>
+        </ul>
+      </div>
+      <div class="card card-amber">
+        <h3><span class="dot"></span>Current gaps</h3>
+        <ul>
+          <li>Render worker not yet wired</li>
+          <li>Multi-tenancy still in progress</li>
+          <li>Final pricing blocked on render</li>
+          <li>OpenPrinting stack not deployed</li>
+          <li>Group session flows incomplete</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="footer">PrintLoop SaaS v2 • Architecture Flowchart • <span id="ts"></span></div>
+  </div>
+
+  <script>
+    document.getElementById('ts').textContent = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+  </script>
+</body>
+</html>

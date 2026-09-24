@@ -1,0 +1,113 @@
+# Datadog log-processing pipeline for PrintLoop pino JSON (V2-36).
+#
+# In the Datadog UI: Logs > Configuration > Pipelines > New Pipeline.
+# Click the "Import from YAML" option (top-right) and paste this file.
+#
+# What it does:
+#   1. Matches logs where service == 'printloop-api', 'printloop-worker',
+#      or 'printloop-render-worker'
+#   2. Parses the JSON body
+#   3. Lifts the most-queried fields to first-class attributes:
+#      tenantId, requestId, level, durationMs, path, status, method
+#   4. Maps pino's numeric level (10/20/30/40/50/60) to Datadog's
+#      severity string (debug/info/warn/error/fatal/...)
+#   5. Routes anything at level >= error to the alert pipeline
+#
+# After import: open any printloop log in Datadog Logs Explorer and
+# you should see the lifted attributes show up in the side panel.
+
+filter:
+  query: "service:(printloop-api OR printloop-worker OR printloop-render-worker)"
+
+name: PrintLoop SaaS — pino JSON
+
+processors:
+
+  # ── 1. JSON parser ─────────────────────────────────────────────────
+  - type: json-parser
+    name: Parse pino JSON
+    enabled: true
+    sources: [message]
+
+  # ── 2. Pino numeric level → Datadog severity ───────────────────────
+  - type: status-remapper
+    name: Pino level → Datadog severity
+    enabled: true
+    sources: [level]
+
+  # ── 3. First-class attributes (Datadog calls them "facets") ───────
+  - type: attribute-remapper
+    name: tenantId facet
+    enabled: true
+    sources: [tenantId]
+    sourceType: attribute
+    target: tenant.id
+    targetType: tag
+    preserveSource: true
+
+  - type: attribute-remapper
+    name: requestId facet
+    enabled: true
+    sources: [requestId]
+    sourceType: attribute
+    target: request.id
+    targetType: tag
+    preserveSource: true
+
+  - type: attribute-remapper
+    name: durationMs facet
+    enabled: true
+    sources: [durationMs]
+    sourceType: attribute
+    target: http.duration_ms
+    targetType: attribute
+    preserveSource: true
+
+  - type: attribute-remapper
+    name: status facet
+    enabled: true
+    sources: [status]
+    sourceType: attribute
+    target: http.status_code
+    targetType: attribute
+    preserveSource: true
+
+  - type: attribute-remapper
+    name: path facet
+    enabled: true
+    sources: [path]
+    sourceType: attribute
+    target: http.url_path
+    targetType: attribute
+    preserveSource: true
+
+  - type: attribute-remapper
+    name: method facet
+    enabled: true
+    sources: [method]
+    sourceType: attribute
+    target: http.method
+    targetType: attribute
+    preserveSource: true
+
+  # ── 4. Service taxonomy (so Datadog APM linking works) ─────────────
+  - type: service-remapper
+    name: Service tag
+    enabled: true
+    sources: [svc]
+
+  # ── 5. Auto-tagging by level so monitors can subscribe to errors ──
+  - type: pipeline
+    name: Error fork
+    enabled: true
+    filter:
+      query: "status:error OR status:fatal"
+    processors:
+      - type: attribute-remapper
+        name: Add alert tag
+        enabled: true
+        sources: [level]
+        sourceType: attribute
+        target: alert.candidate
+        targetType: tag
+        preserveSource: true

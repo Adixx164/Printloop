@@ -1,9 +1,10 @@
-import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useFormik } from "formik";
 import * as Yup from "yup";
 import { toast } from "sonner";
 import { useLoginMutation } from "@/store/services/authApi";
+import { useVerifyHandoffQuery } from "@/store/services/discoveryApi";
 import { extractError } from "@/lib/errors";
 import { ROUTES } from "@/constants/routes";
 import { Button } from "@/components/ui/Button";
@@ -13,23 +14,62 @@ export default function LoginPage() {
   const navigate = useNavigate();
   const [login, { isLoading }] = useLoginMutation();
   const [needsVerification, setNeedsVerification] = useState<string | null>(null);
+  const [needs2fa, setNeeds2fa] = useState(false);
+  const [params] = useSearchParams();
+  const handoffToken = params.get("handoff");
+  // V2-32 — when arriving from /find with a handoff token, verify
+  // it and pre-fill the email field. The query auto-fires when the
+  // token is present and stays skipped otherwise.
+  const handoff = useVerifyHandoffQuery(
+    { token: handoffToken || "" },
+    { skip: !handoffToken },
+  );
 
   const schema = Yup.object({
     email: Yup.string().email("Invalid email").required("Email is required"),
     password: Yup.string().required("Password is required"),
+    totpCode: Yup.string(),
   });
 
   const formik = useFormik({
-    initialValues: { email: "", password: "" },
+    initialValues: { email: "", password: "", totpCode: "" },
     validationSchema: schema,
     onSubmit: async (values) => {
       try {
-        await login(values).unwrap();
+        const result = await login({
+          email: values.email,
+          password: values.password,
+          totpCode: values.totpCode || undefined,
+        }).unwrap();
         toast.success("Welcome back.");
-        navigate(ROUTES.APP.DASHBOARD);
+        // V2-57: role-aware routing — shop owners/staff go to the shop
+        // console, plain customers to their dashboard.
+        const payload = result?.response || result?.data || result;
+        const user = payload?.user;
+        const isOperator =
+          user?.role === "admin" ||
+          user?.role === "super_admin" ||
+          (Array.isArray(user?.memberships) && user.memberships.length > 0);
+        if (isOperator) {
+          sessionStorage.removeItem("activeTenantSlug");
+          sessionStorage.removeItem("reviewedPricesForTenant");
+          navigate("/saas/dashboard");
+        } else {
+          navigate(ROUTES.APP.DASHBOARD);
+        }
       } catch (err) {
+        const code = (err as any)?.data?.code;
         const msg = extractError(err);
-        if (/verif/i.test(msg)) {
+        // 2FA gate (V2-24): TOTP_REQUIRED means the account has 2FA on
+        // but no code was sent — reveal the field and let them resubmit.
+        // Without this, enabling 2FA would lock the account out here.
+        if (code === "TOTP_REQUIRED") {
+          setNeeds2fa(true);
+          toast.message("Enter your authenticator code to continue.");
+        } else if (code === "TOTP_INVALID") {
+          setNeeds2fa(true);
+          toast.error("That code didn't match. Try the current one.");
+        } else if (/verif/i.test(msg)) {
           setNeedsVerification(values.email);
           toast.error("Your email isn't verified yet.");
         } else {
@@ -49,6 +89,24 @@ export default function LoginPage() {
       toast.error(extractError(err));
     }
   };
+
+  // V2-32 handoff: once the verify query lands, pre-fill the email
+  // field (if the customer typed one on /find/:slug) and show a
+  // small chip so they know they came in from the marketplace.
+  useEffect(() => {
+    if (handoff.data?.email && !formik.values.email) {
+      formik.setFieldValue("email", handoff.data.email);
+    }
+    if (handoff.isError && handoffToken) {
+      const errCode = (handoff.error as any)?.data?.code;
+      toast.error(
+        errCode === "TOKEN_EXPIRED"
+          ? "Your handoff link expired. Go back to /find and pick again."
+          : "Handoff link was invalid.",
+      );
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [handoff.data, handoff.isError]);
 
   return (
     <div className="px-4 sm:px-6 lg:px-8 py-8 sm:py-12 lg:py-16 flex justify-center relative overflow-hidden">
@@ -123,8 +181,31 @@ export default function LoginPage() {
             )}
           </div>
 
+          {needs2fa && (
+            <div className="mb-3">
+              <label className="editorial-label mb-1.5 block">
+                AUTHENTICATOR CODE
+              </label>
+              <input
+                type="text"
+                name="totpCode"
+                inputMode="numeric"
+                maxLength={6}
+                placeholder="123456"
+                autoComplete="one-time-code"
+                value={formik.values.totpCode}
+                onChange={formik.handleChange}
+                className="pl-input tracking-[0.4em] text-center text-lg"
+                autoFocus
+              />
+              <p className="text-[11px] text-ink/60 mt-1">
+                From your authenticator app (Google Authenticator, Authy…).
+              </p>
+            </div>
+          )}
+
           <Button type="submit" variant="primary" arrow loading={isLoading} className="w-full mt-2">
-            SIGN IN
+            {needs2fa ? "VERIFY & SIGN IN" : "SIGN IN"}
           </Button>
           <Button type="button" variant="ghost" loading={isLoading} className="w-full mt-3" onClick={loginDemo}>
             USE DEMO ACCOUNT
@@ -135,6 +216,12 @@ export default function LoginPage() {
           No account yet?{" "}
           <Link to={ROUTES.AUTH.REGISTER} className="text-persimmon font-bold border-b-2 border-persimmon">
             Create one →
+          </Link>
+        </p>
+        <p className="text-center text-sm text-ink/65 mt-4">
+          Are you a print shop owner?{" "}
+          <Link to="/saas/login" className="text-persimmon font-bold border-b-2 border-persimmon">
+            Sign in to your shop console →
           </Link>
         </p>
       </div>

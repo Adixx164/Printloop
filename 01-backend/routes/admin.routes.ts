@@ -10,8 +10,9 @@ import { PricingConfig, PaperSize, ColorType } from '../entities/pricingConfig.e
 import { SystemSetting } from '../entities/systemSetting.entity';
 import { AuditLog } from '../entities/auditLog.entity';
 import { GroupSession } from '../entities/groupSession.entity';
-import { Wallet } from '../entities/wallet.entity';
-import { Transaction, TransactionType } from '../entities/transaction.entity';
+import { BlogPost, BlogPostStatus } from '../entities/blogPost.entity';
+import { PrinterProfile, type PrinterCapabilities } from '../entities/printerProfile.entity';
+import { Kiosk, KioskStatus } from '../entities/kiosk.entity';
 
 const router = Router();
 const dashboardService = new AdminDashboardService();
@@ -40,9 +41,13 @@ function scrubUser<T extends Record<string, any> | null | undefined>(u: T): T {
 router.get(
   '/dashboard/stats',
   requirePermission(Permission.VIEW_DASHBOARD),
-  async (_req: Request, res: Response) => {
+  async (req: Request, res: Response) => {
     try {
-      const stats = await dashboardService.getStats();
+      if (!req.tenant) {
+        res.status(400).json({ success: false, message: 'Tenant context required' });
+        return;
+      }
+      const stats = await dashboardService.getStats(req.tenant);
       res.json({ success: true, data: stats });
     } catch (error) {
       console.error('Dashboard stats error:', error);
@@ -63,6 +68,8 @@ router.get(
       const repo = AppDataSource.getRepository(PrintJob);
       const qb = repo.createQueryBuilder('job').leftJoinAndSelect('job.user', 'user');
 
+      // Tenant scope first — everything else AND-chains onto it.
+      if (req.tenant) qb.andWhere('job.tenantId = :__tid', { __tid: req.tenant.id });
       if (status) qb.andWhere('job.status = :status', { status });
       if (kioskId) qb.andWhere('job.kioskId = :kioskId', { kioskId });
       if (userId) qb.andWhere('job.userId = :userId', { userId });
@@ -97,7 +104,10 @@ router.patch(
   async (req: Request, res: Response) => {
     try {
       const repo = AppDataSource.getRepository(PrintJob);
-      const job = await repo.findOne({ where: { id: req.params.id } });
+      const where = req.tenant
+        ? { id: req.params.id, tenantId: req.tenant.id }
+        : { id: req.params.id };
+      const job = await repo.findOne({ where });
       if (!job) {
         res.status(404).json({ success: false, message: 'Job not found' });
         return;
@@ -118,13 +128,131 @@ router.patch(
   }
 );
 
+/**
+ * POST /api/admin/jobs/:id/accept — the Bolt-style accept window
+ * (V2-58). The operator accepts a paid job that's waiting in
+ * awaiting_accept; it becomes READY (releasable at the kiosk). Jobs
+ * rerouted to this shop get their ledger credit here.
+ */
+router.post(
+  '/jobs/:id/accept',
+  requirePermission(Permission.REQUEUE_JOBS),
+  async (req: Request, res: Response) => {
+    try {
+      const { acceptJob } = await import('../services/acceptWindow.service');
+      const job = await AppDataSource.getRepository(PrintJob).findOne({
+        where: { id: req.params.id, tenantId: req.tenant!.id },
+      });
+      if (!job) {
+        res.status(404).json({ success: false, message: 'Job not found' });
+        return;
+      }
+      const result = await acceptJob(job.id);
+      if (!result.accepted) {
+        res.status(400).json({
+          success: false,
+          message: `Job cannot be accepted (${result.reason})`,
+        });
+        return;
+      }
+      await writeAudit(req, 'job.accepted', `job:${job.id}`, { code: job.code });
+      res.json({ success: true, data: { status: PrintJobStatus.READY } });
+    } catch (error: any) {
+      console.error('Accept job error:', error?.message);
+      res.status(500).json({ success: false, message: 'Failed to accept job' });
+    }
+  },
+);
+
+/**
+ * POST /api/admin/jobs/:id/release — operator "one-tap print"
+ * (V2-57). Marks a READY job RELEASING and binds it to the tenant's
+ * first ACTIVE kiosk; the on-site agent polls /api/agent/jobs/ready
+ * and silent-prints it via the kiosk-pull path. Same atomic
+ * READY→RELEASING transition the kiosk code entry uses.
+ */
+router.post(
+  '/jobs/:id/release',
+  requirePermission(Permission.REQUEUE_JOBS),
+  async (req: Request, res: Response) => {
+    try {
+      const jobRepo = AppDataSource.getRepository(PrintJob);
+      const job = await jobRepo.findOne({
+        where: { id: req.params.id, tenantId: req.tenant!.id },
+      });
+      if (!job) {
+        res.status(404).json({ success: false, message: 'Job not found' });
+        return;
+      }
+      if (job.status !== PrintJobStatus.READY) {
+        res.status(400).json({
+          success: false,
+          message: `Only READY jobs can be released (status: ${job.status})`,
+          code: 'JOB_NOT_RELEASABLE',
+        });
+        return;
+      }
+
+      const kioskRepo = AppDataSource.getRepository(Kiosk);
+      const kiosk = await kioskRepo
+        .createQueryBuilder('k')
+        .where('k.tenantId = :tenantId', { tenantId: req.tenant!.id })
+        .andWhere('k.status = :active', { active: KioskStatus.ACTIVE })
+        .orderBy('k.createdAt', 'ASC')
+        .getOne();
+      if (!kiosk) {
+        res.status(409).json({
+          success: false,
+          message: 'No active kiosk for this shop — add one or check the fleet.',
+          code: 'KIOSK_NO_PRINTER',
+        });
+        return;
+      }
+
+      const upd = await jobRepo
+        .createQueryBuilder()
+        .update(PrintJob)
+        .set({ status: PrintJobStatus.RELEASING, kioskId: kiosk.id })
+        .where('id = :id AND status = :ready', {
+          id: job.id,
+          ready: PrintJobStatus.READY,
+        })
+        .execute();
+      if ((upd.affected ?? 0) !== 1) {
+        res.status(409).json({
+          success: false,
+          message: 'Job is no longer releasable (already in flight).',
+          code: 'JOB_NOT_RELEASABLE',
+        });
+        return;
+      }
+
+      await writeAudit(req, 'job.released', `job:${job.id}`, {
+        code: job.code,
+        kioskId: kiosk.id,
+      });
+      res.json({
+        success: true,
+        message: 'Released — the kiosk is printing it now.',
+        data: { status: PrintJobStatus.RELEASING, kioskId: kiosk.id },
+      });
+    } catch (error: any) {
+      console.error('Release job error:', error?.message);
+      res.status(500).json({ success: false, message: 'Failed to release job' });
+    }
+  },
+);
+
 router.patch(
   '/jobs/:id/status',
   requirePermission(Permission.REQUEUE_JOBS),
   async (req: Request, res: Response) => {
     try {
       const repo = AppDataSource.getRepository(PrintJob);
-      const job = await repo.findOne({ where: { id: req.params.id } });
+      const where = req.tenant
+        ? { id: req.params.id, tenantId: req.tenant.id }
+        : { id: req.params.id };
+      const job = await repo.findOne({ where });
       if (!job) {
         res.status(404).json({ success: false, message: 'Job not found' });
         return;
@@ -151,10 +279,14 @@ router.patch(
 router.get(
   '/group-sessions',
   requirePermission(Permission.VIEW_JOBS),
-  async (_req: Request, res: Response) => {
+  async (req: Request, res: Response) => {
     try {
       const repo = AppDataSource.getRepository(GroupSession);
-      const sessions = await repo.find({ order: { createdAt: 'DESC' }, take: 100 });
+      const sessions = await repo.find({
+        where: req.tenant ? { tenantId: req.tenant.id } : {},
+        order: { createdAt: 'DESC' },
+        take: 100,
+      });
       res.json({ success: true, data: { sessions } });
     } catch (error) {
       console.error('List group sessions error:', error);
@@ -167,10 +299,13 @@ router.get(
 router.get(
   '/pricing',
   requirePermission(Permission.VIEW_PRICING),
-  async (_req: Request, res: Response) => {
+  async (req: Request, res: Response) => {
     try {
       const repo = AppDataSource.getRepository(PricingConfig);
-      const configs = await repo.find({ order: { paperSize: 'ASC', colorType: 'ASC' } });
+      const configs = await repo.find({
+        where: req.tenant ? { tenantId: req.tenant.id } : {},
+        order: { paperSize: 'ASC', colorType: 'ASC' },
+      });
       res.json({ success: true, data: { configs } });
     } catch (error) {
       console.error('List pricing error:', error);
@@ -185,7 +320,10 @@ router.patch(
   async (req: Request, res: Response) => {
     try {
       const repo = AppDataSource.getRepository(PricingConfig);
-      const config = await repo.findOne({ where: { id: req.params.id } });
+      const where = req.tenant
+        ? { id: req.params.id, tenantId: req.tenant.id }
+        : { id: req.params.id };
+      const config = await repo.findOne({ where });
       if (!config) {
         res.status(404).json({ success: false, message: 'Pricing config not found' });
         return;
@@ -256,13 +394,18 @@ router.post(
       }
 
       const repo = AppDataSource.getRepository(PricingConfig);
-      const existing = await repo.findOne({ where: { paperSize, colorType } });
+      const tenantId = req.tenant?.id ?? null;
+      const existingWhere = tenantId
+        ? { tenantId, paperSize, colorType }
+        : { paperSize, colorType };
+      const existing = await repo.findOne({ where: existingWhere as any });
       if (existing) {
         res.status(409).json({ success: false, message: 'A config for this paper size + colour already exists' });
         return;
       }
 
       const config = repo.create({
+        tenantId,
         paperSize,
         colorType,
         pricePerPage: Number(pricePerPage) || 0,
@@ -295,7 +438,10 @@ router.delete(
   async (req: Request, res: Response) => {
     try {
       const repo = AppDataSource.getRepository(PricingConfig);
-      const config = await repo.findOne({ where: { id: req.params.id } });
+      const where = req.tenant
+        ? { id: req.params.id, tenantId: req.tenant.id }
+        : { id: req.params.id };
+      const config = await repo.findOne({ where });
       if (!config) {
         res.status(404).json({ success: false, message: 'Pricing config not found' });
         return;
@@ -317,10 +463,13 @@ router.delete(
 router.get(
   '/promotions',
   requirePermission(Permission.VIEW_PROMOTIONS),
-  async (_req: Request, res: Response) => {
+  async (req: Request, res: Response) => {
     try {
       const repo = AppDataSource.getRepository(Promotion);
-      const promotions = await repo.find({ order: { createdAt: 'DESC' } });
+      const promotions = await repo.find({
+        where: req.tenant ? { tenantId: req.tenant.id } : {},
+        order: { createdAt: 'DESC' },
+      });
       res.json({ success: true, data: { promotions } });
     } catch (error) {
       console.error('List promotions error:', error);
@@ -339,6 +488,9 @@ router.post(
       // unique index on `code` directly (no UPPER() functional lookup).
       const body = { ...(req.body || {}) };
       if (typeof body.code === 'string') body.code = body.code.trim().toUpperCase();
+      // Stamp tenant — promotions are scoped per-tenant (each tenant
+      // runs their own promo codes).
+      body.tenantId = req.tenant?.id ?? null;
       const promotion = repo.create(body as Partial<Promotion>);
       const saved = await repo.save(promotion);
       await writeAudit(req, 'promotion.created', `promotion:${(saved as any).id}`, body);
@@ -356,7 +508,10 @@ router.patch(
   async (req: Request, res: Response) => {
     try {
       const repo = AppDataSource.getRepository(Promotion);
-      const promotion = await repo.findOne({ where: { id: req.params.id } });
+      const where = req.tenant
+        ? { id: req.params.id, tenantId: req.tenant.id }
+        : { id: req.params.id };
+      const promotion = await repo.findOne({ where });
       if (!promotion) {
         res.status(404).json({ success: false, message: 'Promotion not found' });
         return;
@@ -386,6 +541,7 @@ router.get(
       const repo = AppDataSource.getRepository(Payment);
       const qb = repo.createQueryBuilder('p').leftJoinAndSelect('p.user', 'user');
 
+      if (req.tenant) qb.andWhere('p.tenantId = :__tid', { __tid: req.tenant.id });
       if (method) qb.andWhere('p.method = :method', { method });
       if (status) qb.andWhere('p.status = :status', { status });
       if (userId) qb.andWhere('p.userId = :userId', { userId });
@@ -406,74 +562,311 @@ router.get(
   }
 );
 
-router.post(
-  '/refunds',
-  requirePermission(Permission.ISSUE_REFUNDS),
+// ── Blog (V2-54) ─────────────────────────────────────────────────────────
+function slugify(input: string): string {
+  return (
+    String(input)
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .slice(0, 140) || 'post'
+  );
+}
+
+async function uniqueBlogSlug(
+  repo: any,
+  base: string,
+  excludeId?: string,
+): Promise<string> {
+  const baseSlug = slugify(base);
+  let candidate = baseSlug;
+  let i = 2;
+  for (;;) {
+    const existing = await repo.findOne({ where: { slug: candidate } });
+    if (!existing || existing.id === excludeId) return candidate;
+    candidate = `${baseSlug}-${i++}`;
+  }
+}
+
+router.get(
+  '/blog',
+  requirePermission(Permission.MANAGE_BLOG),
   async (req: Request, res: Response) => {
     try {
-      const { paymentId, amount, reason, refundType = 'WALLET' } = req.body || {};
-      const paymentRepo = AppDataSource.getRepository(Payment);
-      const payment = await paymentRepo.findOne({ where: { id: paymentId } });
+      const repo = AppDataSource.getRepository(BlogPost);
+      const posts = await repo.find({
+        where: { tenantId: req.tenant!.id },
+        order: { updatedAt: 'DESC' },
+      });
+      res.json({ success: true, data: posts });
+    } catch (error: any) {
+      console.error('List blog error:', error?.message);
+      res.status(500).json({ success: false, message: 'Failed to list posts' });
+    }
+  },
+);
 
-      if (!payment) {
-        res.status(404).json({ success: false, message: 'Payment not found' });
+router.post(
+  '/blog',
+  requirePermission(Permission.MANAGE_BLOG),
+  async (req: Request, res: Response) => {
+    try {
+      const { title, excerpt, content, coverImageUrl, authorName, tags, status } = req.body || {};
+      if (!title || !content) {
+        res.status(400).json({ success: false, message: 'title and content are required' });
         return;
       }
-      if (payment.status !== 'SUCCESS') {
-        res.status(400).json({ success: false, message: 'Can only refund successful payments' });
-        return;
-      }
-      if (payment.refundedAt) {
-        res.status(400).json({ success: false, message: 'Payment already refunded' });
-        return;
-      }
+      const repo = AppDataSource.getRepository(BlogPost);
+      const post = repo.create({
+        tenantId: req.tenant!.id,
+        slug: await uniqueBlogSlug(repo, title),
+        title: String(title).slice(0, 200),
+        excerpt: excerpt ? String(excerpt).slice(0, 400) : null,
+        content: String(content),
+        coverImageUrl: coverImageUrl || null,
+        authorName: authorName || null,
+        tags: Array.isArray(tags) ? tags.slice(0, 10) : null,
+        status: status === BlogPostStatus.PUBLISHED ? BlogPostStatus.PUBLISHED : BlogPostStatus.DRAFT,
+        publishedAt:
+          status === BlogPostStatus.PUBLISHED ? new Date() : null,
+      });
+      await repo.save(post);
+      await writeAudit(req, 'blog.created', `post:${post.id}`, { slug: post.slug, title: post.title });
+      res.status(201).json({ success: true, data: post });
+    } catch (error: any) {
+      console.error('Create blog error:', error?.message);
+      res.status(500).json({ success: false, message: 'Failed to create post' });
+    }
+  },
+);
 
-      const refundAmount = Number(amount) || Number(payment.amount);
-      if (refundAmount > Number(payment.amount)) {
-        res.status(400).json({ success: false, message: 'Refund exceeds original payment' });
+router.patch(
+  '/blog/:id',
+  requirePermission(Permission.MANAGE_BLOG),
+  async (req: Request, res: Response) => {
+    try {
+      const repo = AppDataSource.getRepository(BlogPost);
+      const post = await repo.findOne({
+        where: { id: req.params.id, tenantId: req.tenant!.id },
+      });
+      if (!post) {
+        res.status(404).json({ success: false, message: 'Post not found' });
         return;
       }
+      const { title, excerpt, content, coverImageUrl, authorName, tags, status } = req.body || {};
+      const wasPublished = post.status === BlogPostStatus.PUBLISHED;
+      if (title) post.title = String(title).slice(0, 200);
+      if (excerpt !== undefined) post.excerpt = excerpt ? String(excerpt).slice(0, 400) : null;
+      if (content !== undefined) post.content = String(content);
+      if (coverImageUrl !== undefined) post.coverImageUrl = coverImageUrl || null;
+      if (authorName !== undefined) post.authorName = authorName || null;
+      if (tags !== undefined) post.tags = Array.isArray(tags) ? tags.slice(0, 10) : null;
+      if (status === BlogPostStatus.PUBLISHED && !wasPublished) {
+        post.status = BlogPostStatus.PUBLISHED;
+        post.publishedAt = post.publishedAt ?? new Date();
+      } else if (status === BlogPostStatus.DRAFT) {
+        post.status = BlogPostStatus.DRAFT;
+        post.publishedAt = null;
+      }
+      await repo.save(post);
+      await writeAudit(req, 'blog.updated', `post:${post.id}`, { slug: post.slug, title: post.title });
+      res.json({ success: true, data: post });
+    } catch (error: any) {
+      console.error('Update blog error:', error?.message);
+      res.status(500).json({ success: false, message: 'Failed to update post' });
+    }
+  },
+);
 
-      if (refundType === 'WALLET') {
-        const walletRepo = AppDataSource.getRepository(Wallet);
-        const txRepo = AppDataSource.getRepository(Transaction);
-        const wallet = await walletRepo.findOne({ where: { userId: payment.userId } });
-        if (!wallet) {
-          res.status(404).json({ success: false, message: 'User wallet not found' });
+router.delete(
+  '/blog/:id',
+  requirePermission(Permission.MANAGE_BLOG),
+  async (req: Request, res: Response) => {
+    try {
+      const repo = AppDataSource.getRepository(BlogPost);
+      const post = await repo.findOne({
+        where: { id: req.params.id, tenantId: req.tenant!.id },
+      });
+      if (!post) {
+        res.status(404).json({ success: false, message: 'Post not found' });
+        return;
+      }
+      await repo.remove(post);
+      await writeAudit(req, 'blog.deleted', `post:${post.id}`, { slug: post.slug });
+      res.json({ success: true, message: 'Post deleted' });
+    } catch (error: any) {
+      console.error('Delete blog error:', error?.message);
+      res.status(500).json({ success: false, message: 'Failed to delete post' });
+    }
+  },
+);
+
+// ── Printer profiles (V2-56) ────────────────────────────────────────────
+const PAPER_SIZES = ['A4', 'A3', 'LETTER', 'LEGAL'];
+const DPI_CHOICES = [100, 300, 600];
+
+function sanitizeCapabilities(raw: any): PrinterCapabilities | null {
+  const maxDpi = DPI_CHOICES.includes(Number(raw?.maxDpi))
+    ? (Number(raw?.maxDpi) as 100 | 300 | 600)
+    : null;
+  const colorMode = raw?.colorMode === 'bw' ? 'bw' : raw?.colorMode === 'color' ? 'color' : null;
+  const paperSize = PAPER_SIZES.includes(String(raw?.paperSize).toUpperCase())
+    ? (String(raw?.paperSize).toUpperCase() as PrinterCapabilities['paperSize'])
+    : null;
+  if (maxDpi == null || colorMode == null) return null;
+  return {
+    maxDpi,
+    colorMode,
+    paperSize,
+    duplex: Boolean(raw?.duplex),
+  };
+}
+
+async function clearOtherDefaults(
+  repo: any,
+  tenantId: string,
+  excludeId?: string,
+): Promise<void> {
+  await repo
+    .createQueryBuilder()
+    .update(PrinterProfile)
+    .set({ isDefault: false })
+    .where('tenantId = :tenantId AND id != :id', {
+      tenantId,
+      id: excludeId ?? '00000000-0000-0000-0000-000000000000',
+    })
+    .execute();
+}
+
+router.get(
+  '/printer-profiles',
+  requirePermission(Permission.MANAGE_KIOSKS),
+  async (req: Request, res: Response) => {
+    try {
+      const repo = AppDataSource.getRepository(PrinterProfile);
+      const profiles = await repo.find({
+        where: { tenantId: req.tenant!.id },
+        order: { isDefault: 'DESC', createdAt: 'ASC' },
+      });
+      res.json({ success: true, data: profiles });
+    } catch (error: any) {
+      console.error('List printer profiles error:', error?.message);
+      res.status(500).json({ success: false, message: 'Failed to list printer profiles' });
+    }
+  },
+);
+
+router.post(
+  '/printer-profiles',
+  requirePermission(Permission.MANAGE_KIOSKS),
+  async (req: Request, res: Response) => {
+    try {
+      const { displayName, ippUri, driverKind, isDefault, capabilities } = req.body || {};
+      if (!displayName) {
+        res.status(400).json({ success: false, message: 'displayName is required' });
+        return;
+      }
+      const caps = sanitizeCapabilities(capabilities);
+      if (!caps) {
+        res.status(400).json({
+          success: false,
+          message: 'capabilities.maxDpi (100|300|600) and capabilities.colorMode (bw|color) are required',
+        });
+        return;
+      }
+      const repo = AppDataSource.getRepository(PrinterProfile);
+      if (isDefault) await clearOtherDefaults(repo, req.tenant!.id);
+      const profile = await repo.save(
+        repo.create({
+          tenantId: req.tenant!.id,
+          displayName: String(displayName).slice(0, 120),
+          ippUri: ippUri || null,
+          driverKind: String(driverKind || 'unknown').slice(0, 20),
+          capabilities: caps,
+          isDefault: Boolean(isDefault),
+        }),
+      );
+      await writeAudit(req, 'printer_profile.created', `profile:${profile.id}`, {
+        displayName: profile.displayName,
+      });
+      res.status(201).json({ success: true, data: profile });
+    } catch (error: any) {
+      console.error('Create printer profile error:', error?.message);
+      res.status(500).json({ success: false, message: 'Failed to create printer profile' });
+    }
+  },
+);
+
+router.patch(
+  '/printer-profiles/:id',
+  requirePermission(Permission.MANAGE_KIOSKS),
+  async (req: Request, res: Response) => {
+    try {
+      const repo = AppDataSource.getRepository(PrinterProfile);
+      const profile = await repo.findOne({
+        where: { id: req.params.id, tenantId: req.tenant!.id },
+      });
+      if (!profile) {
+        res.status(404).json({ success: false, message: 'Printer profile not found' });
+        return;
+      }
+      const { displayName, ippUri, driverKind, isDefault, isActive, capabilities } =
+        req.body || {};
+      if (displayName !== undefined) profile.displayName = String(displayName).slice(0, 120);
+      if (ippUri !== undefined) profile.ippUri = ippUri || null;
+      if (driverKind !== undefined) profile.driverKind = String(driverKind).slice(0, 20);
+      if (isActive !== undefined) profile.isActive = Boolean(isActive);
+      if (capabilities) {
+        const caps = sanitizeCapabilities(capabilities);
+        if (!caps) {
+          res.status(400).json({ success: false, message: 'Invalid capabilities' });
           return;
         }
-        wallet.balance = Number(wallet.balance) + refundAmount;
-        await walletRepo.save(wallet);
-        await txRepo.save(
-          txRepo.create({
-            walletId: wallet.id,
-            type: TransactionType.REFUND,
-            amount: refundAmount,
-            description: `Refund: ${reason || 'admin refund'}`,
-            balanceAfter: wallet.balance,
-            reference: payment.reference,
-          } as any)
-        );
+        profile.capabilities = caps;
       }
-
-      payment.refundedAt = new Date();
-      payment.refundReason = reason || null;
-      payment.refundAmount = refundAmount;
-      payment.refundType = refundType;
-      payment.refundedBy = req.admin?.id || null;
-      await paymentRepo.save(payment);
-
-      await writeAudit(req, 'refund.issued', `payment:${payment.id}`, { refundAmount, refundType, reason });
-      res.json({
-        success: true,
-        message: refundType === 'WALLET' ? 'Wallet refund issued' : 'Bank refund recorded',
-        data: { refundAmount, refundType },
+      if (isDefault) {
+        await clearOtherDefaults(repo, req.tenant!.id, profile.id);
+        profile.isDefault = true;
+      } else if (isDefault === false && profile.isDefault) {
+        // Don't silently remove the last default; just allow it.
+        profile.isDefault = false;
+      }
+      await repo.save(profile);
+      await writeAudit(req, 'printer_profile.updated', `profile:${profile.id}`, {
+        displayName: profile.displayName,
       });
-    } catch (error) {
-      console.error('Refund error:', error);
-      res.status(500).json({ success: false, message: 'Refund failed' });
+      res.json({ success: true, data: profile });
+    } catch (error: any) {
+      console.error('Update printer profile error:', error?.message);
+      res.status(500).json({ success: false, message: 'Failed to update printer profile' });
     }
-  }
+  },
+);
+
+router.delete(
+  '/printer-profiles/:id',
+  requirePermission(Permission.MANAGE_KIOSKS),
+  async (req: Request, res: Response) => {
+    try {
+      const repo = AppDataSource.getRepository(PrinterProfile);
+      const profile = await repo.findOne({
+        where: { id: req.params.id, tenantId: req.tenant!.id },
+      });
+      if (!profile) {
+        res.status(404).json({ success: false, message: 'Printer profile not found' });
+        return;
+      }
+      await repo.remove(profile);
+      await writeAudit(req, 'printer_profile.deleted', `profile:${profile.id}`, {
+        displayName: profile.displayName,
+      });
+      res.json({ success: true, message: 'Printer profile deleted' });
+    } catch (error: any) {
+      console.error('Delete printer profile error:', error?.message);
+      res.status(500).json({ success: false, message: 'Failed to delete printer profile' });
+    }
+  },
 );
 
 // ── Users ────────────────────────────────────────────────────────────────
@@ -488,6 +881,7 @@ router.get(
       const repo = AppDataSource.getRepository(User);
       const qb = repo.createQueryBuilder('u');
 
+      if (req.tenant) qb.andWhere('u.tenantId = :__tid', { __tid: req.tenant.id });
       if (search) {
         qb.where(
           '(LOWER(u.email) LIKE :q OR LOWER(u.firstName) LIKE :q OR LOWER(u.lastName) LIKE :q OR u.phoneNumber LIKE :p)',
@@ -514,7 +908,10 @@ router.get(
   async (req: Request, res: Response) => {
     try {
       const repo = AppDataSource.getRepository(User);
-      const user = await repo.findOne({ where: { id: req.params.id } });
+      const userWhere = req.tenant
+        ? { id: req.params.id, tenantId: req.tenant.id }
+        : { id: req.params.id };
+      const user = await repo.findOne({ where: userWhere });
       if (!user) {
         res.status(404).json({ success: false, message: 'User not found' });
         return;
@@ -522,14 +919,22 @@ router.get(
       const jobRepo = AppDataSource.getRepository(PrintJob);
       const paymentRepo = AppDataSource.getRepository(Payment);
 
+      const tid = req.tenant?.id;
       const [totalJobs, spent, recentJobs] = await Promise.all([
-        jobRepo.count({ where: { userId: user.id } }),
-        paymentRepo
-          .createQueryBuilder('p')
-          .select('COALESCE(SUM(p.amount), 0)', 'total')
-          .where('p.userId = :id AND p.status = :s', { id: user.id, s: 'SUCCESS' })
-          .getRawOne(),
-        jobRepo.find({ where: { userId: user.id }, order: { createdAt: 'DESC' }, take: 10 }),
+        jobRepo.count({ where: tid ? { userId: user.id, tenantId: tid } : { userId: user.id } }),
+        (() => {
+          const qb = paymentRepo
+            .createQueryBuilder('p')
+            .select('COALESCE(SUM(p.amount), 0)', 'total')
+            .where('p.userId = :id AND p.status = :s', { id: user.id, s: 'SUCCESS' });
+          if (tid) qb.andWhere('p.tenantId = :tid', { tid });
+          return qb.getRawOne();
+        })(),
+        jobRepo.find({
+          where: tid ? { userId: user.id, tenantId: tid } : { userId: user.id },
+          order: { createdAt: 'DESC' },
+          take: 10,
+        }),
       ]);
 
       res.json({
@@ -554,7 +959,10 @@ router.patch(
     try {
       const { isBlocked, reason } = req.body || {};
       const repo = AppDataSource.getRepository(User);
-      const user = await repo.findOne({ where: { id: req.params.id } });
+      const userWhere = req.tenant
+        ? { id: req.params.id, tenantId: req.tenant.id }
+        : { id: req.params.id };
+      const user = await repo.findOne({ where: userWhere });
       if (!user) {
         res.status(404).json({ success: false, message: 'User not found' });
         return;
@@ -582,7 +990,10 @@ router.patch(
         return;
       }
       const repo = AppDataSource.getRepository(User);
-      const user = await repo.findOne({ where: { id: req.params.id } });
+      const userWhere = req.tenant
+        ? { id: req.params.id, tenantId: req.tenant.id }
+        : { id: req.params.id };
+      const user = await repo.findOne({ where: userWhere });
       if (!user) {
         res.status(404).json({ success: false, message: 'User not found' });
         return;
@@ -612,7 +1023,10 @@ router.patch(
         return;
       }
       const repo = AppDataSource.getRepository(User);
-      const user = await repo.findOne({ where: { id: req.params.id } });
+      const userWhere = req.tenant
+        ? { id: req.params.id, tenantId: req.tenant.id }
+        : { id: req.params.id };
+      const user = await repo.findOne({ where: userWhere });
       if (!user) {
         res.status(404).json({ success: false, message: 'User not found' });
         return;

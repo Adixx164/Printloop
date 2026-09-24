@@ -1,0 +1,144 @@
+{
+  "slides": [
+    {
+      "slide_number": 1,
+      "title": "Strategy Brief: Raise Seed Round for PrintLoop",
+      "body_markdown": "",
+      "raw_body_markdown": "# Strategy Brief: Raise Seed Round for PrintLoop",
+      "source_line": 0,
+      "line_count": 1,
+      "notes": "",
+      "has_notes": false
+    },
+    {
+      "slide_number": 2,
+      "title": "Context",
+      "body_markdown": "- **Company:** PrintLoop \u2014 campus print marketplace (Nigeria)\n- **Stage:** Pre-seed, pre-revenue, product live (multi-tenant SaaS v2)\n- **Ask:** \u20a615M NGN (~$9K USD) for 18-month runway\n- **Use of funds:** Software completion (multi-tenancy, payments, kiosk agent), marketing (campus ambassadors, WhatsApp/IG/TikTok content), 2 kiosk hardware units",
+      "raw_body_markdown": "# Context\n- **Company:** PrintLoop \u2014 campus print marketplace (Nigeria)\n- **Stage:** Pre-seed, pre-revenue, product live (multi-tenant SaaS v2)\n- **Ask:** \u20a615M NGN (~$9K USD) for 18-month runway\n- **Use of funds:** Software completion (multi-tenancy, payments, kiosk agent), marketing (campus ambassadors, WhatsApp/IG/TikTok content), 2 kiosk hardware units",
+      "source_line": 3,
+      "line_count": 5,
+      "notes": "",
+      "has_notes": false
+    },
+    {
+      "slide_number": 3,
+      "title": "Problem (validated)",
+      "body_markdown": "University students in Nigeria describe printing as: \"slow, lots of queue, inconsistent quality.\" Current alternative: campus business centres (\u20a6100-200/page, 45-min queue, limited hours).",
+      "raw_body_markdown": "# Problem (validated)\nUniversity students in Nigeria describe printing as: \"slow, lots of queue, inconsistent quality.\" Current alternative: campus business centres (\u20a6100-200/page, 45-min queue, limited hours).",
+      "source_line": 11,
+      "line_count": 2,
+      "notes": "",
+      "has_notes": false
+    },
+    {
+      "slide_number": 4,
+      "title": "Customer (ICP)",
+      "body_markdown": "**Primary:** \"Chinedu, 300-level Civil Engineering, UNILAG. Prints 3\u00d7/week. Uses Biz Centre Akoka. Pays \u20a620/page. Hates 45-min queue. Has smartphone, pays via USSD/bank app.\"\n**Secondary:** Kiosk owners \u2014 \"Mr. Yusuf, owns HP LaserJet at UNILAG gate. Makes \u20a612k/week cyber cafe. Wants zero-rent, customer-bringing model.\"",
+      "raw_body_markdown": "# Customer (ICP)\n**Primary:** \"Chinedu, 300-level Civil Engineering, UNILAG. Prints 3\u00d7/week. Uses Biz Centre Akoka. Pays \u20a620/page. Hates 45-min queue. Has smartphone, pays via USSD/bank app.\"\n**Secondary:** Kiosk owners \u2014 \"Mr. Yusuf, owns HP LaserJet at UNILAG gate. Makes \u20a612k/week cyber cafe. Wants zero-rent, customer-bringing model.\"",
+      "source_line": 16,
+      "line_count": 3,
+      "notes": "",
+      "has_notes": false
+    },
+    {
+      "slide_number": 5,
+      "title": "Distribution (tested, repeatable)",
+      "body_markdown": "1. **WhatsApp broadcast** \u2014 UNILAG 300-level group chats (organic, zero CAC)\n2. **Campus ambassadors** \u2014 5 students/hostel, \u20a65k/month + commission\n3. **Short-form video** \u2014 IG Reels/TikTok/YouTube Shorts targeting \"UNILAG printing\" / \"Nile University printing\" searches\n4. **Referral loop** \u2014 \"Refer a friend, get \u20a6200 credit\"",
+      "raw_body_markdown": "# Distribution (tested, repeatable)\n1. **WhatsApp broadcast** \u2014 UNILAG 300-level group chats (organic, zero CAC)\n2. **Campus ambassadors** \u2014 5 students/hostel, \u20a65k/month + commission\n3. **Short-form video** \u2014 IG Reels/TikTok/YouTube Shorts targeting \"UNILAG printing\" / \"Nile University printing\" searches\n4. **Referral loop** \u2014 \"Refer a friend, get \u20a6200 credit\"",
+      "source_line": 22,
+      "line_count": 5,
+      "notes": "",
+      "has_notes": false
+    },
+    {
+      "slide_number": 6,
+      "title": "Defensibility",
+      "body_markdown": "**Switching costs (primary):**\n- Student: saved cards, order history, campus-specific pricing, loyalty credits\n- Kiosk: Paystack subaccount split, payout history, tenant dashboard, printer pairing\n- Network effect: more students \u2192 more kiosk revenue \u2192 more kiosks join \u2192 better coverage \u2192 more students",
+      "raw_body_markdown": "# Defensibility\n**Switching costs (primary):**\n- Student: saved cards, order history, campus-specific pricing, loyalty credits\n- Kiosk: Paystack subaccount split, payout history, tenant dashboard, printer pairing\n- Network effect: more students \u2192 more kiosk revenue \u2192 more kiosks join \u2192 better coverage \u2192 more students",
+      "source_line": 30,
+      "line_count": 5,
+      "notes": "",
+      "has_notes": false
+    },
+    {
+      "slide_number": 7,
+      "title": "Market Size",
+      "body_markdown": "- **TAM:** 2.1M university students in Nigeria \u00d7 \u20a6500/month avg print spend = \u20a61.05B/year\n- **SAM (Phase 1):** 12 universities in Lagos/Abuja = 400k students = \u20a6200M/year\n- **SOM (Year 1):** 3 universities, 5% penetration = 600 students = \u20a63M ARR",
+      "raw_body_markdown": "# Market Size\n- **TAM:** 2.1M university students in Nigeria \u00d7 \u20a6500/month avg print spend = \u20a61.05B/year\n- **SAM (Phase 1):** 12 universities in Lagos/Abuja = 400k students = \u20a6200M/year\n- **SOM (Year 1):** 3 universities, 5% penetration = 600 students = \u20a63M ARR",
+      "source_line": 38,
+      "line_count": 4,
+      "notes": "",
+      "has_notes": false
+    },
+    {
+      "slide_number": 8,
+      "title": "Business Model",
+      "body_markdown": "- **Student:** \u20a65/page B&W, \u20a625/page color (Paystack: card/USSD/transfer)\n- **Kiosk:** PrintLoop takes 10% commission only on completed jobs\n- **No subscription, no wallet** \u2014 pay per job, code-based collection",
+      "raw_body_markdown": "# Business Model\n- **Student:** \u20a65/page B&W, \u20a625/page color (Paystack: card/USSD/transfer)\n- **Kiosk:** PrintLoop takes 10% commission only on completed jobs\n- **No subscription, no wallet** \u2014 pay per job, code-based collection",
+      "source_line": 45,
+      "line_count": 4,
+      "notes": "",
+      "has_notes": false
+    },
+    {
+      "slide_number": 9,
+      "title": "Traction (v2 platform)",
+      "body_markdown": "- Multi-tenant SaaS: tenant isolation, subaccounts, white-label branding\n- Paystack integration: live test keys, webhook handling, subaccount splits\n- Kiosk agent: IPP + raw9100 + OS spooler (near-universal printer compatibility)\n- Render worker: cloud PDF\u2192PWG-Raster, HMAC callback, BullMQ queue\n- 87 backend tests passing, CI/CD pipeline, Docker images",
+      "raw_body_markdown": "# Traction (v2 platform)\n- Multi-tenant SaaS: tenant isolation, subaccounts, white-label branding\n- Paystack integration: live test keys, webhook handling, subaccount splits\n- Kiosk agent: IPP + raw9100 + OS spooler (near-universal printer compatibility)\n- Render worker: cloud PDF\u2192PWG-Raster, HMAC callback, BullMQ queue\n- 87 backend tests passing, CI/CD pipeline, Docker images",
+      "source_line": 52,
+      "line_count": 6,
+      "notes": "",
+      "has_notes": false
+    },
+    {
+      "slide_number": 10,
+      "title": "Financials",
+      "body_markdown": "| Metric | Value |\n|--------|-------|\n| Ask | \u20a615M NGN ($9K USD) |\n| Runway | 18 months |\n| Burn | ~\u20a6833k/month |\n| Payback target | 24 months |\n| Break-even | 1,200 active students/month |",
+      "raw_body_markdown": "# Financials\n| Metric | Value |\n|--------|-------|\n| Ask | \u20a615M NGN ($9K USD) |\n| Runway | 18 months |\n| Burn | ~\u20a6833k/month |\n| Payback target | 24 months |\n| Break-even | 1,200 active students/month |",
+      "source_line": 61,
+      "line_count": 8,
+      "notes": "",
+      "has_notes": false
+    },
+    {
+      "slide_number": 11,
+      "title": "Risks & Mitigations",
+      "body_markdown": "| Risk | Likelihood | Impact | Mitigation |\n|------|------------|--------|------------|\n| Paystack webhook reliability | Medium | High | Idempotent handling, manual fallback, retry logic |\n| Kiosk onboarding friction | High | High | Self-serve wizard, QR pairing, remote support |\n| Student acquisition cost | Medium | Medium | Organic WhatsApp + ambassadors + viral loops |\n| Power/internet at kiosks | High | High | OS spooler fallback, offline queue, battery backup |\n| Competitor (campus biz centres) | High | Medium | Price parity + speed + convenience + loyalty |",
+      "raw_body_markdown": "# Risks & Mitigations\n| Risk | Likelihood | Impact | Mitigation |\n|------|------------|--------|------------|\n| Paystack webhook reliability | Medium | High | Idempotent handling, manual fallback, retry logic |\n| Kiosk onboarding friction | High | High | Self-serve wizard, QR pairing, remote support |\n| Student acquisition cost | Medium | Medium | Organic WhatsApp + ambassadors + viral loops |\n| Power/internet at kiosks | High | High | OS spooler fallback, offline queue, battery backup |\n| Competitor (campus biz centres) | High | Medium | Price parity + speed + convenience + loyalty |",
+      "source_line": 72,
+      "line_count": 8,
+      "notes": "",
+      "has_notes": false
+    },
+    {
+      "slide_number": 12,
+      "title": "Milestones (Next 18 Months)",
+      "body_markdown": "| Month | Milestone |\n|-------|-----------|\n| 1-2 | 3 universities live, 500 students, 5 kiosks |\n| 3-6 | 1,200 students, break-even on variable costs |\n| 6-12 | 10 universities, 5k students, \u20a610M ARR |\n| 12-18 | 20 universities, \u20a650M ARR, Series A ready |",
+      "raw_body_markdown": "# Milestones (Next 18 Months)\n| Month | Milestone |\n|-------|-----------|\n| 1-2 | 3 universities live, 500 students, 5 kiosks |\n| 3-6 | 1,200 students, break-even on variable costs |\n| 6-12 | 10 universities, 5k students, \u20a610M ARR |\n| 12-18 | 20 universities, \u20a650M ARR, Series A ready |",
+      "source_line": 83,
+      "line_count": 7,
+      "notes": "",
+      "has_notes": false
+    },
+    {
+      "slide_number": 13,
+      "title": "Decision Required",
+      "body_markdown": "- **Proceed with seed raise?** (Y/N)\n- **If Y:** Target investors \u2014 angel (Nigerian founders), micro-VC (Future Africa, Launch Africa), revenue-based financing (GetEquity)\n- **If N:** Bootstrap to profitability, reinvest kiosk commissions",
+      "raw_body_markdown": "# Decision Required\n- **Proceed with seed raise?** (Y/N)\n- **If Y:** Target investors \u2014 angel (Nigerian founders), micro-VC (Future Africa, Launch Africa), revenue-based financing (GetEquity)\n- **If N:** Bootstrap to profitability, reinvest kiosk commissions",
+      "source_line": 93,
+      "line_count": 4,
+      "notes": "",
+      "has_notes": false
+    }
+  ],
+  "boundary": "hr",
+  "boundary_used": "hr",
+  "summary": {
+    "total_slides": 13,
+    "max_slide_lines": 8,
+    "over_threshold": [],
+    "max_threshold": 40,
+    "slides_with_notes": 0,
+    "notes_coverage_pct": 0.0
+  }
+}

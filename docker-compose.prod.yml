@@ -1,0 +1,188 @@
+# PrintLoop SaaS — Production Docker Compose
+# Run with: docker compose -f docker-compose.prod.yml up -d
+# Requires: .env.production file with all secrets
+
+version: '3.8'
+
+services:
+  # ── Postgres (managed in production; this is for single-host deploy) ─────
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-printloop}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:-printloop}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-printloop} -d ${POSTGRES_DB:-printloop}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+
+  # ── Redis (managed in production; this is for single-host deploy) ────────
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+
+  # ── Office → PDF conversion (optional; can use external API) ────────────
+  gotenberg:
+    image: gotenberg/gotenberg:8
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '1'
+
+  # ── API ──────────────────────────────────────────────────────────────────
+  api:
+    build:
+      context: ./01-backend
+      dockerfile: Dockerfile.prod
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      gotenberg:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: "4000"
+      DATABASE_URL: postgresql://${POSTGRES_USER:-printloop}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-printloop}
+      DB_SSL: "false"
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: ${JWT_SECRET}
+      COMMISSION_PCT_DEFAULT: ${COMMISSION_PCT_DEFAULT:-0.10}
+      PRINTLOOP_APEX_DOMAINS: ${PRINTLOOP_APEX_DOMAINS}
+      PRINTLOOP_DOMAINS_CNAME: ${PRINTLOOP_DOMAINS_CNAME}
+      RENDER_CALLBACK_SECRET: ${RENDER_CALLBACK_SECRET}
+      PAYSTACK_PUBLIC_KEY: ${PAYSTACK_PUBLIC_KEY}
+      PAYSTACK_SECRET_KEY: ${PAYSTACK_SECRET_KEY}
+      PAYSTACK_WEBHOOK_SECRET: ${PAYSTACK_WEBHOOK_SECRET}
+      S3_BUCKET: ${S3_BUCKET}
+      AWS_REGION: ${AWS_REGION:-us-east-1}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+      SMTP_HOST: ${SMTP_HOST}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_SECURE: ${SMTP_SECURE:-false}
+      SMTP_USER: ${SMTP_USER}
+      SMTP_PASSWORD: ${SMTP_PASSWORD}
+      SMTP_FROM: ${SMTP_FROM:-PrintLoop <noreply@printloop.app>}
+      TERMII_API_KEY: ${TERMII_API_KEY}
+      TERMII_SENDER_ID: ${TERMII_SENDER_ID:-PrintLoop}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      LOG_PRETTY: "false"
+      SENTRY_DSN: ${SENTRY_DSN}
+      SENTRY_TRACES_SAMPLE_RATE: ${SENTRY_TRACES_SAMPLE_RATE:-0.1}
+      SENTRY_PROFILES_SAMPLE_RATE: ${SENTRY_PROFILES_SAMPLE_RATE:-0}
+      DOC_CONVERTER: ${DOC_CONVERTER:-gotenberg}
+      GOTENBERG_URL: http://gotenberg:3000
+      LIBREOFFICE_BIN: /usr/bin/soffice
+      RENDER_CALLBACK_SECRET: ${RENDER_CALLBACK_SECRET}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS}
+    ports:
+      - "4000:4000"
+    deploy:
+      replicas: 2
+      resources:
+        limits:
+          memory: 512M
+          cpus: '1'
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:4000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+
+  # ── Background Worker (scheduled jobs) ──────────────────────────────────
+  worker:
+    build:
+      context: ./01-backend
+      dockerfile: Dockerfile.prod
+    restart: unless-stopped
+    command: ["node", "dist/worker.js"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://${POSTGRES_USER:-printloop}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-printloop}
+      DB_SSL: "false"
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: ${JWT_SECRET}
+      COMMISSION_PCT_DEFAULT: ${COMMISSION_PCT_DEFAULT:-0.10}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+    deploy:
+      replicas: 1
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.5'
+
+  # ── Render Worker (PDF → PWG-Raster) ────────────────────────────────────
+  render-worker:
+    build:
+      context: ./render-worker
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      redis:
+        condition: service_healthy
+      api:
+        condition: service_healthy
+    environment:
+      REDIS_URL: redis://redis:6379
+      PRINTLOOP_API_URL: http://api:4000
+      RENDER_CALLBACK_SECRET: ${RENDER_CALLBACK_SECRET}
+      S3_BUCKET: ${S3_BUCKET}
+      AWS_REGION: ${AWS_REGION:-us-east-1}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+      S3_ENDPOINT: ${S3_ENDPOINT}
+      S3_FORCE_PATH_STYLE: ${S3_FORCE_PATH_STYLE:-false}
+      RENDER_CONCURRENCY: ${RENDER_CONCURRENCY:-2}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+    deploy:
+      replicas: 1
+      resources:
+        limits:
+          memory: 1G
+          cpus: '2'
+
+volumes:
+  pgdata:
+  redisdata:

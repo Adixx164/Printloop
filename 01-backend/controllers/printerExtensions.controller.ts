@@ -64,7 +64,7 @@ export const validateCode = async (req: Request, res: Response): Promise<void> =
       return;
     }
 
-    const result = await printerExt.validateCode(code);
+    const result = await printerExt.validateCode(code, req.kiosk?.tenantId);
     if (!result.success) {
       res.status(400).json(result);
       return;
@@ -88,7 +88,7 @@ export const getJob = async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
-    const result = await printerExt.getJob(code);
+    const result = await printerExt.getJob(code, req.kiosk?.tenantId);
     if (!result.success) {
       res.status(404).json(result);
       return;

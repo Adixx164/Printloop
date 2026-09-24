@@ -1,0 +1,31 @@
+{
+  "name": "printloop-render-worker",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Cloud worker that normalises uploaded documents to PWG-Raster using cups-filters, computes final page count + cost, and stores the spool-ready artifact for kiosks to pull.",
+  "main": "dist/index.js",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "tsx src/index.ts",
+    "lint": "eslint src --ext .ts",
+    "test:wiring": "node scripts/e2eRenderWorker.cjs"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.600.0",
+    "@napi-rs/canvas": "1.0.0",
+    "bullmq": "^5.0.0",
+    "pdf-lib": "^1.17.1",
+    "pdfjs-dist": "4.10.38",
+    "pino": "^9.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.19.20",
+    "tsx": "^4.22.4",
+    "typescript": "^5.5.0"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

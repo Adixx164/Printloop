@@ -1,83 +1,91 @@
-# 00 · START HERE
+# 00 · START HERE — PrintLoop SaaS v2
 
-Hello Abdurrahman. This is everything we've built for PrintLoop, organized into folders.
+This is the **v2 fork** of PrintLoop, duplicated from the original
+`printloop for anti-gravity` folder on 2026-05-31. The v1 folder
+is untouched and still operable; v2 is where the new work happens.
 
-**You are not expected to be a programmer.** This package comes with a step-by-step manual (`PrintLoop-Setup-Manual.docx`) that walks you through every command. If you can follow a recipe, you can do this.
+The v2 thesis: **lean on the OpenPrinting ecosystem from day one**
+instead of treating printing as a black box behind the OS print
+dialog. We vendor 26 OpenPrinting projects, introduce a cloud
+render worker, and reduce the kiosk to a dumb-but-fast spooler.
 
 ---
 
-## What's in this package?
+## What's new in v2 (vs v1)
 
-```
-PrintLoop-Complete/
-│
-├── 00-START-HERE.md                          ← you are reading this
-├── PrintLoop-Setup-Manual.docx               ← the main manual to follow
-├── PrintLoop-Setup-Manual.md                 ← same manual, plain-text version
-│
-├── 01-backend/                               ← the server (handles payments,
-│                                                jobs, kiosk communication)
-│
-├── 02-frontend/                              ← the website + admin panel + kiosk
-│                                                screens (28 pages total)
-│
-├── 03-document-preview-component/            ← shows uploaded PDFs/Word docs
-│                                                in the print flow
-│
-├── 04-kiosk-auth-implementation/             ← authentication code for the
-│                                                Raspberry Pi kiosks
-│
-├── 05-guides-and-checklists/                 ← all your earlier reference docs
-│                                                (10 files: roadmaps, status,
-│                                                 user stories, checklists)
-│
-├── 06-prototypes-and-references/             ← old HTML prototypes (for
-│                                                inspiration / reference)
-│
-└── 07-transcripts/                           ← journal of past Claude sessions
-```
+| File / folder | Status | Purpose |
+|---|---|---|
+| `ARCHITECTURE.md` | **new** | Per-layer map: which OpenPrinting repo plays which role. Read this after `SAAS-ROADMAP.md`. |
+| `MARKETPLACE_ARCHITECTURE.md` | **new** | Structured overview of the two-sided Uber-like marketplace layout (Users, Printshops, Couriers). |
+| `vendor/openprinting/` | **new** | Shallow clones of 24 OpenPrinting projects (128 MB) we'll link, call, or learn from. Treated as read-only. Two shortlisted repos (`foomatic-db`, `sample-files`) were skipped due to size; see the vendor README. |
+| `vendor/openprinting/README.md` | **new** | One-line description of every vendored repo. |
+| `tools/refresh-vendor.ps1` | **new** | Re-pull all 26 vendor clones in one command. |
+| `render-worker/` | **new (stub)** | Cloud BullMQ consumer that turns uploaded PDFs into PWG-Raster the kiosk spools straight to the printer. Not yet wired to `01-backend`. |
+| `JOURNAL.md` | extended | New "Phase V2-0" entry at the top capturing what changed this session. |
+| `SAAS-ROADMAP.md` | unchanged | The 14-dimension multi-tenant plan. Still the product strategy bible. |
+| `01-backend/` | unchanged | TODO in a future phase: emit `render` jobs after payment confirm. |
+| `printloop-new-frontend/` | unchanged | TODO: surface "final page count + cost" UI after render lands. |
+| `printloop-kiosk-app/`, `printloop-agent/`, `printloop-kiosk/` | unchanged | TODO: pull rendered PWG artifact + submit via local CUPS. |
 
 ---
 
 ## What to read in what order
 
-1. **This file** (you're already here ✓)
-2. **`PrintLoop-Setup-Manual.docx`** — open in Microsoft Word or Google Docs. This is your bible. Follow it from Part 1 onwards.
-3. After you've finished Part 1 of the manual, you'll know which other folders to open.
+1. **This file** (you're here).
+2. **`SAAS-ROADMAP.md`** — the multi-tenant SaaS plan. Still the
+   north star; v2 doesn't replace it, it adds the print stack
+   underneath it.
+3. **`MARKETPLACE_ARCHITECTURE.md`** — the two-sided digital marketplace plan for printshops, users, and couriers.
+4. **`ARCHITECTURE.md`** — the print-stack architecture using
+   OpenPrinting. Read this to understand the cloud-render →
+   kiosk-spool flow.
+4. **`vendor/openprinting/README.md`** — what each vendored repo
+   does for us.
+5. **`render-worker/README.md`** — the new cloud worker. Has a
+   TODO list for what's left to wire up.
+6. **`JOURNAL.md` Phase V2-0** — what happened this session.
 
 ---
 
-## What is this product, in one paragraph?
+## What v2 still owes
 
-PrintLoop is a self-service printing service for Nigerian universities. A student uploads a document on their phone, pays online, and gets a 6-digit code. They walk to any of your kiosks on campus, type the code into the tablet, and the document prints out within seconds. That's it. No queue, no cyber-café haggling.
+The hard parts of v1 stay the hard parts of v2 — the SaaS roadmap
+phases (multi-tenancy in the data model, Postgres migration,
+self-serve onboarding, billing) all still need to happen. v2 just
+adds a parallel workstream:
 
-You earn money on every print (₦5–₦50 per page depending on size and color), plus group printing fees, plus partner cuts to print shop owners who host kiosks.
+1. **Wire the render worker** — emit `render` jobs from
+   `01-backend` after payment, persist `print_job_render` rows.
+2. **Pick the kiosk OS for v2** — Linux unlocks the full stack;
+   Windows keeps the v1 install path.
+3. **First end-to-end test** — cloud render → kiosk pickup →
+   physical print, on at least one printer of each driver family
+   (HP / Gutenprint / PS / Ghostscript).
+4. **Decide the render-worker host** — Railway / Fly / Render / AWS.
 
----
-
-## What you have right now
-
-| Component | Status | What's left to do |
-|---|---|---|
-| **Backend code** (server) | ✓ Written, ready to run | Set up database & deploy to a server |
-| **Frontend code** (website) | ✓ Written, ready to run | Connect to backend, deploy to Vercel |
-| **Kiosk app** (tablet) | ✓ Designs done, auth done | Connect to a real printer, test on Pi |
-| **Database schema** | ✓ Written | Run the migrations |
-| **Payment integration** (Paystack) | ✓ Code written | Get your live API keys |
-| **SMS** (Termii) | ✓ Code written | Get your live API keys |
-
----
-
-## When something goes wrong
-
-The manual has a "When something goes wrong" section near the end. If you hit something not covered there, you have three options:
-
-1. Copy the exact error message and search Google
-2. Ask Claude (this AI) — paste the error and the command you ran
-3. Hire a freelance Node.js developer for an hour or two on Upwork or Fiverr (₦15-30k/hr is reasonable for Nigerian devs)
-
-You don't need to memorize anything. You just need to follow the manual and stay patient when something's stuck.
+Each lives as an open question in `ARCHITECTURE.md` and a parked
+decision in `JOURNAL.md` Phase V2-0.
 
 ---
 
-**Now go open `PrintLoop-Setup-Manual.docx` and start at Part 1.**
+## Same caveats as v1
+
+You're still not expected to be a programmer. The setup manual
+from v1 (`PrintLoop-Setup-Manual.docx`, referenced in old notes)
+still applies for the parts of the stack that didn't change. The
+v2 additions are for the contractor / developer you'll bring on to
+turn this from "single-tenant Nigerian print shops" into "any
+print business in any country signs up at a website."
+
+If you hit something you don't understand:
+
+1. Copy the exact error and search.
+2. Paste into Claude with the file + line number.
+3. Hire someone with the relevant skill for an hour or two
+   (Node.js + Docker + Postgres for the cloud side; Linux + CUPS
+   for the kiosk side).
+
+---
+
+**Next action:** open `SAAS-ROADMAP.md`, skim sections 1–3, then
+open `ARCHITECTURE.md` and read the layer map.

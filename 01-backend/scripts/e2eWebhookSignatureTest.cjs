@@ -94,6 +94,7 @@ async function postRaw(url, rawBody, headers) {
   });
   const tok = reg.data?.data?.tokens?.accessToken;
   const userId = reg.data?.data?.user?.id;
+  const tenantId = reg.data?.data?.user?.tenantId;
   if (!tok || !userId) {
     console.error('FAIL — registration did not return tokens.accessToken / user.id');
     console.error(JSON.stringify(reg, null, 2));
@@ -112,7 +113,7 @@ async function postRaw(url, rawBody, headers) {
     data: {
       reference,
       amount: 150000, // ₦1500 in kobo
-      metadata: { userId, type: 'wallet_topup' },
+      metadata: { userId, tenantId, type: 'wallet_topup' },
     },
   };
   const rawSuccess = Buffer.from(JSON.stringify(success));
@@ -141,7 +142,7 @@ async function postRaw(url, rawBody, headers) {
   // 6. charge.failed on same reference → reversal
   const failed = {
     event: 'charge.failed',
-    data: { reference, amount: 150000, metadata: { userId, type: 'wallet_topup' } },
+    data: { reference, amount: 150000, metadata: { userId, tenantId, type: 'wallet_topup' } },
   };
   const rawFailed = Buffer.from(JSON.stringify(failed));
   const sigFailed = crypto.createHmac('sha512', secret).update(rawFailed).digest('hex');

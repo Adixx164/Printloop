@@ -78,7 +78,7 @@ export default function RegisterPage() {
             {[
               ["01", "No more queues.", "Submit from class, collect when you're free."],
               ["02", "Honest pricing.", "₦5 per page · no shop-by-shop markup games."],
-              ["03", "One wallet, every station.", "Top up once, print across all 12 stations."],
+              ["03", "Pay with Paystack.", "Card, transfer or USSD — pay once, collect from any station."],
             ].map(([n, b, t]) => (
               <div key={n} className="flex gap-3 mb-4">
                 <span className="editorial-folio not-italic text-base">
