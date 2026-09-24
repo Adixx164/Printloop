@@ -1,6 +1,6 @@
 # render.yaml
 # Blueprint version: 1
-# 
+#
 # Render Infrastructure as Code
 # Deploy with: render deploy --config render.yaml
 
@@ -48,20 +48,13 @@ services:
       - key: SEED_DEMO
         value: "1"
 
-  # Frontend - serve as web service with static files
-  - type: web
+  # Frontend - Static Site
+  - type: static
     name: printloop-frontend
-    runtime: static
     plan: free
-    region: frankfurt
     rootDir: printloop-new-frontend
     buildCommand: "npm install && npm run build"
-    startCommand: "npx serve -s dist -l $PORT"
-    envVars:
-      - key: VITE_API_URL
-        value: "https://printloop-api.onrender.com/api"
-      - key: VITE_PAYSTACK_PUBLIC_KEY
-        sync: false
+    staticPublishPath: ./dist
     headers:
       - path: /*
         name: X-Frame-Options
@@ -72,6 +65,11 @@ services:
       - path: /*
         name: Referrer-Policy
         value: strict-origin-when-cross-origin
+    envVars:
+      - key: VITE_API_URL
+        value: "https://printloop-api.onrender.com/api"
+      - key: VITE_PAYSTACK_PUBLIC_KEY
+        sync: false
 
   # Render Worker
   - type: web
@@ -106,8 +104,7 @@ services:
   - type: redis
     name: printloop-redis
     plan: free
-    region: frankfurt
-    maxmemoryPolicy: allkeys-lru
+    ipAllowList: []
 
 databases:
   # PostgreSQL database
