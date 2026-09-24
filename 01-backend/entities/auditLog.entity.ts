@@ -4,14 +4,23 @@ import {
   Column,
   CreateDateColumn,
   ManyToOne,
-  JoinColumn
+  JoinColumn,
+  Index,
 } from 'typeorm';
 import { User } from './user.entity';
 
 @Entity('audit_logs')
+@Index('idx_audit_log_tenant', ['tenantId'])
+@Index('idx_audit_log_tenant_action', ['tenantId', 'action'])
 export class AuditLog {
   @PrimaryGeneratedColumn('uuid')
   id: string;
+
+  /** Owning tenant of the audited event. Platform-level actions (e.g.
+   *  the SaaS operator suspending a tenant) carry the targeted tenant's
+   *  id here, not the platform's. NULL only for boot / migration logs. */
+  @Column({ type: 'uuid', nullable: true })
+  tenantId: string | null;
 
   @Column({ type: 'uuid', nullable: true })
   actorId: string;

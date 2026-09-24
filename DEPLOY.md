@@ -1,5 +1,12 @@
 # PrintLoop — deployment guide
 
+> **v2 note:** this is the original **v1 single-tenant / SQLite** guide.
+> For the multi-tenant SaaS deploy (Postgres, separate worker,
+> render-worker, custom domains, the 3-unit topology) use
+> **[`DEPLOY-SAAS.md`](DEPLOY-SAAS.md)** — canonical for v2. The
+> sections below remain accurate for the **kiosk ↔ printer LAN
+> constraint** and the frontend/Vercel setup.
+
 PrintLoop is two artefacts that need different hosts:
 
 | Piece                  | What it is                          | Where it goes |

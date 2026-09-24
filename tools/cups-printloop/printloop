@@ -149,12 +149,20 @@ case "$HTTP_CODE" in
     # Pluck the release code without dragging in jq.
     CODE=$(sed -nE 's/.*"code":"([A-Z0-9]+)".*/\1/p' "$HTTP_BODY" | head -n1)
     COST=$(sed -nE 's/.*"cost":([0-9]+).*/\1/p' "$HTTP_BODY" | head -n1)
+    # V2-55: the server returns a Paystack checkout link for the job.
+    # Show it in the queue dialog so the job actually gets paid.
+    PAY_URL=$(sed -nE 's/.*"payUrl":"([^"]+)".*/\1/p' "$HTTP_BODY" | head -n1)
     if [ -n "$CODE" ]; then
       # job-state-message: shows up in `lpq -l` and the GNOME/macOS print
       # queue dialog as the line CUPS displays for the job.
       echo "STATE: -cups-job-stopped-with-message" 1>&2
       echo "INFO: PrintLoop accepted — release code $CODE (cost: ₦${COST:-?})" 1>&2
-      echo "NOTICE: Enter $CODE at any PrintLoop kiosk to print." 1>&2
+      if [ -n "$PAY_URL" ]; then
+        echo "NOTICE: PAY HERE: $PAY_URL" 1>&2
+        echo "NOTICE: Pay first, then enter $CODE at any PrintLoop kiosk." 1>&2
+      else
+        echo "NOTICE: Enter $CODE at any PrintLoop kiosk to print." 1>&2
+      fi
     else
       echo "INFO: PrintLoop accepted the job (no code parsed; check the dashboard)." 1>&2
     fi

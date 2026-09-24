@@ -1,0 +1,227 @@
+{
+  "annotations": { "list": [] },
+  "description": "PrintLoop SaaS — live operations dashboard (V2-36). Import via Grafana > Dashboards > Import. Requires a Loki datasource named 'loki'.",
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": null,
+  "links": [],
+  "liveNow": false,
+  "panels": [
+    {
+      "type": "stat",
+      "title": "Requests per minute",
+      "id": 1,
+      "datasource": { "type": "loki", "uid": "loki" },
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 0 },
+      "targets": [
+        {
+          "expr": "sum(rate({svc=\"printloop-api\"} [1m])) * 60",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "textMode": "auto",
+        "orientation": "auto",
+        "colorMode": "value",
+        "graphMode": "area"
+      },
+      "fieldConfig": {
+        "defaults": { "unit": "reqps", "color": { "mode": "thresholds" } },
+        "overrides": []
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Error rate %",
+      "id": 2,
+      "datasource": { "type": "loki", "uid": "loki" },
+      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 0 },
+      "targets": [
+        {
+          "expr": "100 * sum(rate({svc=\"printloop-api\",level=\"error\"} [5m])) / clamp_min(sum(rate({svc=\"printloop-api\"} [5m])), 1)",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "textMode": "auto",
+        "orientation": "auto",
+        "colorMode": "background",
+        "graphMode": "area"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 1 },
+              { "color": "red", "value": 5 }
+            ]
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Active tenants (last hour)",
+      "id": 3,
+      "datasource": { "type": "loki", "uid": "loki" },
+      "gridPos": { "h": 4, "w": 6, "x": 12, "y": 0 },
+      "targets": [
+        {
+          "expr": "count(count by (tenantId) (count_over_time({svc=\"printloop-api\"} [1h])))",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "textMode": "auto",
+        "orientation": "auto",
+        "colorMode": "value",
+        "graphMode": "none"
+      },
+      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] }
+    },
+    {
+      "type": "stat",
+      "title": "Render queue depth",
+      "id": 4,
+      "datasource": { "type": "loki", "uid": "loki" },
+      "gridPos": { "h": 4, "w": 6, "x": 18, "y": 0 },
+      "targets": [
+        {
+          "expr": "sum(count_over_time({svc=\"printloop-render-worker\"} |= \"render-start\" [5m]))\n - sum(count_over_time({svc=\"printloop-render-worker\"} |~ \"render-(success|failure)\" [5m]))",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "textMode": "auto",
+        "orientation": "auto",
+        "colorMode": "value",
+        "graphMode": "area"
+      },
+      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] }
+    },
+
+    {
+      "type": "timeseries",
+      "title": "Request latency (durationMs p50 / p95 / p99)",
+      "id": 5,
+      "datasource": { "type": "loki", "uid": "loki" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 4 },
+      "targets": [
+        { "expr": "quantile_over_time(0.5, {svc=\"printloop-api\"} | json | unwrap durationMs [5m])", "refId": "A", "legendFormat": "p50" },
+        { "expr": "quantile_over_time(0.95, {svc=\"printloop-api\"} | json | unwrap durationMs [5m])", "refId": "B", "legendFormat": "p95" },
+        { "expr": "quantile_over_time(0.99, {svc=\"printloop-api\"} | json | unwrap durationMs [5m])", "refId": "C", "legendFormat": "p99" }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "ms", "color": { "mode": "palette-classic" } },
+        "overrides": []
+      },
+      "options": {
+        "legend": { "displayMode": "list", "placement": "bottom", "showLegend": true },
+        "tooltip": { "mode": "multi", "sort": "desc" }
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Requests by status code",
+      "id": 6,
+      "datasource": { "type": "loki", "uid": "loki" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 4 },
+      "targets": [
+        { "expr": "sum by (status) (rate({svc=\"printloop-api\"} | json [1m])) * 60", "refId": "A" }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "reqps", "color": { "mode": "palette-classic" } },
+        "overrides": []
+      },
+      "options": {
+        "legend": { "displayMode": "list", "placement": "bottom", "showLegend": true },
+        "tooltip": { "mode": "multi" }
+      }
+    },
+
+    {
+      "type": "table",
+      "title": "Top 10 error paths (15 min)",
+      "id": 7,
+      "datasource": { "type": "loki", "uid": "loki" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 12 },
+      "targets": [
+        {
+          "expr": "topk(10, sum by (path) (count_over_time({svc=\"printloop-api\",level=\"error\"} | json [15m])))",
+          "refId": "A",
+          "format": "table",
+          "instant": true
+        }
+      ]
+    },
+    {
+      "type": "table",
+      "title": "Top 10 tenants by request volume (1 hour)",
+      "id": 8,
+      "datasource": { "type": "loki", "uid": "loki" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 12 },
+      "targets": [
+        {
+          "expr": "topk(10, sum by (tenantId) (count_over_time({svc=\"printloop-api\"} [1h])))",
+          "refId": "A",
+          "format": "table",
+          "instant": true
+        }
+      ]
+    },
+
+    {
+      "type": "logs",
+      "title": "Live error stream",
+      "id": 9,
+      "datasource": { "type": "loki", "uid": "loki" },
+      "gridPos": { "h": 12, "w": 24, "x": 0, "y": 20 },
+      "targets": [
+        { "expr": "{svc=~\"printloop-.+\",level=~\"error|fatal\"} | json", "refId": "A" }
+      ],
+      "options": {
+        "showTime": true,
+        "showLabels": true,
+        "showCommonLabels": false,
+        "wrapLogMessage": true,
+        "prettifyLogMessage": false,
+        "enableLogDetails": true,
+        "dedupStrategy": "none",
+        "sortOrder": "Descending"
+      }
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 39,
+  "tags": ["printloop", "saas"],
+  "templating": {
+    "list": [
+      {
+        "type": "query",
+        "name": "tenantId",
+        "label": "Tenant",
+        "datasource": { "type": "loki", "uid": "loki" },
+        "query": "label_values({svc=\"printloop-api\"}, tenantId)",
+        "refresh": 1,
+        "multi": false,
+        "includeAll": true
+      }
+    ]
+  },
+  "time": { "from": "now-1h", "to": "now" },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "PrintLoop SaaS — Live ops",
+  "uid": "printloop-saas",
+  "version": 1,
+  "weekStart": ""
+}

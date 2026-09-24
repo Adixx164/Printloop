@@ -120,8 +120,10 @@ export async function ippConnectionPrefs(): Promise<{
    *                used when the printer's IPP filter silently drops
    *                anonymous jobs (Sharp MX-series being the classic
    *                example).
+   *   'lpr'      — LPR/LPD RFC 1179 client protocol (default port 515).
+   *   'email'    — ePrint email attachment (SMTP).
    */
-  transport: 'ipp' | 'raw9100';
+  transport: 'ipp' | 'raw9100' | 'lpr' | 'email';
   /** Port the raw-socket transport uses (default 9100). */
   rawPort: number;
 }> {
@@ -142,7 +144,14 @@ export async function ippConnectionPrefs(): Promise<{
   const version: '1.0' | '1.1' | '2.0' =
     versionRaw === '1.0' ? '1.0' : versionRaw === '1.1' ? '1.1' : '2.0';
   const transportRaw = String(s.ippTransport || process.env.IPP_TRANSPORT || 'ipp').trim();
-  const transport: 'ipp' | 'raw9100' = transportRaw === 'raw9100' ? 'raw9100' : 'ipp';
+  const transport: 'ipp' | 'raw9100' | 'lpr' | 'email' =
+    transportRaw === 'raw9100'
+      ? 'raw9100'
+      : transportRaw === 'lpr'
+      ? 'lpr'
+      : transportRaw === 'email'
+      ? 'email'
+      : 'ipp';
   const rawPort = num(s.ippRawPort, 0) || Number(process.env.IPP_RAW_PORT) || 9100;
   return { secure, port, rejectUnauthorized, path, version, transport, rawPort };
 }

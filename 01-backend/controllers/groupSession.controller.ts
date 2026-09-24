@@ -28,6 +28,9 @@ export const createGroupSession = async (req: Request, res: Response): Promise<v
     const hostId = hostIdOf(req) || crypto.randomUUID();
     const result = await groupService.createSession({
       hostId,
+      // Stamp the resolved tenant onto the session so every
+      // participant PrintJob created downstream inherits it.
+      tenantId: req.tenant?.id ?? null,
       groupName,
       deadline: new Date(deadline),
       sharedSettings: sharedSettings || defaultOptions || {},

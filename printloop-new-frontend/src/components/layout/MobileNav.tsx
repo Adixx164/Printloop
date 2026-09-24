@@ -101,14 +101,16 @@ export function MobileNav({ open, onClose, items, userLabel, footerAction }: Mob
 
           {/* Nav items */}
           <nav className="flex-1 overflow-y-auto p-3 flex flex-col gap-1.5">
-            {items.map((item) => {
+            {items.map((item, i) => {
               const active = location.pathname === item.to;
               return (
                 <Link
                   key={item.to}
                   to={item.to}
                   onClick={onClose}
-                  className={`block px-4 py-3.5 text-sm font-bold uppercase tracking-wider border-2 rounded-md transition-all ${
+                  data-open={open ? "true" : "false"}
+                  style={{ transitionDelay: open ? `${120 + i * 55}ms` : "0ms" }}
+                  className={`pl-drawer-item pl-nav-link block px-4 py-3.5 text-sm font-bold uppercase tracking-wider border-2 rounded-md ${
                     active
                       ? "bg-persimmon text-paper border-ink shadow-[3px_3px_0_#1A1410]"
                       : "border-ink/15 text-ink hover:bg-ink hover:text-paper hover:border-ink"

@@ -1,0 +1,31 @@
+{
+  "name": "printloop-render-worker",
+  "version": "1.0.0",
+  "description": "Cloud render worker - converts PDFs to PWG-Raster for kiosk printing",
+  "main": "dist/worker.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/worker.js",
+    "dev": "ts-node src/worker.ts",
+    "lint": "eslint src --ext .ts"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.500.0",
+    "@aws-sdk/s3-request-presigner": "^3.1121.0",
+    "bullmq": "^5.8.0",
+    "dotenv": "^16.4.0",
+    "ioredis": "^5.4.1",
+    "pdf-lib": "^1.17.1",
+    "pino": "^8.17.0",
+    "pino-pretty": "^10.3.0",
+    "sharp": "^0.33.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "@typescript-eslint/eslint-plugin": "^6.0.0",
+    "@typescript-eslint/parser": "^6.0.0",
+    "eslint": "^8.56.0",
+    "ts-node": "^10.9.0",
+    "typescript": "^5.3.0"
+  }
+}

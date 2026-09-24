@@ -26,9 +26,15 @@ export const bruteForceProtection = async (
 ): Promise<void> => {
   try {
     const ip = req.ip || 'unknown';
-    const lockoutKey = `${LOCKOUT_KEY_PREFIX}${ip}`;
+    // Tenant-scoped (V2-13). Kiosk auth runs before this middleware on
+    // the code-validation route, so `req.kiosk.tenantId` is the source
+    // of truth. Falls back to req.tenant or 'global' otherwise.
+    const tid =
+      (req as any).kiosk?.tenantId || req.tenant?.id || 'global';
+    const lockoutKey = `${LOCKOUT_KEY_PREFIX}${tid}:${ip}`;
+    const attemptKey = `${ATTEMPT_KEY_PREFIX}${tid}:${ip}`;
 
-    // Check if IP is locked out
+    // Check if IP is locked out (within this tenant's namespace)
     const lockedUntil = await redisClient.get(lockoutKey);
     if (lockedUntil) {
       const ttl = await redisClient.ttl(lockoutKey);
@@ -46,12 +52,12 @@ export const bruteForceProtection = async (
     res.json = (body: any) => {
       // If validation failed (success: false), increment counter
       if (body && body.success === false) {
-        recordFailure(ip).catch(err =>
+        recordFailure(tid, ip).catch(err =>
           console.error('Brute force counter error:', err)
         );
       } else if (body && body.success === true) {
         // Reset on success
-        redisClient.del(`${ATTEMPT_KEY_PREFIX}${ip}`).catch(() => {});
+        redisClient.del(attemptKey).catch(() => {});
       }
       return originalJson(body);
     };
@@ -65,11 +71,13 @@ export const bruteForceProtection = async (
 };
 
 /**
- * Record a failed attempt and lock out if threshold exceeded
+ * Record a failed attempt and lock out if threshold exceeded.
+ * Tenant-namespaced so Tenant A's brute-force lockout doesn't block
+ * Tenant B's legitimate traffic from the same IP.
  */
-async function recordFailure(ip: string): Promise<void> {
-  const attemptKey = `${ATTEMPT_KEY_PREFIX}${ip}`;
-  const lockoutKey = `${LOCKOUT_KEY_PREFIX}${ip}`;
+async function recordFailure(tenantId: string, ip: string): Promise<void> {
+  const attemptKey = `${ATTEMPT_KEY_PREFIX}${tenantId}:${ip}`;
+  const lockoutKey = `${LOCKOUT_KEY_PREFIX}${tenantId}:${ip}`;
 
   const attempts = await redisClient.incr(attemptKey);
   if (attempts === 1) {
@@ -81,17 +89,18 @@ async function recordFailure(ip: string): Promise<void> {
     await redisClient.setEx(lockoutKey, LOCKOUT_SECONDS, '1');
     await redisClient.del(attemptKey);
 
-    // Log to audit
     try {
       const auditRepo = AppDataSource.getRepository(AuditLog);
-      await auditRepo.save({
-        action: 'BRUTE_FORCE_LOCKOUT',
-        ipAddress: ip,
-        userType: 'ANONYMOUS',
-        resourceType: 'print_code',
-        payload: { attempts, windowSeconds: WINDOW_SECONDS, lockoutSeconds: LOCKOUT_SECONDS },
-        timestamp: new Date(),
-      } as any);
+      await auditRepo.save(
+        auditRepo.create({
+          tenantId: tenantId === 'global' ? null : tenantId,
+          actorName: 'system',
+          action: 'BRUTE_FORCE_LOCKOUT',
+          target: `ip:${ip}`,
+          detail: { attempts, windowSeconds: WINDOW_SECONDS, lockoutSeconds: LOCKOUT_SECONDS },
+          ipAddress: ip,
+        })
+      );
     } catch (err) {
       console.error('Audit log error:', err);
     }

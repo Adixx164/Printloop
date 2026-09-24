@@ -8,6 +8,7 @@ import { IppService } from "../services/ipp.service.js";
 import { saveBuffer } from "../utils/fileStore.js";
 import { verifyToken } from "../utils/jwt.js";
 import { evaluatePrintPolicy, ippConnectionPrefs } from "../services/printPolicy.service.js";
+import { makeCode } from "../utils/releaseCode.js";
 
 type User = {
   id: string;
@@ -33,21 +34,6 @@ type Session = {
   refreshExpiresAt: string;
 };
 
-type Transaction = {
-  id: string;
-  type: "topup" | "print" | "refund" | "credit";
-  amount: number;
-  description: string;
-  balance: number;
-  createdAt: string;
-};
-
-type Wallet = {
-  userId: string;
-  balance: number;
-  transactions: Transaction[];
-};
-
 type PrintJob = {
   id: string;
   userId: string;
@@ -57,7 +43,7 @@ type PrintJob = {
   cost: number;
   status: "ready" | "done" | "expired" | "refunded" | "printing" | "failed";
   jobType?: "single" | "personal_batch" | "group_batch";
-  paymentMethod?: "wallet" | "card" | "transfer" | "ussd";
+  paymentMethod?: "card" | "transfer" | "ussd";
   refundedAt?: string;
   kioskId?: string;
   createdAt: string;
@@ -115,7 +101,6 @@ type Station = {
 type DevDb = {
   users: User[];
   sessions: Session[];
-  wallets: Wallet[];
   printJobs: PrintJob[];
   stations: Station[];
   groupSessions: GroupSession[];
@@ -136,11 +121,6 @@ function passwordDigest(password: string, salt = randomBytes(16).toString("hex")
     salt,
     passwordHash: createHash("sha256").update(`${salt}:${password}`).digest("hex"),
   };
-}
-
-function makeCode(length = 6) {
-  const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-  return Array.from({ length }, () => alphabet[Math.floor(Math.random() * alphabet.length)]).join("");
 }
 
 function makeOtp() {
@@ -199,7 +179,7 @@ function seedDb(): DevDb {
       cost: 60,
       status: "ready",
       jobType: "single",
-      paymentMethod: "wallet",
+      paymentMethod: "card",
       createdAt: now.toISOString(),
       expiresAt: new Date(now.getTime() + 24 * 60 * 60 * 1000).toISOString(),
       printConfiguration: { copies: 1, paper: "A4", color: "bw", sided: "single", qualityDpi: 300, pages: "all" },
@@ -213,7 +193,7 @@ function seedDb(): DevDb {
       cost: 200,
       status: "done",
       jobType: "single",
-      paymentMethod: "wallet",
+      paymentMethod: "card",
       kioskId: "st_yaba",
       createdAt: new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString(),
       expiresAt: new Date(now.getTime() - 23 * 60 * 60 * 1000).toISOString(),
@@ -228,7 +208,7 @@ function seedDb(): DevDb {
       cost: 10,
       status: "done",
       jobType: "single",
-      paymentMethod: "wallet",
+      paymentMethod: "card",
       kioskId: "st_unilag_arts",
       createdAt: new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000).toISOString(),
       expiresAt: new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000 + 60 * 60 * 1000).toISOString(),
@@ -239,30 +219,6 @@ function seedDb(): DevDb {
   return {
     users: [demoUser, adminUser],
     sessions: [],
-    wallets: [
-      {
-        userId: demoUser.id,
-        balance: 2450,
-        transactions: [
-          {
-            id: "txn_seed_topup",
-            type: "topup",
-            amount: 2000,
-            description: "Paystack top-up",
-            balance: 2450,
-            createdAt: now.toISOString(),
-          },
-          {
-            id: "txn_seed_print",
-            type: "print",
-            amount: -60,
-            description: "CSC 401 - Week 9 notes",
-            balance: 450,
-            createdAt: new Date(now.getTime() - 90 * 60 * 1000).toISOString(),
-          },
-        ],
-      },
-    ],
     printJobs: jobs,
     stations: [
       { id: "st_yaba", name: "Yaba Station", area: "Yaba, Lagos", distanceMeters: 240, status: "online", queue: 2, ipAddress: "192.168.1.100" },
@@ -299,12 +255,11 @@ function loadDb(): DevDb {
 
   const parsed = JSON.parse(fs.readFileSync(dbPath, "utf8")) as DevDb;
   parsed.sessions = parsed.sessions || [];
-  parsed.wallets = parsed.wallets || [];
   parsed.printJobs = parsed.printJobs || [];
   parsed.printJobs = parsed.printJobs.map((job) => ({
     ...job,
     jobType: job.jobType || "single",
-    paymentMethod: job.paymentMethod || "wallet",
+    paymentMethod: job.paymentMethod || "card",
     expiresAt:
       new Date(job.expiresAt).getTime() - new Date(job.createdAt).getTime() < 23 * 60 * 60 * 1000
         ? new Date(new Date(job.createdAt).getTime() + 24 * 60 * 60 * 1000).toISOString()
@@ -329,33 +284,13 @@ function findUserByEmail(email: string) {
   return db.users.find((user) => user.email.toLowerCase() === email.trim().toLowerCase());
 }
 
-function walletFor(userId: string) {
-  let wallet = db.wallets.find((item) => item.userId === userId);
-  if (!wallet) {
-    wallet = { userId, balance: 0, transactions: [] };
-    db.wallets.push(wallet);
-  }
-  return wallet;
-}
-
 function refreshExpiredJobs() {
   let changed = false;
 
   for (const job of db.printJobs) {
     if (job.status !== "ready" || new Date(job.expiresAt).getTime() > Date.now()) continue;
 
-    const wallet = walletFor(job.userId);
-    wallet.balance += job.cost;
-    job.status = "refunded";
-    job.refundedAt = new Date().toISOString();
-    wallet.transactions.unshift({
-      id: randomUUID(),
-      type: "refund",
-      amount: job.cost,
-      description: `Auto-refund for expired print code ${job.code}`,
-      balance: wallet.balance,
-      createdAt: job.refundedAt,
-    });
+    job.status = "expired";
     changed = true;
   }
 
@@ -499,7 +434,6 @@ router.post("/auth/register", (req, res) => {
   };
 
   db.users.push(user);
-  db.wallets.push({ userId: user.id, balance: 500, transactions: [] });
   saveDb();
 
   res.status(201).json({
@@ -600,36 +534,13 @@ router.post("/auth/refresh", (req, res) => {
   });
 });
 
-router.post("/auth/forgot-password", (req, res) => {
-  const { email } = req.body || {};
-  const user = email ? findUserByEmail(email) : null;
-
-  if (user) {
-    user.resetToken = makeOtp();
-    saveDb();
-  }
-
-  res.json({
-    success: true,
-    message: "If that account exists, a reset code has been generated.",
-    data: user?.resetToken ? { resetToken: user.resetToken } : undefined,
-  });
-});
-
-router.post("/auth/reset-password", (req, res) => {
-  const { email, token, password } = req.body || {};
-  const user = email ? findUserByEmail(email) : null;
-
-  if (!user || (user.resetToken !== token && token !== "123456")) {
-    res.status(400).json({ success: false, message: "Invalid reset code" });
-    return;
-  }
-
-  Object.assign(user, passwordDigest(String(password)));
-  delete user.resetToken;
-  saveDb();
-  res.json({ success: true, message: "Password reset" });
-});
+// NOTE (V2-29): the /auth/forgot-password and /auth/reset-password
+// mocks that used to live here were security-broken (the forgot
+// route returned the reset token in the response body, enabling
+// arbitrary takeover). The real implementations are now in
+// routes/passwordReset.routes.ts and mounted at /api/auth in app.ts
+// BEFORE this router, so they win the path match. Mocks deleted to
+// avoid future confusion.
 
 router.get("/auth/me", requireAuth, (req: AuthedRequest, res) => {
   res.json({ success: true, data: publicUser(req.user!) });
@@ -643,7 +554,7 @@ router.get("/print-jobs/options", requireAuth, (_req, res) => {
       colors: ["bw", "color"],
       sides: ["single", "double"],
       qualityOptions: [100, 300, 600],
-      paymentMethods: ["wallet", "card", "transfer", "ussd"],
+      paymentMethods: ["card", "transfer", "ussd"],
       pricing: {
         bwPerPage: 5,
         colorPerPage: 25,
@@ -674,17 +585,9 @@ router.post("/print-jobs", requireAuth, (req: AuthedRequest, res) => {
   const color = config.color === "color" || config.colorType === "color" ? "color" : "bw";
   const sided = config.sided === "double" || config.isDuplex ? "double" : "single";
   const qualityDpi = [100, 300, 600].includes(Number(config.qualityDpi)) ? Number(config.qualityDpi) as 100 | 300 | 600 : 300;
-  const paymentMethod = ["wallet", "card", "transfer", "ussd"].includes(body.paymentMethod) ? body.paymentMethod : "wallet";
+  const paymentMethod = ["card", "transfer", "ussd"].includes(body.paymentMethod) ? body.paymentMethod : "card";
   const jobType = body.jobType === "personal_batch" ? "personal_batch" : "single";
   const cost = calculateCost({ pageCount, copies, color, sided, qualityDpi });
-  const wallet = walletFor(req.user!.id);
-
-  if (paymentMethod === "wallet" && wallet.balance < cost) {
-    res.status(402).json({ success: false, message: "Insufficient wallet balance. Top up and try again." });
-    return;
-  }
-
-  if (paymentMethod === "wallet") wallet.balance -= cost;
   const title = body.fileName || body.title || "Untitled document.pdf";
   const job: PrintJob = {
     id: randomUUID(),
@@ -710,27 +613,19 @@ router.post("/print-jobs", requireAuth, (req: AuthedRequest, res) => {
   };
 
   db.printJobs.push(job);
-  wallet.transactions.unshift({
-    id: randomUUID(),
-    type: "print",
-    amount: -cost,
-    description: `${job.fileName.replace(/\.[^.]+$/, "")} (${paymentMethod})`,
-    balance: wallet.balance,
-    createdAt: job.createdAt,
-  });
   saveDb();
 
-  res.status(201).json({ success: true, data: { job: formatJob(job), wallet } });
+  res.status(201).json({ success: true, data: { job: formatJob(job) } });
 });
 
-router.post("/files/upload", requireAuth, upload.single("file"), (req, res) => {
+router.post("/files/upload", requireAuth, upload.single("file"), async (req, res) => {
   const file = req.file;
   if (!file) {
     res.status(400).json({ success: false, message: "No file uploaded" });
     return;
   }
 
-  const stored = saveBuffer(file.buffer, file.originalname);
+  const stored = await saveBuffer(file.buffer, file.originalname);
   res.status(201).json({
     success: true,
     data: {
@@ -741,50 +636,6 @@ router.post("/files/upload", requireAuth, upload.single("file"), (req, res) => {
       // kiosk/IPP service can actually retrieve the document bytes.
       fileURL: stored.url,
     },
-  });
-});
-
-router.get("/wallet", requireAuth, (req: AuthedRequest, res) => {
-  const wallet = walletFor(req.user!.id);
-  res.json({ success: true, data: wallet });
-});
-
-router.post("/wallet/top-up", requireAuth, (req: AuthedRequest, res) => {
-  const amount = Number(req.body?.amount || 0);
-  if (!Number.isFinite(amount) || amount <= 0) {
-    res.status(400).json({ success: false, message: "Top-up amount must be greater than zero" });
-    return;
-  }
-
-  const wallet = walletFor(req.user!.id);
-  wallet.balance += amount;
-  wallet.transactions.unshift({
-    id: randomUUID(),
-    type: "topup",
-    amount,
-    description: "Paystack top-up",
-    balance: wallet.balance,
-    createdAt: new Date().toISOString(),
-  });
-  saveDb();
-
-  res.json({ success: true, data: wallet });
-});
-
-router.post("/wallet/top-up/initialize", requireAuth, (req: AuthedRequest, res) => {
-  const amount = Number(req.body?.amount || 0);
-  if (!Number.isFinite(amount) || amount <= 0) {
-    res.status(400).json({ success: false, message: "Invalid amount" });
-    return;
-  }
-  
-  // In dev/mock mode, we return a dummy URL that just simulates a successful paystack checkout
-  res.json({
-    success: true,
-    data: {
-      authorizationUrl: `https://checkout.paystack.com/dummy_${Date.now()}`,
-      reference: `dummy_${Date.now()}`,
-    }
   });
 });
 
@@ -1013,10 +864,8 @@ router.get("/admin/overview", requireAdmin, (req: AuthedRequest, res) => {
       .map((station) => ({ ...station, errorCount: station.status === "offline" ? 3 : 1, pagesLast30Days: 800 + station.queue * 40 })),
     jobs: db.printJobs.map(formatJob),
     groupSessions: db.groupSessions,
-    transactions: db.wallets.flatMap((wallet) => wallet.transactions.map((transaction) => ({ ...transaction, userId: wallet.userId }))),
     users: db.users.map((user) => ({
       ...publicUser(user),
-      walletBalance: walletFor(user.id).balance,
       totalJobs: db.printJobs.filter((job) => job.userId === user.id).length,
       totalPages: db.printJobs.filter((job) => job.userId === user.id).reduce((sum, job) => sum + job.pageCount, 0),
       role: user.role || 'user',
@@ -1036,14 +885,14 @@ router.get("/admin/overview", requireAdmin, (req: AuthedRequest, res) => {
       { id: "rep_revenue", name: "Revenue by campus", format: "CSV", requestedBy: req.user!.email, createdAt: new Date().toISOString() },
     ],
     settings: [
-      { key: "documentRetentionHours", value: 24, warning: "Expired jobs are auto-refunded to wallet before deletion." },
+      { key: "documentRetentionHours", value: 24, warning: "How long uploaded documents are kept after a job ends." },
       { key: "maxFileSizeMb", value: 50, warning: "Large files can slow kiosk release." },
       { key: "allowedFileTypes", value: "PDF, JPG, PNG", warning: "Changing this affects new uploads only." },
     ],
     roles: [
       { name: "Ops", permissions: ["view_dashboard", "manage_kiosks", "requeue_jobs"] },
-      { name: "Finance", permissions: ["view_transactions", "issue_refunds", "export_reports"] },
-      { name: "Support", permissions: ["view_users", "credit_wallets", "view_audit"] },
+      { name: "Finance", permissions: ["view_transactions", "export_reports"] },
+      { name: "Support", permissions: ["view_users", "view_audit"] },
     ],
     auditLog: [
       { id: "aud_1", time: new Date().toISOString(), adminId: req.user!.email, action: "Viewed admin overview", details: "Local dev console" },
@@ -1199,13 +1048,6 @@ router.patch("/admin/jobs/:id/status", requireAdmin, (req: AuthedRequest, res) =
   (job as any).status = req.body.status;
   if (req.body.status === 'refunded' && !(job as any).refundedAt) {
     (job as any).refundedAt = new Date().toISOString();
-    const wallet = walletFor(job.userId);
-    wallet.balance += job.cost;
-    wallet.transactions.unshift({
-      id: randomUUID(), type: 'refund', amount: job.cost,
-      description: `Admin refund for job ${job.code}`,
-      balance: wallet.balance, createdAt: new Date().toISOString(),
-    });
   }
   saveDb();
   res.json({ success: true, data: formatJob(job) });
@@ -1273,14 +1115,12 @@ router.get("/admin/reports/kiosks", requireAdmin, (_req, res) => {
 // ─── Admin: System Options / Settings ───────────────────────────────────────
 
 const DEFAULT_SETTINGS = [
-  { key: 'documentRetentionHours', label: 'Document Retention', value: '24', type: 'number', unit: 'hours', category: 'Storage', description: 'How long files are kept after a job expires. Expired jobs are auto-refunded.', readOnly: false },
+  { key: 'documentRetentionHours', label: 'Document Retention', value: '24', type: 'number', unit: 'hours', category: 'Storage', description: 'How long files are kept after a job ends.', readOnly: false },
   { key: 'maxFileSizeMb', label: 'Max Upload Size', value: '50', type: 'number', unit: 'MB', category: 'Storage', description: 'Maximum single file upload size. Large files slow kiosk release.', readOnly: false },
   { key: 'allowedFileTypes', label: 'Allowed File Types', value: 'PDF, JPG, PNG', type: 'string', unit: '', category: 'Storage', description: 'Comma-separated list of supported formats. Only affects new uploads.', readOnly: false },
   { key: 'jobCodeLength', label: 'Release Code Length', value: '6', type: 'number', unit: 'chars', category: 'Jobs', description: 'Length of the alphanumeric release code printed on receipts.', readOnly: true },
-  { key: 'jobExpiryHours', label: 'Job Expiry Window', value: '24', type: 'number', unit: 'hours', category: 'Jobs', description: 'Time before an uncollected print job is marked expired and refunded.', readOnly: false },
+  { key: 'jobExpiryHours', label: 'Job Expiry Window', value: '24', type: 'number', unit: 'hours', category: 'Jobs', description: 'Time before an uncollected print job is marked expired.', readOnly: false },
   { key: 'maxCopiesPerJob', label: 'Max Copies Per Job', value: '50', type: 'number', unit: 'copies', category: 'Jobs', description: 'Hard cap on number of copies per single print job.', readOnly: false },
-  { key: 'walletMinTopUp', label: 'Minimum Top-Up', value: '100', type: 'number', unit: 'NGN', category: 'Payments', description: 'Minimum wallet top-up amount via Paystack.', readOnly: false },
-  { key: 'walletMaxBalance', label: 'Maximum Wallet Balance', value: '50000', type: 'number', unit: 'NGN', category: 'Payments', description: 'Cap on wallet balance to reduce fraud exposure.', readOnly: false },
   { key: 'maintenanceMode', label: 'Maintenance Mode', value: 'false', type: 'boolean', unit: '', category: 'System', description: 'When enabled, the user-facing app shows a maintenance banner.', readOnly: false },
   { key: 'appVersion', label: 'App Version', value: '1.0.0', type: 'string', unit: '', category: 'System', description: 'Current deployed version of the application.', readOnly: true },
 ];

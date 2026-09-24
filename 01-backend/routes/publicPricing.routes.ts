@@ -13,20 +13,34 @@ const router = Router();
  *     accurate previews
  *   • The marketing site / landing page can show real prices
  *
- * Same payload shape the admin reads, just without the surrounding
- * admin-only fields. Pricing is not sensitive — admins WANT this
- * visible to drive conversion — so a public endpoint is appropriate.
+ * **Tenant-scoped** as of V2-5. The tenant is resolved by the
+ * `optionalTenant` middleware mounted in `app.ts`:
+ *   - On a tenant subdomain (`{slug}.printloop.app`) or custom
+ *     domain → the resolved tenant's pricing matrix.
+ *   - On the apex `printloop.app` or with no host → falls back to
+ *     the LEGACY_TENANT_SLUG matrix so existing single-tenant
+ *     callers keep working through the cutover.
+ *
+ * This is the canonical pattern for tenant-scoped read endpoints:
+ * resolve tenant in middleware, filter in the route. Other routers
+ * follow the same shape when retrofitted.
  */
-router.get('/', async (_req: Request, res: Response) => {
+router.get('/', async (req: Request, res: Response) => {
   try {
+    // Tenant resolution: explicit if the middleware resolved one,
+    // otherwise fall back to the legacy tenant by slug so the public
+    // matrix still serves anonymous landing-page traffic.
+    const tenantId = await resolveTenantIdForRead(req);
+
     const rows = await AppDataSource.getRepository(PricingConfig).find({
-      where: { isActive: true },
+      where: { tenantId, isActive: true },
     });
     res.json({
       success: true,
       data: {
         currency: 'NGN',
         floor: 5,
+        tenantSlug: req.tenant?.slug ?? null,
         configs: rows.map((r) => ({
           paperSize: r.paperSize,
           colorType: r.colorType,
@@ -39,6 +53,7 @@ router.get('/', async (_req: Request, res: Response) => {
           price100Duplex: r.price100Duplex == null ? null : Number(r.price100Duplex),
           price300Duplex: r.price300Duplex == null ? null : Number(r.price300Duplex),
           price600Duplex: r.price600Duplex == null ? null : Number(r.price600Duplex),
+          officeConversion: r.officeConversion,
         })),
       },
     });
@@ -47,5 +62,16 @@ router.get('/', async (_req: Request, res: Response) => {
     res.status(500).json({ success: false, message: 'Failed to read pricing' });
   }
 });
+
+async function resolveTenantIdForRead(req: Request): Promise<string> {
+  if (req.tenant?.id) return req.tenant.id;
+  // No host resolved — fall back to the legacy tenant. Avoids a circular
+  // import on middleware/tenant.middleware by querying directly.
+  const Tenant = (await import('../entities/tenant.entity')).Tenant;
+  const tenantRow = await AppDataSource.getRepository(Tenant).findOne({
+    where: { slug: 'legacy' },
+  });
+  return tenantRow?.id ?? '';
+}
 
 export default router;

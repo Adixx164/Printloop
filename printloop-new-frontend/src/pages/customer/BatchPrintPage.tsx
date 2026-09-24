@@ -1,13 +1,20 @@
-import { useMemo, useState } from "react";
-import { Wallet, CreditCard, Pencil, Check, X } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { ROUTES } from "@/constants/routes";
+import { CreditCard, Pencil, Check, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/Button";
 import QrBlock from "@/components/ui/QrBlock";
 import PrintPreview, { parsePageRange } from "@/components/print/PrintPreview";
-import { useCreateBatchJobMutation, useGetPricingQuery } from "@/store/services/jobsApi";
+import {
+  useCreateBatchJobMutation,
+  useInitializeJobPaymentMutation,
+  useListJobsQuery,
+  useGetPricingQuery,
+} from "@/store/services/jobsApi";
 import { extractError } from "@/lib/errors";
 import { priceFromMatrix, type PricingRow } from "@/lib/pricing";
-import { detectPages } from "@/lib/pageCount";
+import { detectPages, isOfficeName, uploadAccept } from "@/lib/pageCount";
 
 type Cfg = {
   copies: number;
@@ -19,7 +26,7 @@ type Cfg = {
   pages: "all" | "range";
   pageRange: string;
 };
-type Doc = { file: File; cfg: Cfg; custom: boolean; pageCount: number; rangeable: boolean };
+type Doc = { file: File; cfg: Cfg; custom: boolean; pageCount: number; rangeable: boolean; office?: boolean };
 
 const DEFAULT_CFG: Cfg = {
   copies: 1, color: "bw", sided: "single", paper: "A4", qualityDpi: 300,
@@ -50,15 +57,63 @@ const Chip = ({ on, children, onClick, disabled }: any) => (
 );
 
 export default function BatchPrintPage() {
+  const navigate = useNavigate();
+  const urlParams = new URLSearchParams(window.location.search);
+  const urlTenant = urlParams.get("tenantSlug");
+  if (urlTenant) {
+    sessionStorage.setItem("activeTenantSlug", urlTenant);
+    sessionStorage.setItem("reviewedPricesForTenant", urlTenant);
+  }
+  const activeTenant = urlTenant || sessionStorage.getItem("activeTenantSlug");
+  const reviewedTenant = sessionStorage.getItem("reviewedPricesForTenant");
+
+  useEffect(() => {
+    if (!activeTenant || activeTenant !== reviewedTenant) {
+      toast.error("Please select a print shop and review its prices on the map first.");
+      navigate(ROUTES.APP.DASHBOARD);
+    }
+  }, [activeTenant, reviewedTenant, navigate]);
+
   const [docs, setDocs] = useState<Doc[]>([]);
   const [def, setDef] = useState<Cfg>(DEFAULT_CFG);
   const [editing, setEditing] = useState<number | null>(null);
-  const [payment, setPayment] = useState<"wallet" | "paystack">("wallet");
   const [collate, setCollate] = useState(true);
   const [receipt, setReceipt] = useState<{ code: string; cost: number; qrPayload?: string } | null>(null);
+  const [awaitingPayment, setAwaitingPayment] = useState(false);
   const [createBatchJob, { isLoading }] = useCreateBatchJobMutation();
+  const [initJobPayment, { isLoading: isIniting }] = useInitializeJobPaymentMutation();
   const { data: pricingData } = useGetPricingQuery();
   const pricingRows: PricingRow[] | undefined = pricingData?.configs;
+  const officeEnabled = Boolean((pricingData as any)?.officeConversion);
+  const hasOffice = useMemo(() => docs.some((d) => d.office), [docs]);
+  const setDocPages = (idx: number, n: number) =>
+    setDocs((list) => list.map((d, i) => (i === idx ? { ...d, pageCount: n } : d)));
+
+  const paperOptions = useMemo(() => {
+    if (!pricingRows || pricingRows.length === 0) return ["A4"];
+    const sizes = Array.from(new Set(pricingRows.map((r) => r.paperSize)));
+    return sizes.length ? sizes : ["A4"];
+  }, [pricingRows]);
+
+  const hasColorCapability = useMemo(() => {
+    if (!pricingRows || pricingRows.length === 0) return false;
+    return pricingRows.some((r) => r.colorType === "COLOR");
+  }, [pricingRows]);
+
+  useEffect(() => {
+    if (paperOptions.length > 0 && !paperOptions.some(p => p.toUpperCase() === def.paper.toUpperCase())) {
+      const firstPaper = paperOptions[0] as any;
+      setDef((c) => ({ ...c, paper: firstPaper }));
+      setDocs((list) => list.map((d) => d.custom ? d : { ...d, cfg: { ...d.cfg, paper: firstPaper } }));
+    }
+  }, [paperOptions, def.paper]);
+
+  useEffect(() => {
+    if (!hasColorCapability && def.color === "color") {
+      setDef((c) => ({ ...c, color: "bw" }));
+      setDocs((list) => list.map((d) => d.custom ? d : { ...d, cfg: { ...d.cfg, color: "bw" } }));
+    }
+  }, [hasColorCapability, def.color]);
 
   const total = useMemo(
     () => docs.reduce((s, d) => s + costOf(d, pricingRows), 0),
@@ -66,7 +121,16 @@ export default function BatchPrintPage() {
   );
 
   const addFiles = (list: FileList | null) => {
-    const newFiles = Array.from(list || []);
+    let newFiles = Array.from(list || []);
+    if (!newFiles.length) return;
+    // Reject Office files when this shop's server has no converter (V2-48).
+    if (!officeEnabled) {
+      const blocked = newFiles.filter((f) => isOfficeName(f.name));
+      if (blocked.length) {
+        toast.error("This shop can't convert Office files yet — upload PDFs or images.");
+        newFiles = newFiles.filter((f) => !isOfficeName(f.name));
+      }
+    }
     if (!newFiles.length) return;
     // Insert with a placeholder pageCount of 1 so cost appears immediately;
     // then asynchronously upgrade each row to the authoritative count.
@@ -81,13 +145,18 @@ export default function BatchPrintPage() {
         custom: false,
         pageCount: 1,
         rangeable: false,
+        office: isOfficeName(file.name),
       })),
     ]);
     newFiles.forEach((file, i) => {
       detectPages(file)
         .then((res) => {
           if (!res.supported) {
-            toast.error(`"${file.name}" — unsupported format. Use PDF, JPG, or PNG.`);
+            toast.error(
+              `"${file.name}" — unsupported format. Use ${
+                officeEnabled ? "PDF, images, Word, PowerPoint or Excel" : "PDF, JPG, or PNG"
+              }.`,
+            );
             // Drop unsupported file from the list so the user isn't billed
             // on a placeholder page count.
             setDocs((list) => list.filter((d) => d.file !== file));
@@ -96,7 +165,15 @@ export default function BatchPrintPage() {
           setDocs((list) =>
             list.map((d, idx) =>
               idx === start + i
-                ? { ...d, pageCount: res.pageCount, rangeable: res.rangeable }
+                ? {
+                    ...d,
+                    // Office files can't be counted in the browser — keep the
+                    // estimate (default 1, user-editable); the server counts
+                    // the real pages after converting to PDF.
+                    pageCount: res.source === "office" ? Math.max(1, d.pageCount) : res.pageCount,
+                    rangeable: res.rangeable,
+                    office: res.source === "office",
+                  }
                 : d,
             ),
           );
@@ -133,6 +210,8 @@ export default function BatchPrintPage() {
     try {
       // Real multi-file / ONE-code job: every document is uploaded; each
       // keeps its own settings; the kiosk releases them all with one code.
+      // The job is created PENDING — the release code is minted by the
+      // Paystack webhook after payment (V2-53: no wallet).
       const fd = new FormData();
       const items = docs.map((d) => ({
         fileName: d.file.name,
@@ -142,16 +221,49 @@ export default function BatchPrintPage() {
       docs.forEach((d) => fd.append("files", d.file, d.file.name));
       fd.append("items", JSON.stringify(items));
       fd.append("collate", String(collate));
-      fd.append("paymentMethod", payment);
       const result = await createBatchJob(fd).unwrap();
       const payload = result?.response || result?.data || result;
       const job = payload?.job || payload;
-      setReceipt({ code: job.code, cost: job.cost, qrPayload: job.qrPayload });
-      toast.success("One batch code created for all documents.");
+      if (!job?.id) throw new Error("Batch was not created.");
+
+      // Open the Paystack hosted checkout; the payment poll below
+      // picks up the release code once the webhook lands.
+      const init = await initJobPayment({ jobId: job.id }).unwrap();
+      const initData = init?.data || init;
+      const url = initData?.authorizationUrl;
+      if (!url) throw new Error("Could not start payment. Try again.");
+      sessionStorage.setItem("pendingJobId", job.id);
+      setAwaitingPayment(true);
+      window.open(url, "_blank", "noopener");
     } catch (err) {
       toast.error(extractError(err));
     }
   };
+
+  // While the Paystack checkout tab is open, poll the job list every 3s
+  // until the release code appears (minted by the webhook after payment).
+  const { data: jobsData } = useListJobsQuery(undefined, {
+    pollingInterval: awaitingPayment ? 3000 : 0,
+    skip: !awaitingPayment,
+  });
+
+  useEffect(() => {
+    if (!awaitingPayment) return;
+    const pendingId = sessionStorage.getItem("pendingJobId");
+    if (!pendingId || !jobsData) return;
+    const list = jobsData?.jobs ?? [];
+    const paid = list.find((j: any) => j.id === pendingId);
+    if (paid?.code) {
+      sessionStorage.removeItem("pendingJobId");
+      setAwaitingPayment(false);
+      setReceipt({
+        code: paid.code,
+        cost: Number(paid.finalCost ?? paid.cost ?? 0),
+        qrPayload: paid.qrPayload,
+      });
+      toast.success("Payment confirmed. One batch code for all documents.");
+    }
+  }, [awaitingPayment, jobsData]);
 
   // ── Customize one document ───────────────────────────────
   if (editing !== null && docs[editing]) {
@@ -184,7 +296,9 @@ export default function BatchPrintPage() {
             <div className="editorial-label mb-2">COLOUR</div>
             <div className="flex gap-2 mb-4">
               <Chip on={d.cfg.color === "bw"} onClick={() => patchDoc(editing, { color: "bw" })}>B&amp;W</Chip>
-              <Chip on={d.cfg.color === "color"} onClick={() => patchDoc(editing, { color: "color" })}>Colour</Chip>
+              {hasColorCapability && (
+                <Chip on={d.cfg.color === "color"} onClick={() => patchDoc(editing, { color: "color" })}>Colour</Chip>
+              )}
             </div>
             <div className="editorial-label mb-2">SIDES</div>
             <div className="flex gap-2 mb-4">
@@ -193,8 +307,8 @@ export default function BatchPrintPage() {
             </div>
             <div className="editorial-label mb-2">PAPER</div>
             <div className="flex gap-2 mb-4">
-              {(["A4", "A3", "Letter"] as const).map((p) => (
-                <Chip key={p} on={d.cfg.paper === p} onClick={() => patchDoc(editing, { paper: p })}>{p}</Chip>
+              {paperOptions.map((p) => (
+                <Chip key={p} on={d.cfg.paper.toUpperCase() === p.toUpperCase()} onClick={() => patchDoc(editing, { paper: p as any })}>{p}</Chip>
               ))}
             </div>
             <div className="editorial-label mb-2">ORIENTATION</div>
@@ -300,9 +414,11 @@ export default function BatchPrintPage() {
         <section className="border-2 border-ink p-4 sm:p-7">
           <label htmlFor="bf" className="block border-2 border-dashed border-ink/40 p-8 text-center cursor-pointer hover:bg-paper-light transition-colors">
             <div className="pl-serif text-xl font-bold">Attach documents</div>
-            <div className="pl-serif italic text-ink/60 text-sm mt-1">PDF · JPG · PNG — add as many as you like</div>
+            <div className="pl-serif italic text-ink/60 text-sm mt-1">
+              {officeEnabled ? "PDF · images · Word · PowerPoint · Excel" : "PDF · JPG · PNG"} — add as many as you like
+            </div>
             <input id="bf" hidden multiple type="file"
-              accept="application/pdf,image/png,image/jpeg"
+              accept={uploadAccept(officeEnabled)}
               onChange={(e) => addFiles(e.target.files)} />
           </label>
 
@@ -320,7 +436,22 @@ export default function BatchPrintPage() {
                       ? <span className="text-persimmon font-bold">● Customized</span>
                       : <span className="text-fog">Using default</span>}
                     <span className="text-fog">·</span>
-                    <span className="text-fog pl-mono">{printedPages(d)}pp</span>
+                    {d.office ? (
+                      <span className="inline-flex items-center gap-1 text-ochre pl-mono">
+                        ~
+                        <input
+                          type="number"
+                          min={1}
+                          value={d.pageCount}
+                          onChange={(e) => setDocPages(i, Math.max(1, Number(e.target.value)))}
+                          className="w-10 bg-transparent border-b border-ochre/50 text-ochre text-center outline-none"
+                          title="Approximate pages — confirmed after we convert your document"
+                        />
+                        pp est.
+                      </span>
+                    ) : (
+                      <span className="text-fog pl-mono">{printedPages(d)}pp</span>
+                    )}
                   </div>
                 </div>
                 <div className="text-[11px] text-ink/70 hidden sm:block">
@@ -331,7 +462,7 @@ export default function BatchPrintPage() {
                     <Pencil size={12} /> Customize
                   </button>
                 </div>
-                <div className="pl-mono text-sm font-bold text-right">₦{costOf(d, pricingRows).toLocaleString()}</div>
+                <div className="pl-mono text-sm font-bold text-right">{d.office ? "~" : ""}₦{costOf(d, pricingRows).toLocaleString()}</div>
                 <button
                   onClick={() => removeDoc(i)}
                   title={`Remove ${d.file.name}`}
@@ -345,18 +476,27 @@ export default function BatchPrintPage() {
             {!docs.length && <div className="p-8 text-center text-ink/50 pl-serif italic">No files attached yet.</div>}
           </div>
 
+          {hasOffice && (
+            <div className="border-2 border-ochre/60 bg-ochre/10 p-3 mt-3 text-xs pl-serif">
+              Office files are converted to PDF on upload — page counts &amp; prices shown for them
+              are <span className="font-bold">estimates</span>, confirmed on your receipt.
+            </div>
+          )}
+
           {/* Default settings */}
           <div className="mt-6 border-2 border-ink bg-paper-light p-5">
             <div className="editorial-label text-persimmon mb-3">DEFAULT SETTINGS — applied to non-customized files</div>
             <div className="flex flex-wrap gap-2">
               <Chip on={def.color === "bw"} onClick={() => updateDefault({ color: "bw" })}>B&amp;W</Chip>
-              <Chip on={def.color === "color"} onClick={() => updateDefault({ color: "color" })}>Colour</Chip>
+              {hasColorCapability && (
+                <Chip on={def.color === "color"} onClick={() => updateDefault({ color: "color" })}>Colour</Chip>
+              )}
               <span className="w-px bg-ink/15 mx-1" />
               <Chip on={def.sided === "single"} onClick={() => updateDefault({ sided: "single" })}>Single</Chip>
               <Chip on={def.sided === "double"} onClick={() => updateDefault({ sided: "double" })}>Duplex</Chip>
               <span className="w-px bg-ink/15 mx-1" />
-              {(["A4", "A3", "Letter"] as const).map((p) => (
-                <Chip key={p} on={def.paper === p} onClick={() => updateDefault({ paper: p })}>{p}</Chip>
+              {paperOptions.map((p) => (
+                <Chip key={p} on={def.paper.toUpperCase() === p.toUpperCase()} onClick={() => updateDefault({ paper: p as any })}>{p}</Chip>
               ))}
               <span className="w-px bg-ink/15 mx-1" />
               <Chip on={def.orientation === "portrait"} onClick={() => updateDefault({ orientation: "portrait" })}>Portrait</Chip>
@@ -373,14 +513,12 @@ export default function BatchPrintPage() {
           </div>
 
           <div className="editorial-label mb-2">PAYMENT METHOD</div>
-          <div className="grid grid-cols-2 gap-2 mb-5">
-            {([["wallet", "Wallet", Wallet], ["paystack", "Paystack", CreditCard]] as const).map(([k, label, Icon]) => (
-              <button key={k} onClick={() => setPayment(k)}
-                className={`border-2 border-ink rounded-md p-3 text-left transition-all ${payment === k ? "bg-persimmon text-paper" : "bg-paper"}`}>
-                <Icon size={17} className="mb-1.5" />
-                <div className="text-xs font-bold tracking-wider uppercase">{label}</div>
-              </button>
-            ))}
+          <div className="border-2 border-ink rounded-md p-3 flex items-start gap-3 bg-paper mb-5">
+            <CreditCard size={17} className="mt-0.5 shrink-0" />
+            <div>
+              <div className="text-xs font-bold tracking-wider uppercase">Paystack</div>
+              <div className="text-[10px] text-ink/55 mt-1">Card · transfer · USSD · bank — secure checkout in a new tab</div>
+            </div>
           </div>
 
           <label className="flex items-center justify-between border-2 border-ink bg-paper p-3 mb-4 cursor-pointer">
@@ -393,8 +531,8 @@ export default function BatchPrintPage() {
             <div className="flex justify-between border-b border-ink/15 py-2"><span>Print order</span><b>Upload order{collate ? " · collated" : ""}</b></div>
             <div className="flex justify-between border-b border-ink/15 py-2"><span>Token expiry</span><b>24 hours</b></div>
           </div>
-          <Button variant="primary" arrow className="w-full mt-6" loading={isLoading} disabled={!docs.length} onClick={pay}>
-            <Check size={16} /> PAY &amp; GET CODE
+          <Button variant="primary" arrow className="w-full mt-6" loading={isLoading || isIniting} disabled={!docs.length} onClick={pay}>
+            <Check size={16} /> {awaitingPayment ? "CHECKOUT OPEN…" : "PAY & GET CODE"}
           </Button>
         </aside>
       </div>

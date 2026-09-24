@@ -1,0 +1,220 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>PrintLoop onboarding deck — preview</title>
+<style>
+  :root{
+    --ink:#1A1410;
+    --persimmon:#D14B2C;
+    --ochre:#C7944A;
+    --paper:#EEE7D9;
+    --paper-light:#F4F0E8;
+    --white:#FFFFFF;
+    --dark:#1A1410;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;background:#0f0f0f;color:var(--white);font-family:Calibri,Arial,sans-serif}
+  .wrap{max-width:1200px;margin:0 auto;padding:40px 20px 80px}
+  h1{font-family:Arial Black,Arial,sans-serif;font-size:26px;margin:0 0 6px}
+  .sub{color:#bbb;font-size:13px;margin-bottom:28px}
+  .deck{display:flex;flex-direction:column;gap:34px}
+  .slide{
+    width:100%;
+    aspect-ratio:16/9;
+    background:var(--white);
+    color:var(--ink);
+    border-radius:12px;
+    overflow:hidden;
+    box-shadow:0 10px 30px rgba(0,0,0,0.35);
+    padding:34px 40px;
+    position:relative;
+  }
+  .slide.dark{background:var(--dark);color:var(--white)}
+  .slide.paper{background:var(--paper)}
+  .eyebrow{
+    font-size:12px;font-weight:700;letter-spacing:2.8px;text-transform:uppercase;
+    color:var(--ink);opacity:.9;
+  }
+  .slide.dark .eyebrow{color:var(--paper)}
+  .rule{width:36px;height:5px;background:var(--persimmon);border-radius:1px;margin:14px 0 18px}
+  .title{
+    font-family:Arial Black,Arial,sans-serif;
+    font-size:44px;font-weight:900;line-height:.95;letter-spacing:-.4px;
+  }
+  .title.sm{font-size:34px}
+  .slide.dark .title{color:var(--white)}
+  .meta{font-size:15px;line-height:1.4;max-width:720px;opacity:.82}
+  .cols{display:grid;grid-template-columns:1fr 1fr;gap:26px 34px;margin-top:10px}
+  .col{min-width:0}
+  .col h3{font-family:Arial Black,Arial,sans-serif;font-size:16px;margin:0 0 8px}
+  .col ul{margin:0;padding-left:18px}
+  .col li{font-size:15px;line-height:1.35;margin:0 0 8px}
+  .stat-row{display:flex;gap:14px;margin-top:14px;flex-wrap:wrap}
+  .stat{
+    flex:1 1 140px;
+    background:rgba(255,255,255,.06);
+    border:1px solid rgba(255,255,255,.12);
+    border-radius:10px;
+    padding:18px 16px;
+  }
+  .stat .v{font-family:Arial Black,Arial,sans-serif;font-size:34px;color:var(--persimmon);font-weight:900}
+  .stat .l{font-size:13px;opacity:.85;margin-top:4px;line-height:1.25}
+  .checklist{display:grid;grid-template-columns:1fr 1fr;gap:10px 22px;margin-top:10px}
+  .check{
+    display:flex;align-items:center;gap:10px;
+    font-size:15px;
+    padding:10px 12px;
+    background:rgba(255,255,255,.04);
+    border:1px solid rgba(255,255,255,.08);
+    border-radius:8px;
+  }
+  .dot{width:14px;height:14px;border-radius:50%;background:var(--persimmon)}
+  .footer{position:absolute;left:40px;right:40px;bottom:26px;font-size:11px;opacity:.65}
+  .annotate-off *{outline:none !important;}
+  @media (max-width:760px){
+    .slide{padding:24px}
+    .title{font-size:28px}
+    .cols,.checklist{grid-template-columns:1fr}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>PrintLoop owner onboarding — preview</h1>
+  <div class="sub">Visual preview. Annotations disabled on this pass.</div>
+
+  <div class="deck annotate-off">
+    <!-- Slide 1 -->
+    <article class="slide dark">
+      <div class="eyebrow">▸ PrintLoop</div>
+      <div class="title">Get your shop live<br/>in 5 minutes</div>
+      <div class="rule"></div>
+      <div class="meta lead">A web wizard for print-shop owners.<br/>No developer. No IT project. Just a browser and a printer.</div>
+      <div class="footer">01 / INTRO</div>
+    </article>
+
+    <!-- Slide 2 -->
+    <article class="slide paper">
+      <div class="eyebrow">01 / THE MARKETPLACE</div>
+      <div class="title">Your shop,<br/>on the map.</div>
+      <div class="rule"></div>
+      <div class="cols">
+        <div class="col">
+          <h3>How it works</h3>
+          <ul>
+            <li>2-sided marketplace — you supply the printer, PrintLoop routes demand to you</li>
+            <li>Customers find you by distance on the /find map</li>
+            <li>You set the prices; PrintLoop handles payment split + commission</li>
+            <li>Asset-light: the platform owns no printers and no shops</li>
+          </ul>
+        </div>
+        <div class="col">
+          <h3>What you get</h3>
+          <ul>
+            <li>10–15% commission per print (default 10%)</li>
+            <li>Payouts weekly to your bank, or instant for ₦100</li>
+            <li>Trust built by ratings + accountability loop</li>
+            <li>ML layer will optimise ranking and pricing over time</li>
+          </ul>
+        </div>
+      </div>
+      <div class="footer">02 / MARKETPLACE</div>
+    </article>
+
+    <!-- Slide 3 -->
+    <article class="slide dark">
+      <div class="eyebrow">02 / YOUR REVENUE</div>
+      <div class="title sm">Commission-based,<br/>not subscription.</div>
+      <div class="rule"></div>
+      <div class="stat-row">
+        <div class="stat"><div class="v">90%</div><div class="l">Your cut per print</div></div>
+        <div class="stat"><div class="v">10%</div><div class="l">PrintLoop commission</div></div>
+        <div class="stat"><div class="v">Fri</div><div class="l">Default payout day</div></div>
+        <div class="stat"><div class="v">₦100</div><div class="l">Instant payout fee</div></div>
+      </div>
+      <div class="footer">03 / REVENUE</div>
+    </article>
+
+    <!-- Slide 4 -->
+    <article class="slide paper">
+      <div class="eyebrow">03 / PAYMENTS & PAYOUT</div>
+      <div class="title sm">Get paid without<br/>chasing invoices.</div>
+      <div class="rule"></div>
+      <div class="cols">
+        <div class="col">
+          <h3>What we set up for you</h3>
+          <ul>
+            <li>Paystack subaccount — required to receive customer payments</li>
+            <li>Business name, settlement bank code, NUBAN account number</li>
+            <li>Payout bank account — where your weekly earnings land</li>
+          </ul>
+        </div>
+        <div class="col">
+          <h3>What you need ready</h3>
+          <ul>
+            <li>BVN, valid ID, phone, and email</li>
+            <li>Sole traders can start with personal details and upgrade later</li>
+            <li>CAC optional at start; KYC happens inside Paystack</li>
+          </ul>
+        </div>
+      </div>
+      <div class="footer">04 / PAYMENTS</div>
+    </article>
+
+    <!-- Slide 5 -->
+    <article class="slide paper">
+      <div class="eyebrow">04 / PRINTER & TEST PRINT</div>
+      <div class="title sm">The kiosk PC is<br/>the new M600.</div>
+      <div class="rule"></div>
+      <div class="cols">
+        <div class="col">
+          <h3>The 3-step printer setup</h3>
+          <ul>
+            <li>Add printer in Operator console → get pairing QR</li>
+            <li>Install PrintLoop agent by double-clicking PrintLoopSetup.exe</li>
+            <li>Scan QR; agent auto-picks transport</li>
+          </ul>
+        </div>
+        <div class="col">
+          <h3>Supported transports</h3>
+          <ul>
+            <li>Spooler for USB/local printers (most shops)</li>
+            <li>IPP for networked printers (HP, Brother, Canon)</li>
+            <li>Raw9100 for Sharp MX and JetDirect-only printers</li>
+            <li>SumatraPDF installed automatically for byte-faithful print</li>
+          </ul>
+        </div>
+      </div>
+      <div class="footer">05 / PRINTER SETUP</div>
+    </article>
+
+    <!-- Slide 6 -->
+    <article class="slide dark">
+      <div class="eyebrow">05 / GO LIVE</div>
+      <div class="title sm">When all checks<br/>are green.</div>
+      <div class="rule"></div>
+      <div class="checklist">
+        <div class="check"><div class="dot"></div>Account activated after email verification</div>
+        <div class="check"><div class="dot"></div>Shop address set</div>
+        <div class="check"><div class="dot"></div>Confirmed test print</div>
+        <div class="check"><div class="dot"></div>Printer online</div>
+        <div class="check"><div class="dot"></div>Go live unlocks automatically</div>
+        <div class="check"><div class="dot"></div>You appear on the /find customer map</div>
+      </div>
+      <div class="footer">06 / GO LIVE</div>
+    </article>
+
+    <!-- Slide 7 -->
+    <article class="slide paper">
+      <div class="eyebrow">NEXT</div>
+      <div class="title sm">Questions or stuck?<br/>This is a web wizard.</div>
+      <div class="rule"></div>
+      <div class="meta">The five-minute shop flow is: sign up → verify email → operator wizard → printer test print → go live. The only IT project here is plugging in a printer.</div>
+      <div class="footer">07 / OUTRO</div>
+    </article>
+  </div>
+</div>
+</body>
+</html>

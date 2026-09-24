@@ -37,6 +37,7 @@ export const createKiosk = async (
 
     const kiosk = await kioskService.createKiosk({
       name,
+      tenantId: req.tenant?.id ?? null,
       location,
       campus,
       shopId,
@@ -93,6 +94,7 @@ export const listKiosks = async (
     if (status) filters.status = status as KioskStatus;
     if (campus) filters.campus = campus as string;
     if (location) filters.location = location as string;
+    if (req.tenant) filters.tenantId = req.tenant.id;
 
     const kiosks = await kioskService.listKiosks(filters);
 
@@ -139,7 +141,7 @@ export const getKiosk = async (
   try {
     const { id } = req.params;
 
-    const kiosk = await kioskService.getKioskById(id);
+    const kiosk = await kioskService.getKioskById(id, req.tenant?.id ?? null);
 
     if (!kiosk) {
       res.status(404).json({
@@ -344,7 +346,7 @@ export const testKioskConnection = async (
 ): Promise<void> => {
   try {
     const { id } = req.params;
-    const kiosk = await kioskService.getKioskById(id);
+    const kiosk = await kioskService.getKioskById(id, req.tenant?.id ?? null);
     if (!kiosk) {
       res.status(404).json({ success: false, message: 'Kiosk not found' });
       return;

@@ -5,17 +5,10 @@ import { GroupSession, GroupSessionStatus } from '../entities/groupSession.entit
 import { GroupParticipant, ParticipantStatus } from '../entities/groupParticipant.entity';
 import { PrintJob } from '../entities/printJob.entity';
 import { File } from '../entities/file.entity';
+import { makeCode } from '../utils/releaseCode';
 // Watermarking is permanently removed from the group printing flow.
 // Participant documents are printed as-is. The watermark queue/worker
 // is no longer driven from here.
-
-const ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-function makeCode(length: number): string {
-  const bytes = crypto.randomBytes(length);
-  let out = '';
-  for (let i = 0; i < length; i++) out += ALPHABET[bytes[i] % ALPHABET.length];
-  return out;
-}
 
 export interface SessionOptions {
   paper: string;
@@ -50,6 +43,10 @@ function normalizeOptions(raw: any): SessionOptions {
 
 export interface CreateGroupSessionInput {
   hostId: string;
+  /** Tenant the session belongs to. Optional during the multi-tenancy
+   *  cutover — falls back to the legacy tenant in the database. New
+   *  callers should always pass it from `req.tenant?.id`. */
+  tenantId?: string | null;
   groupName: string;
   deadline: Date;
   sharedSettings: any;
@@ -91,6 +88,7 @@ export class GroupSessionService {
 
     const session = this.sessionRepo.create({
       hostUserId: input.hostId,
+      tenantId: input.tenantId ?? null,
       groupName: input.groupName,
       deadline: input.deadline,
       status: GroupSessionStatus.OPEN,

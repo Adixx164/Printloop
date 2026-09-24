@@ -6,6 +6,7 @@ import {
   UpdateDateColumn,
   DeleteDateColumn,
   OneToOne,
+  Index,
 } from 'typeorm';
 import { Wallet } from './wallet.entity';
 
@@ -25,9 +26,30 @@ export enum AdminPrivilege {
 }
 
 @Entity('users')
+@Index('idx_user_tenant', ['tenantId'])
+// Tenant-scoped uniqueness — see migration TightenTenantUniqueness.
+// Two tenants can each have a customer with the same email.
+@Index('UQ_users_email_tenant', ['email', 'tenantId'], { unique: true })
 export class User {
   @PrimaryGeneratedColumn('uuid')
   id: string;
+
+  /**
+   * The tenant this user belongs to. Customers (role=USER) ALWAYS
+   * have one. Tenant admins/staff hang off a tenant via the
+   * `tenant_members` join table instead, and their User row's
+   * tenantId is NULL. Platform-level users (PrintLoop's own staff)
+   * also have NULL here — their permission comes from role +
+   * adminPrivileges.
+   *
+   * Email uniqueness is being moved from globally-unique to
+   * (email, tenantId)-unique as part of the multi-tenancy cutover
+   * (separate migration). Until then, the global UNIQUE on email
+   * remains and limits us to one customer account per email
+   * across all tenants.
+   */
+  @Column({ type: 'uuid', nullable: true })
+  tenantId: string | null;
 
   @Column({ type: 'varchar', length: 100 })
   firstName: string;
@@ -35,7 +57,10 @@ export class User {
   @Column({ type: 'varchar', length: 100 })
   lastName: string;
 
-  @Column({ type: 'varchar', length: 255, unique: true })
+  // Uniqueness is composite (email, tenantId) — see class-level
+  // @Index above. Per-column `unique: true` was removed when the
+  // SaaS migration tightened the constraint.
+  @Column({ type: 'varchar', length: 255 })
   email: string;
 
   @Column({ type: 'varchar', length: 20 })
@@ -56,6 +81,18 @@ export class User {
    */
   @Column({ type: 'varchar', length: 96, nullable: true, unique: true })
   printToken: string | null;
+
+  /**
+   * TOTP (2FA) secret, Base32. NULL until the user starts 2FA setup.
+   * `totpEnabled` only flips true after they prove a valid code, so a
+   * half-finished setup never locks anyone out. See utils/totp.ts.
+   */
+  @Column({ type: 'varchar', length: 64, nullable: true })
+  totpSecret: string | null;
+
+  /** True once 2FA is confirmed; login then requires a TOTP code. */
+  @Column({ type: 'boolean', default: false })
+  totpEnabled: boolean;
 
   @Column({ type: 'boolean', default: false })
   isEmailVerified: boolean;

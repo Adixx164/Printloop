@@ -11,5 +11,15 @@
 # Nixpacks auto-detects (the `"..."` spread preserves whatever the
 # auto-plan put here) — it does not replace it. Build/deploy commands
 # stay in railway.toml.
+#
+# OpenPrinting render step (docs/OPENPRINTING-INTEGRATION.md — "Option A"):
+# the Option-A render path uses Ghostscript, which is ALREADY installed
+# above — `gs` does PDF -> PostScript via `ps2write` and PDF -> PCL-XL via
+# `pxlmono` / `pxlcolor`, so no new packages are needed for the spike or the
+# first render step. The richer OpenPrinting tools (`ippsample` for
+# `ipptransform`, `cups-filters`) are intentionally NOT added here yet:
+# their exact apt names must be confirmed against Railway's base image first
+# (an unknown package name fails `apt-get install` and breaks the build).
+# Add them in the Phase-1 PR once validated.
 [phases.setup]
 aptPkgs = ["...", "ghostscript"]

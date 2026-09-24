@@ -112,7 +112,7 @@ router.post('/upload', async (req: Request, res: Response) => {
     }
 
     // Real bytes win: persist them so the kiosk/IPP service can fetch them.
-    const stored = buffer ? saveBuffer(buffer, String(fileName)) : null;
+    const stored = buffer ? await saveBuffer(buffer, String(fileName)) : null;
     const effectiveFileURL = stored ? stored.url : fileURL;
     const effectiveSize = stored ? stored.sizeBytes : Number(sizeBytes) || 0;
 
@@ -166,6 +166,9 @@ router.post('/upload', async (req: Request, res: Response) => {
 
     const savedFile = await fileRepo.save(
       fileRepo.create({
+        // Inherit from the session — group sessions don't span
+        // tenants, so the file belongs to whoever owns the session.
+        tenantId: session.tenantId ?? null,
         fileURL: effectiveFileURL,
         fileName,
         mimeType: mimeType || 'application/pdf',
@@ -178,6 +181,10 @@ router.post('/upload', async (req: Request, res: Response) => {
     const savedJob = await jobRepo.save(
       jobRepo.create({
         userId: participant.userId ?? null,
+        // Inherit the session's tenant — group sessions don't span
+        // tenants, and the participant is a customer of whoever
+        // owns the session.
+        tenantId: session.tenantId ?? null,
         jobType: JobType.GROUP_BATCH,
         groupSessionId: session.id,
         // Watermarking removed from group printing.

@@ -24,7 +24,10 @@ export const authApi = apiSlice.injectEndpoints({
       },
     }),
 
-    login: builder.mutation<any, { email: string; password: string }>({
+    login: builder.mutation<
+      any,
+      { email: string; password: string; totpCode?: string }
+    >({
       query: (body) => ({
         url: "customer/auth/login",
         method: "POST",
@@ -63,18 +66,30 @@ export const authApi = apiSlice.injectEndpoints({
       }),
     }),
 
-    resetPassword: builder.mutation<any, { email: string; token: string; password: string }>({
+    updateProfile: builder.mutation<any, { firstName: string; lastName: string; phoneNumber: string }>({
       query: (body) => ({
-        url: "auth/reset-password",
-        method: "POST",
+        url: "customer/auth/me",
+        method: "PUT",
         body,
       }),
+      invalidatesTags: ["Auth"],
+      async onQueryStarted(_, { dispatch, queryFulfilled }) {
+        try {
+          const { data } = await queryFulfilled;
+          const payload = data?.response || data?.data || data;
+          if (payload?.user) {
+            dispatch(setCredentials(payload));
+          }
+        } catch {}
+      },
     }),
 
-    me: builder.query<any, void>({
-      query: () => "customer/auth/me",
-      providesTags: ["Auth"],
-      transformResponse: (r: any) => r?.response || r?.data || r,
+    changePassword: builder.mutation<any, { oldPassword?: string; newPassword?: string }>({
+      query: (body) => ({
+        url: "customer/auth/password",
+        method: "PUT",
+        body,
+      }),
     }),
   }),
 });
@@ -85,6 +100,6 @@ export const {
   useVerifyEmailMutation,
   useResendVerificationMutation,
   useForgotPasswordMutation,
-  useResetPasswordMutation,
-  useMeQuery,
+  useUpdateProfileMutation,
+  useChangePasswordMutation,
 } = authApi;

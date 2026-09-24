@@ -1,0 +1,213 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+env:
+  NODE_VERSION: '20'
+  PNPM_VERSION: '9'
+
+jobs:
+  backend:
+    name: Backend (typecheck + test)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./01-backend
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: printloop
+          POSTGRES_PASSWORD: printloop_test
+          POSTGRES_DB: printloop
+        ports: [5432:5432]
+        options: >-
+          --health-cmd "pg_isready -U printloop -d printloop"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 20
+      redis:
+        image: redis:7-alpine
+        ports: [6379:6379]
+        options: --health-cmd "redis-cli ping" --health-interval 5s --health-timeout 3s --health-retries 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Typecheck
+        run: pnpm run typecheck
+      - name: Run tests
+        env:
+          DATABASE_URL: postgresql://printloop:printloop_test@localhost:5432/printloop
+          REDIS_URL: redis://localhost:6379
+          JWT_SECRET: test-secret-32chars-long-enough-for-tests
+          RENDER_CALLBACK_SECRET: test-render-secret-32chars-long
+          COMMISSION_PCT_DEFAULT: '0.10'
+          PAYSTACK_SECRET_KEY: sk_test_doesnotmatter
+          TERMII_API_KEY: test
+          SEED_DEMO: '1'
+        run: pnpm run test:run
+
+  frontend:
+    name: Frontend (typecheck + build)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./printloop-new-frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Typecheck
+        run: pnpm run tsc -b
+      - name: Build
+        run: pnpm run build
+
+  render-worker:
+    name: Render Worker (typecheck + build)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./render-worker
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Typecheck
+        run: pnpm run tsc --noEmit
+      - name: Build
+        run: pnpm run build
+
+  kiosk-app:
+    name: Kiosk App (typecheck + build)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./printloop-kiosk-app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Typecheck (main process)
+        run: pnpm run tsc -p tsconfig.main.json
+      - name: Build
+        run: pnpm run build
+
+  docker:
+    name: Build Docker images
+    runs-on: ubuntu-latest
+    needs: [backend, frontend, render-worker, kiosk-app]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build API image
+        run: docker build -t printloop/api:test ./01-backend
+      - name: Build Render Worker image
+        run: docker build -t printloop/render-worker:test ./render-worker
+      - name: Build Kiosk App image
+        run: docker build -t printloop/kiosk-app:test ./printloop-kiosk-app
+
+  lint:
+    name: Lint (all projects)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+      - name: Install backend deps
+        run: pnpm install --frozen-lockfile
+        working-directory: ./01-backend
+      - name: Lint backend
+        run: pnpm run lint
+        working-directory: ./01-backend
+      - name: Install frontend deps
+        run: pnpm install --frozen-lockfile
+        working-directory: ./printloop-new-frontend
+      - name: Lint frontend
+        run: pnpm run lint
+        working-directory: ./printloop-new-frontend
+      - name: Install render-worker deps
+        run: pnpm install --frozen-lockfile
+        working-directory: ./render-worker
+      - name: Lint render-worker
+        run: pnpm run lint
+        working-directory: ./render-worker
+      - name: Install kiosk-app deps
+        run: pnpm install --frozen-lockfile
+        working-directory: ./printloop-kiosk-app
+      - name: Lint kiosk-app
+        run: pnpm run lint
+        working-directory: ./printloop-kiosk-app
+
+  # Deploy to Render on main branch push
+  deploy-api:
+    name: Deploy API to Render
+    if: github.ref == 'refs/heads/main'
+    needs: [backend, docker]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Render API deploy
+        if: ${{ secrets.RENDER_API_DEPLOY_HOOK != '' }}
+        run: |
+          curl -X POST "${{ secrets.RENDER_API_DEPLOY_HOOK }}"
+          echo "API deploy triggered"
+
+  deploy-frontend:
+    name: Deploy Frontend to Render
+    if: github.ref == 'refs/heads/main'
+    needs: [frontend, docker]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Render Frontend deploy
+        if: ${{ secrets.RENDER_FRONTEND_DEPLOY_HOOK != '' }}
+        run: |
+          curl -X POST "${{ secrets.RENDER_FRONTEND_DEPLOY_HOOK }}"
+          echo "Frontend deploy triggered"
+
+  deploy-render-worker:
+    name: Deploy Render Worker to Render
+    if: github.ref == 'refs/heads/main'
+    needs: [render-worker, docker]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Render Worker deploy
+        if: ${{ secrets.RENDER_RENDER_WORKER_DEPLOY_HOOK != '' }}
+        run: |
+          curl -X POST "${{ secrets.RENDER_RENDER_WORKER_DEPLOY_HOOK }}"
+          echo "Render Worker deploy triggered"

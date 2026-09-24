@@ -25,6 +25,16 @@ function sqlGet(sql, params) {
     db.get(sql, params, (err, row) => { db.close(); err ? reject(err) : resolve(row); });
   });
 }
+function sqlRun(sql, params) {
+  return new Promise((resolve, reject) => {
+    if (!sqlite3) return resolve(null);
+    const db = new sqlite3.Database(DB_PATH, sqlite3.OPEN_READWRITE);
+    db.run(sql, params, function (err) { db.close(); err ? reject(err) : resolve(this.changes); });
+  });
+}
+async function topUpWallet(userId, naira) {
+  await sqlRun(`UPDATE wallets SET balance = ? WHERE userId = ?`, [naira, userId]);
+}
 
 async function jr(method, url, body, headers) {
   const r = await fetch(B + url, {
@@ -80,6 +90,10 @@ async function jr(method, url, body, headers) {
         phoneNumber: `+234800000${(1000 + i).toString().slice(0, 4)}`,
         password: 'Passw0rd!',
       });
+      const userId = reg.data?.data?.user?.id;
+      if (userId) {
+        await topUpWallet(userId, 1000);
+      }
       return reg.data?.data?.tokens?.accessToken;
     }),
   );
@@ -106,6 +120,9 @@ async function jr(method, url, body, headers) {
   const results = await Promise.all(users.map((j) => fire(j)));
   const ok = results.filter((x) => x?.success).length;
   console.log(`3. 10 concurrent prints → ${ok}/10 succeeded`);
+  if (ok === 0) {
+    console.error('Errors:', results.map(x => x?.message || x));
+  }
 
   // 4. Inspect the promo row — usageCount must be 3, not 4+.
   const row = await sqlGet(`SELECT usageCount FROM promotions WHERE id = ?`, [promoId]);

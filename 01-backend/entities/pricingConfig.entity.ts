@@ -20,10 +20,18 @@ export enum ColorType {
 }
 
 @Entity('pricing_configs')
-@Index(['paperSize', 'colorType'], { unique: true })
+// Widened from (paperSize, colorType) to (tenantId, paperSize, colorType)
+// by the TightenTenantUniqueness migration so each tenant gets their
+// own 24-cell matrix.
+@Index('UQ_pricing_tenant_paper_color', ['tenantId', 'paperSize', 'colorType'], { unique: true })
+@Index('idx_pricing_tenant', ['tenantId'])
 export class PricingConfig {
   @PrimaryGeneratedColumn('uuid')
   id: string;
+
+  /** Owning tenant. Each tenant gets their own pricing matrix. */
+  @Column({ type: 'uuid', nullable: true })
+  tenantId: string | null;
 
   @Column({ type: 'simple-enum', enum: PaperSize, default: PaperSize.A4 })
   paperSize: PaperSize;
@@ -76,6 +84,9 @@ export class PricingConfig {
 
   @Column({ type: 'text', nullable: true })
   notes: string;
+
+  @Column({ type: 'boolean', default: false })
+  officeConversion: boolean;
 
   @CreateDateColumn()
   createdAt: Date;

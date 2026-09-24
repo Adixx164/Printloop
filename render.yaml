@@ -1,0 +1,116 @@
+# Render Infrastructure as Code
+# Deploy with: render deploy --config render.yaml
+
+services:
+  # Backend API
+  - type: web
+    name: printloop-api
+    runtime: node
+    plan: free
+    region: frankfurt
+    rootDir: 01-backend
+    buildCommand: "npm install && npm run build"
+    startCommand: "npm start"
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: "4000"
+      - key: DATABASE_URL
+        fromDatabase:
+          name: printloop-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: printloop-redis
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+      - key: PAYSTACK_SECRET_KEY
+        sync: false
+      - key: PAYSTACK_PUBLIC_KEY
+        sync: false
+      - key: PAYSTACK_WEBHOOK_SECRET
+        sync: false
+      - key: FRONTEND_URL
+        sync: false
+      - key: ALLOWED_ORIGINS
+        sync: false
+      - key: RENDER_CALLBACK_SECRET
+        generateValue: true
+      - key: COMMISSION_PCT_DEFAULT
+        value: "0.10"
+      - key: SEED_DEMO
+        value: "1"
+
+  # Frontend Static Site
+  - type: static
+    name: printloop-frontend
+    runtime: static
+    plan: free
+    region: frankfurt
+    rootDir: printloop-new-frontend
+    buildCommand: "npm install && npm run build"
+    staticPublishPath: ./dist
+    headers:
+      - path: /*
+        name: X-Frame-Options
+        value: DENY
+      - path: /*
+        name: X-Content-Type-Options
+        value: nosniff
+      - path: /*
+        name: Referrer-Policy
+        value: strict-origin-when-cross-origin
+    envVars:
+      - key: VITE_API_URL
+        value: "https://printloop-api.onrender.com/api"
+      - key: VITE_PAYSTACK_PUBLIC_KEY
+        sync: false
+
+  # Render Worker
+  - type: web
+    name: printloop-render-worker
+    runtime: node
+    plan: free
+    region: frankfurt
+    rootDir: render-worker
+    buildCommand: "npm install && npm run build"
+    startCommand: "npm start"
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: printloop-redis
+          property: connectionString
+      - key: RENDER_CALLBACK_SECRET
+        fromService:
+          type: web
+          name: printloop-api
+          envVarKey: RENDER_CALLBACK_SECRET
+      - key: AWS_S3_BUCKET
+        sync: false
+      - key: AWS_ACCESS_KEY_ID
+        sync: false
+      - key: AWS_SECRET_ACCESS_KEY
+        sync: false
+
+  # Redis for BullMQ + caching
+  - type: redis
+    name: printloop-redis
+    plan: free
+    region: frankfurt
+    maxmemoryPolicy: allkeys-lru
+
+databases:
+  # PostgreSQL database
+  - name: printloop-db
+    databaseName: printloop
+    user: printloop
+    plan: free
+    region: frankfurt
+    postgresMajorVersion: 16

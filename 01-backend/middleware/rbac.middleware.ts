@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { UserRole } from '../entities/user.entity';
+import { TenantMemberRole } from '../entities/tenantMember.entity';
 
 /**
  * Fine-grained admin permissions. Stored on User.adminPrivileges as an
@@ -25,6 +26,9 @@ export enum Permission {
   // Promotions
   VIEW_PROMOTIONS = 'view_promotions',
   MANAGE_PROMOTIONS = 'manage_promotions',
+
+  // Blog (V2-54)
+  MANAGE_BLOG = 'manage_blog',
 
   // Refunds / transactions
   VIEW_TRANSACTIONS = 'view_transactions',
@@ -87,6 +91,15 @@ function permissionsForUser(user: any): string[] {
  * Require the authenticated user to be an admin AND hold ALL of the
  * given permissions. Must run after the JWT auth middleware (which sets
  * req.user). Populates req.admin for downstream handlers.
+ *
+ * **Tenant-aware as of V2-9.** When `req.tenant` is set (which it is
+ * on all `/api/admin/*` routes after `resolveTenant`), this also
+ * verifies the user has a TenantMember row for that tenant. Without
+ * the membership check, a global admin on Tenant A could send
+ * `X-Tenant-Slug: tenant-b` and successfully manage Tenant B.
+ *
+ * SUPER_ADMIN bypasses the membership check — they're a
+ * platform-level role allowed to act on any tenant for support.
  */
 export const requirePermission = (...required: Permission[]) => {
   return (req: Request, res: Response, next: NextFunction): void => {
@@ -118,6 +131,23 @@ export const requirePermission = (...required: Permission[]) => {
       }
     }
 
+    // Tenant-membership guard. Skipped for SUPER_ADMIN (platform
+    // role) and for routes that didn't resolve a tenant.
+    if (!isSuper && req.tenant) {
+      const memberships = req.tenantMemberships || [];
+      const hasMembership = memberships.some(
+        (m) => m.tenantId === req.tenant!.id,
+      );
+      if (!hasMembership) {
+        res.status(403).json({
+          success: false,
+          message: 'Not a member of this tenant',
+          code: 'NOT_TENANT_MEMBER',
+        });
+        return;
+      }
+    }
+
     req.admin = {
       id: user.id,
       userId: user.id,
@@ -130,37 +160,53 @@ export const requirePermission = (...required: Permission[]) => {
 };
 
 /**
- * Require ANY one of the given permissions (super admin always passes).
+ * Require the authenticated user to be a member of the resolved
+ * tenant (`req.tenant`), optionally with one of the given tenant
+ * roles. Use on tenant-admin-facing routes that aren't gated by a
+ * platform Permission — e.g. `/api/saas/me`, `/api/saas/payouts`.
+ *
+ * Platform SUPER_ADMIN always passes (impersonation / support).
  */
-export const requireAnyPermission = (...allowed: Permission[]) => {
+export const requireTenantMembership = (
+  ...allowedRoles: TenantMemberRole[]
+) => {
   return (req: Request, res: Response, next: NextFunction): void => {
     const user = (req as any).user;
-
     if (!user) {
       res.status(401).json({ success: false, message: 'Authentication required' });
       return;
     }
-
-    if (user.role !== UserRole.ADMIN && user.role !== UserRole.SUPER_ADMIN) {
-      res.status(403).json({ success: false, message: 'Forbidden: Admin access required' });
+    if (!req.tenant) {
+      res.status(400).json({
+        success: false,
+        message: 'Tenant could not be resolved for this request',
+      });
       return;
     }
-
-    const permissions = permissionsForUser(user);
-    const isSuper = user.role === UserRole.SUPER_ADMIN;
-
-    if (!isSuper && !allowed.some((p) => permissions.includes(p))) {
-      res.status(403).json({ success: false, message: 'Insufficient permissions' });
+    if (user.role === UserRole.SUPER_ADMIN) {
+      next();
       return;
     }
-
-    req.admin = {
-      id: user.id,
-      userId: user.id,
-      role: user.role,
-      permissions,
-    };
-
+    const memberships = req.tenantMemberships || [];
+    const membership = memberships.find(
+      (m) => m.tenantId === req.tenant!.id,
+    );
+    if (!membership) {
+      res.status(403).json({
+        success: false,
+        message: 'Not a member of this tenant',
+        code: 'NOT_TENANT_MEMBER',
+      });
+      return;
+    }
+    if (allowedRoles.length > 0 && !allowedRoles.includes(membership.role)) {
+      res.status(403).json({
+        success: false,
+        message: `Tenant role '${membership.role}' is not authorised; need one of ${allowedRoles.join(', ')}`,
+        code: 'INSUFFICIENT_TENANT_ROLE',
+      });
+      return;
+    }
     next();
   };
 };

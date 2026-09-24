@@ -3,9 +3,11 @@ node_modules/
 dist/
 build/
 *.tsbuildinfo
-# Exception: the kiosk Electron app has a build/ folder that holds
-# the app icon + the icon generator script. Those are SOURCE, not
+# Exception: the kiosk Electron apps have build/ folders that hold
+# app icons + icon generator scripts. Those are SOURCE, not
 # generated, so they must ship with the repo.
+!kiosk-app/build/
+!kiosk-app/build/**
 !printloop-kiosk-app/build/
 !printloop-kiosk-app/build/**
 
@@ -39,6 +41,12 @@ Thumbs.db
 01-backend/data/printed/
 # Legacy mock JSON store used by the devApi catch-all router.
 01-backend/data/dev-store.json
+
+# ── Vendored reference source (not built, not imported) ──────────────
+# Local clones of OpenPrinting projects kept for reference only. The app
+# uses cups-filters / Ghostscript at runtime on the host, never this
+# source. Untracked to keep the repo lean (~139 MB); re-clone if needed.
+vendor/
 
 # ── Archives / large binaries ────────────────────────────────────────
 *.tar

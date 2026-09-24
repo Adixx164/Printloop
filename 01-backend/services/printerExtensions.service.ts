@@ -4,6 +4,9 @@ import { PrintJob, PrintJobStatus } from '../entities/printJob.entity';
 import { File } from '../entities/file.entity';
 import { GroupSessionService } from './groupSession.service';
 import { fileCleanupQueue } from '../workers/queues';
+import { emitTenantEvent } from './tenantWebhook.service';
+import { WebhookEvent } from '../entities/tenantWebhook.entity';
+import { checkPickupLimit } from './abuseLimits.service';
 
 /**
  * Kiosk-facing helpers: validate a release code, fetch the job/files to
@@ -21,13 +24,22 @@ export class PrinterServiceExtensions {
     this.groupService = new GroupSessionService();
   }
 
-  async validateCode(code: string): Promise<{
+  /**
+   * **Tenant-scoped as of V2-12.** Pass the authenticating kiosk's
+   * `tenantId` so we never validate a code that belongs to a
+   * different tenant — even if the global `code` collision space
+   * ever lets two tenants share a code.
+   */
+  async validateCode(code: string, tenantId?: string | null): Promise<{
     success: boolean;
     type?: 'single' | 'group_batch';
     message: string;
     data?: any;
+    code?: string;
+    retryAfter?: number;
   }> {
-    const job = await this.printJobRepo.findOne({ where: { code } });
+    const where = tenantId ? { code, tenantId } : { code };
+    const job = await this.printJobRepo.findOne({ where });
     if (job) {
       if (job.status === PrintJobStatus.DONE) {
         return { success: false, message: 'This job has already been printed' };
@@ -37,6 +49,18 @@ export class PrinterServiceExtensions {
       }
       if (job.status !== PrintJobStatus.READY) {
         return { success: false, message: `Job is ${job.status} and cannot be printed` };
+      }
+      // Per-customer pickup attempt limit (abuse prevention, V2-13)
+      if (tenantId && job.userId) {
+        const pickupLimit = await checkPickupLimit(tenantId, job.userId);
+        if (!pickupLimit.allowed) {
+          return {
+            success: false,
+            message: `Too many pickup attempts. Limit is ${pickupLimit.limit} per hour. Try again at ${pickupLimit.resetAt.toISOString()}`,
+            code: 'PICKUP_LIMIT_EXCEEDED',
+            retryAfter: Math.ceil((pickupLimit.resetAt.getTime() - Date.now()) / 1000),
+          };
+        }
       }
       return {
         success: true,
@@ -63,16 +87,21 @@ export class PrinterServiceExtensions {
     return { success: false, message: 'Invalid code' };
   }
 
-  async getJob(code: string): Promise<{
+  async getJob(code: string, tenantId?: string | null): Promise<{
     success: boolean;
     type?: 'single' | 'group_batch';
     data?: any;
     message: string;
   }> {
-    const job = await this.printJobRepo.findOne({ where: { code } });
+    const where = tenantId ? { code, tenantId } : { code };
+    const job = await this.printJobRepo.findOne({ where });
     if (job) {
       const file = job.fileId
-        ? await this.fileRepo.findOne({ where: { id: job.fileId } })
+        ? await this.fileRepo.findOne({
+            where: tenantId
+              ? { id: job.fileId, tenantId }
+              : { id: job.fileId },
+          })
         : null;
       return {
         success: true,
@@ -81,7 +110,7 @@ export class PrinterServiceExtensions {
         data: {
           jobId: job.id,
           code: job.code,
-          fileURL: file?.watermarkedUrl || file?.fileURL || null,
+          fileURL: null, // HIDE DOWNLOAD URL (V2-12)
           fileName: file?.fileName || job.fileName || null,
           totalPages: job.totalPages,
           printConfig: job.printConfiguration,
@@ -104,7 +133,7 @@ export class PrinterServiceExtensions {
           defaultOptions: batchData.session.defaultOptions,
           files: batchData.files.map((f) => ({
             fileId: f.fileId,
-            fileURL: f.fileURL,
+            fileURL: null, // HIDE DOWNLOAD URL (V2-12)
             participantName: f.participantName,
             printConfig: f.printConfig,
           })),
@@ -119,8 +148,12 @@ export class PrinterServiceExtensions {
     code: string;
     pagesCompleted: number;
     kioskId: string;
+    tenantId?: string | null;
   }): Promise<{ success: boolean; message: string }> {
-    const job = await this.printJobRepo.findOne({ where: { code: input.code } });
+    const where = input.tenantId
+      ? { code: input.code, tenantId: input.tenantId }
+      : { code: input.code };
+    const job = await this.printJobRepo.findOne({ where });
     if (!job) return { success: false, message: 'Job not found' };
 
     job.pagesCompleted = input.pagesCompleted;
@@ -136,8 +169,12 @@ export class PrinterServiceExtensions {
     kioskName: string;
     cost: number;
     totalPages: number;
+    tenantId?: string | null;
   }): Promise<{ success: boolean; message: string; data?: any }> {
-    const job = await this.printJobRepo.findOne({ where: { code: input.code } });
+    const where = input.tenantId
+      ? { code: input.code, tenantId: input.tenantId }
+      : { code: input.code };
+    const job = await this.printJobRepo.findOne({ where });
     if (!job) return { success: false, message: 'Job not found' };
 
     job.status = PrintJobStatus.DONE;
@@ -154,6 +191,20 @@ export class PrinterServiceExtensions {
       { printJobId: job.id, fileIds: job.fileId ? [job.fileId] : [] },
       { delay: 24 * 60 * 60 * 1000 }
     );
+
+    // Emit job.completed webhook (Dimension 14 — V2-14). Fire-and-
+    // forget; subscriber-side failures don't block the response.
+    if (job.tenantId) {
+      emitTenantEvent(job.tenantId, WebhookEvent.JOB_COMPLETED, {
+        printJobId: job.id,
+        code: job.code,
+        cost: Number(job.cost),
+        totalPages: job.totalPages,
+        completedAt: job.completedAt,
+        kioskId: input.kioskId,
+        kioskName: input.kioskName,
+      });
+    }
 
     return {
       success: true,

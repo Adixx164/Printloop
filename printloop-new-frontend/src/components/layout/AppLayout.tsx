@@ -16,19 +16,13 @@ import type { RootState } from "@/store";
  */
 const NAV_ITEMS: MobileNavItem[] = [
   { label: "Dashboard", to: ROUTES.APP.DASHBOARD },
-  { label: "New print", to: ROUTES.APP.NEW_PRINT },
-  { label: "Batch", to: ROUTES.APP.BATCH_PRINT },
-  { label: "Groups", to: ROUTES.APP.GROUP_PRINT },
   { label: "My jobs", to: ROUTES.APP.PRINT_JOBS },
-  { label: "Wallet", to: ROUTES.APP.WALLET },
   { label: "Stations", to: ROUTES.APP.STATIONS },
 ];
 
 const BOTTOM_TABS: BottomTab[] = [
   { label: "Home", to: ROUTES.APP.DASHBOARD },
-  { label: "Print", to: ROUTES.APP.NEW_PRINT },
   { label: "Jobs", to: ROUTES.APP.PRINT_JOBS },
-  { label: "Wallet", to: ROUTES.APP.WALLET },
 ];
 
 export function AppLayout() {
@@ -60,14 +54,15 @@ export function AppLayout() {
       />
 
       {/* ── Header ────────────────────────────────────────────────── */}
-      <div className="bg-paper border-b-2 border-ink px-4 sm:px-6 lg:px-8 py-3 sm:py-4 flex items-center justify-between gap-4">
+      <div className="pl-anim-header bg-paper border-b-2 border-ink px-4 sm:px-6 lg:px-8 py-3 sm:py-4 flex items-center justify-between gap-4">
         {/* Logo + (desktop) horizontal nav */}
         <div className="flex items-center gap-4 lg:gap-8 min-w-0">
           <Link
             to={ROUTES.APP.DASHBOARD}
-            className="font-serif font-extrabold text-[20px] sm:text-[22px] lg:text-[26px] tracking-tight flex-shrink-0"
+            className="group font-serif font-extrabold text-[20px] sm:text-[22px] lg:text-[26px] tracking-tight flex-shrink-0"
           >
-            PrintLoop<span className="text-persimmon">.</span>
+            PrintLoop
+            <span className="text-persimmon inline-block transition-transform duration-200 ease-expressive group-hover:scale-150">.</span>
           </Link>
           <nav className="hidden lg:flex gap-1 flex-wrap">
             {NAV_ITEMS.map((it) => {
@@ -76,7 +71,7 @@ export function AppLayout() {
                 <Link
                   key={it.to}
                   to={it.to}
-                  className={`px-3 py-2 text-xs font-bold uppercase tracking-wider border-2 transition-all ${
+                  className={`pl-nav-link px-3 py-2 text-xs font-bold uppercase tracking-wider border-2 ${
                     active
                       ? "bg-persimmon text-paper border-ink"
                       : "border-transparent text-ink hover:bg-ink hover:text-paper hover:border-ink"
@@ -97,7 +92,7 @@ export function AppLayout() {
           </span>
           <button
             onClick={handleLogout}
-            className="hidden lg:inline-block text-[10px] font-bold tracking-editorial border-2 border-ink px-3 py-1.5 hover:bg-ink hover:text-paper transition-all"
+            className="pl-nav-link hidden lg:inline-block text-[10px] font-bold tracking-editorial border-2 border-ink px-3 py-1.5 hover:bg-ink hover:text-paper"
           >
             SIGN OUT
           </button>
@@ -107,7 +102,7 @@ export function AppLayout() {
             onClick={() => setMenuOpen(true)}
             aria-label="Open menu"
             aria-expanded={menuOpen}
-            className="lg:hidden text-[10px] font-bold tracking-editorial border-2 border-ink px-3 py-2 hover:bg-ink hover:text-paper transition-all"
+            className="pl-nav-link lg:hidden text-[10px] font-bold tracking-editorial border-2 border-ink px-3 py-2 hover:bg-ink hover:text-paper"
           >
             MENU
           </button>

@@ -1,74 +1,81 @@
 {
   "name": "printloop-kiosk-app",
-  "productName": "PrintLoop Kiosk",
   "version": "1.0.0",
-  "description": "PrintLoop self-service kiosk — Electron-wrapped touchscreen app.",
-  "private": true,
-  "main": "main.js",
-  "author": {
-    "name": "PrintLoop",
-    "email": "support@printloop.ng"
-  },
+  "description": "PrintLoop Kiosk Application - Electron-based touchscreen UI for print shops",
+  "main": "dist/main/index.js",
   "scripts": {
-    "sync": "node -e \"require('node:fs').mkdirSync('renderer',{recursive:true});require('node:fs').copyFileSync('../printloop-kiosk/index.html','renderer/index.html');console.log('[sync] renderer/index.html ← printloop-kiosk/index.html');\"",
-    "prestart": "npm run sync",
-    "prebuild": "npm run sync",
-    "prebuild:portable": "npm run sync",
+    "build": "tsc -p tsconfig.main.json && vite build",
+    "dev": "concurrently \"tsc -p tsconfig.main.json -w\" \"vite\" \"wait-on http://localhost:5173 && electron .\"",
     "start": "electron .",
-    "build": "electron-builder --win --x64",
-    "build:portable": "electron-builder --win portable --x64"
+    "package": "npm run build && electron-builder --win --x64",
+    "package:linux": "npm run build && electron-builder --linux --x64",
+    "lint": "eslint src --ext .ts,.tsx"
   },
   "dependencies": {
-    "axios": "^1.16.1",
-    "bonjour-service": "^1.4.0",
-    "ipp": "^1.1.0"
+    "@aws-sdk/client-s3": "^3.1121.0",
+    "@aws-sdk/s3-request-presigner": "^3.1121.0",
+    "axios": "^1.6.0",
+    "dotenv": "^16.4.0",
+    "electron": "^28.0.0",
+    "ipp": "^1.1.0",
+    "pdf-lib": "^1.17.1",
+    "pino": "^8.17.0",
+    "pino-pretty": "^10.3.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "sharp": "^0.33.0",
+    "ws": "^8.16.0"
   },
   "devDependencies": {
-    "electron": "^33.2.0",
-    "electron-builder": "^25.1.8"
+    "@types/node": "^20.10.0",
+    "@types/react": "^18.2.0",
+    "@types/react-dom": "^18.2.0",
+    "@types/ws": "^8.5.0",
+    "@typescript-eslint/eslint-plugin": "^6.0.0",
+    "@typescript-eslint/parser": "^6.0.0",
+    "@vitejs/plugin-react": "^4.2.0",
+    "concurrently": "^8.2.0",
+    "electron-builder": "^24.9.0",
+    "eslint": "^8.56.0",
+    "typescript": "^5.3.0",
+    "vite": "^5.0.0",
+    "wait-on": "^7.2.0"
   },
   "build": {
-    "appId": "ng.printloop.kiosk",
+    "appId": "com.printloop.kiosk",
     "productName": "PrintLoop Kiosk",
-    "asar": true,
-    "files": [
-      "main.js",
-      "agent.js",
-      "discovery.js",
-      "setup.html",
-      "setup-preload.js",
-      "kiosk-preload.js",
-      "renderer/**/*",
-      "build/icon.*",
-      "node_modules/**/*"
-    ],
+    "copyright": "Copyright © 2026 PrintLoop",
     "directories": {
       "output": "dist"
     },
+    "files": [
+      "dist/**/*",
+      "public/**/*"
+    ],
+    "extraResources": [
+      {
+        "from": "resources",
+        "to": "resources",
+        "filter": [
+          "**/*"
+        ]
+      }
+    ],
     "win": {
-      "target": [
-        {
-          "target": "nsis",
-          "arch": [
-            "x64"
-          ]
-        }
-      ],
-      "icon": "build/icon.png",
-      "publisherName": "PrintLoop"
+      "target": "nsis",
+      "icon": "public/icon.ico"
     },
     "nsis": {
       "oneClick": false,
-      "perMachine": true,
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "PrintLoop Kiosk",
-      "uninstallDisplayName": "PrintLoop Kiosk",
-      "deleteAppDataOnUninstall": false
+      "shortcutName": "PrintLoop Kiosk"
     },
-    "extraMetadata": {
-      "main": "main.js"
+    "linux": {
+      "target": "AppImage",
+      "icon": "public/icon.png",
+      "category": "Office"
     }
   }
 }

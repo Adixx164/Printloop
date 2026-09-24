@@ -12,6 +12,7 @@ import { PrintJobItem } from '../entities/printJobItem.entity';
 import { File } from '../entities/file.entity';
 import { loadDocumentBytes } from '../utils/fileStore';
 import { ensurePdf, toGrayscale, fitToOrientation, UnsupportedDocumentError } from '../services/documentConvert.service';
+import { settleShortfall } from '../services/costReconciliation.service';
 
 const router = Router();
 const printerExt = new PrinterServiceExtensions();
@@ -29,11 +30,18 @@ async function dispatchPrint(
   source: any,
   jobName: string,
   opts: PrintOptions,
-  transport: 'ipp' | 'raw9100',
+  transport: 'ipp' | 'raw9100' | 'lpr' | 'email',
   rawPort: number,
 ): Promise<any> {
   if (transport === 'raw9100') {
     return ipp.rawPrint(printerIp, source, jobName, opts, rawPort);
+  }
+  if (transport === 'lpr') {
+    const lprPort = rawPort === 9100 ? 515 : rawPort;
+    return ipp.lprPrint(printerIp, source, jobName, opts, lprPort);
+  }
+  if (transport === 'email') {
+    return ipp.emailPrint(printerIp, source, jobName, opts);
   }
   return ipp.printJob(printerIp, source, jobName, opts);
 }
@@ -115,6 +123,28 @@ router.post('/complete', kioskAuth, async (req: Request, res: Response) => {
     const job = await jobRepo.findOne({ where: { code } });
     if (!job) {
       res.status(404).json({ success: false, message: 'Job not found' });
+      return;
+    }
+
+    // ── Pricing reconciliation gate (V2-52/53) ───────────────────────────
+    // If the render worker's final page count priced ABOVE what the
+    // customer paid, charge the delta to their saved Paystack card
+    // before the job can be released. The customer is standing at the
+    // kiosk — the natural moment to collect. Jobs with no Payment row
+    // (CUPS ingress) and jobs whose card declines stay releasable via
+    // admin action; the gate answers 402 PAYMENT_DUE on a declined
+    // charge so the kiosk can surface the amount due.
+    const settlement = await settleShortfall(job.id);
+    if (
+      settlement.reason === 'charge-failed' ||
+      settlement.reason === 'no-card-on-file'
+    ) {
+      res.status(402).json({
+        success: false,
+        message: `Final price is ₦${settlement.shortfall} more than what you paid, and the saved card could not be charged. Please contact the shop to settle the difference.`,
+        code: 'PAYMENT_DUE',
+        amountDue: settlement.shortfall,
+      });
       return;
     }
 
@@ -358,7 +388,7 @@ router.post('/complete', kioskAuth, async (req: Request, res: Response) => {
       ? await AppDataSource.getRepository(File).findOne({ where: { id: job.fileId } })
       : null;
     const fileUrl =
-      file?.fileURL || `local://${encodeURIComponent(job.fileName || job.code)}.pdf`;
+      file?.fileURL || `local://${encodeURIComponent(job.fileName || job.code || '')}.pdf`;
 
     // ── IPP / IPPS dispatch with the (possibly mutated) options ─────────
     const prefs = await ippConnectionPrefs();
@@ -408,7 +438,7 @@ router.post('/complete', kioskAuth, async (req: Request, res: Response) => {
 
     let dispatch: any;
     try {
-      dispatch = await dispatchPrint(kiosk.ipAddress, source, job.fileName || job.code, opts, prefs.transport, prefs.rawPort);
+      dispatch = await dispatchPrint(kiosk.ipAddress, source, job.fileName || job.code || '', opts, prefs.transport, prefs.rawPort);
     } catch (e: any) {
       console.error(`[printer/complete] IPP error for ${code}:`, e?.message);
       res.status(502).json({

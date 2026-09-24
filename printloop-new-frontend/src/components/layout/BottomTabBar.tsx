@@ -36,11 +36,13 @@ export function BottomTabBar({ tabs }: BottomTabBarProps) {
             <li key={tab.to} className="border-r-2 border-ink last:border-r-0">
               <Link
                 to={tab.to}
-                className={`flex items-center justify-center px-2 py-3 text-[10px] font-bold tracking-editorial uppercase transition-colors ${
+                className={`flex items-center justify-center px-2 py-3 text-[10px] font-bold tracking-editorial uppercase transition-all duration-150 active:scale-95 ${
                   active ? "bg-persimmon text-paper" : "text-ink hover:bg-ink hover:text-paper"
                 }`}
               >
-                {tab.label}
+                <span className={`inline-block transition-transform duration-200 ease-expressive ${active ? "scale-110" : ""}`}>
+                  {tab.label}
+                </span>
               </Link>
             </li>
           );

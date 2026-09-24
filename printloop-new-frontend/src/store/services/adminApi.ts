@@ -144,7 +144,61 @@ export const adminApi = apiSlice.injectEndpoints({
       invalidatesTags: ["AdminPromotions"],
     }),
 
-    // ── Transactions & refunds ──────────────────────────────────────────
+    // ── Blog (V2-54) ───────────────────────────────────────────────────
+    getBlogPosts: builder.query<any, void>({
+      query: () => "admin/blog",
+      transformResponse: unwrap,
+      providesTags: ["AdminBlog"],
+    }),
+    createBlogPost: builder.mutation<any, any>({
+      query: (body) => ({ url: "admin/blog", method: "POST", body }),
+      invalidatesTags: ["AdminBlog", "Blog"],
+    }),
+    updateBlogPost: builder.mutation<any, { id: string; [k: string]: any }>({
+      query: ({ id, ...body }) => ({ url: `admin/blog/${id}`, method: "PATCH", body }),
+      invalidatesTags: ["AdminBlog", "Blog"],
+    }),
+    deleteBlogPost: builder.mutation<any, string>({
+      query: (id) => ({ url: `admin/blog/${id}`, method: "DELETE" }),
+      invalidatesTags: ["AdminBlog", "Blog"],
+    }),
+
+    // ── Printer profiles (V2-56) ────────────────────────────────────────
+    getPrinterProfiles: builder.query<any, void>({
+      query: () => "admin/printer-profiles",
+      transformResponse: unwrap,
+      providesTags: ["AdminPrinterProfiles"],
+    }),
+    createPrinterProfile: builder.mutation<any, any>({
+      query: (body) => ({ url: "admin/printer-profiles", method: "POST", body }),
+      invalidatesTags: ["AdminPrinterProfiles"],
+    }),
+    updatePrinterProfile: builder.mutation<any, { id: string; [k: string]: any }>({
+      query: ({ id, ...body }) => ({
+        url: `admin/printer-profiles/${id}`,
+        method: "PATCH",
+        body,
+      }),
+      invalidatesTags: ["AdminPrinterProfiles"],
+    }),
+    deletePrinterProfile: builder.mutation<any, string>({
+      query: (id) => ({ url: `admin/printer-profiles/${id}`, method: "DELETE" }),
+      invalidatesTags: ["AdminPrinterProfiles"],
+    }),
+    // One-tap print (V2-57): operator releases a READY job to the
+    // tenant's first active kiosk; the on-site agent silent-prints it.
+    releaseJob: builder.mutation<any, string>({
+      query: (id) => ({ url: `admin/jobs/${id}/release`, method: "POST" }),
+      invalidatesTags: ["AdminJobs"],
+    }),
+    // Accept window (V2-58): the operator accepts an awaiting_accept
+    // job → READY. Rerouted jobs get their ledger credit here.
+    acceptJob: builder.mutation<any, string>({
+      query: (id) => ({ url: `admin/jobs/${id}/accept`, method: "POST" }),
+      invalidatesTags: ["AdminJobs"],
+    }),
+
+    // ── Transactions ────────────────────────────────────────────────────
     getTransactions: builder.query<
       any,
       { status?: string; method?: string; page?: number; limit?: number } | void
@@ -152,13 +206,6 @@ export const adminApi = apiSlice.injectEndpoints({
       query: (p) => `admin/transactions${qs(p as any)}`,
       transformResponse: unwrap,
       providesTags: ["AdminTransactions"],
-    }),
-    issueRefund: builder.mutation<
-      any,
-      { paymentId: string; amount?: number; reason?: string; refundType?: string }
-    >({
-      query: (body) => ({ url: "admin/refunds", method: "POST", body }),
-      invalidatesTags: ["AdminTransactions", "AdminStats"],
     }),
 
     // ── Reports ─────────────────────────────────────────────────────────
@@ -237,6 +284,22 @@ export const adminApi = apiSlice.injectEndpoints({
       query: (id) => ({ url: `admin/kiosks/${id}/test-connection`, method: "POST" }),
       // Don't invalidate — this is a read-only probe.
     }),
+    getAdminDisputes: builder.query<any, void>({
+      query: () => "admin/disputes",
+      transformResponse: unwrap,
+      providesTags: ["AdminDisputes"],
+    }),
+    resolveDispute: builder.mutation<
+      any,
+      { id: string; status: "resolved" | "rejected"; resolutionNotes: string; refundType?: string }
+    >({
+      query: ({ id, ...body }) => ({
+        url: `admin/disputes/${id}/resolve`,
+        method: "POST",
+        body,
+      }),
+      invalidatesTags: ["AdminDisputes", "AdminJobs", "AdminStats", "AdminTransactions"],
+    }),
   }),
 });
 
@@ -259,8 +322,17 @@ export const {
   useGetPromotionsQuery,
   useCreatePromotionMutation,
   useUpdatePromotionMutation,
+  useGetBlogPostsQuery,
+  useCreateBlogPostMutation,
+  useUpdateBlogPostMutation,
+  useDeleteBlogPostMutation,
+  useGetPrinterProfilesQuery,
+  useCreatePrinterProfileMutation,
+  useUpdatePrinterProfileMutation,
+  useDeletePrinterProfileMutation,
+  useReleaseJobMutation,
+  useAcceptJobMutation,
   useGetTransactionsQuery,
-  useIssueRefundMutation,
   useGetRevenueReportQuery,
   useGetKioskReportQuery,
   useGetSettingsQuery,
@@ -273,4 +345,6 @@ export const {
   useDeleteKioskMutation,
   useRegenerateKioskKeyMutation,
   useTestKioskConnectionMutation,
+  useGetAdminDisputesQuery,
+  useResolveDisputeMutation,
 } = adminApi;

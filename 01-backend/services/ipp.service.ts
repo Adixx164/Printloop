@@ -318,6 +318,154 @@ export class IppService {
   }
 
   /**
+   * Dispatch a document to an LPR/LPD printer on port 515 (RFC 1179).
+   *
+   * LPR/LPD is a binary TCP protocol. It works by:
+   * 1. Connecting to port 515.
+   * 2. Sending a command to request job reception: \x02 + queue + \n
+   * 3. Waiting for ACK (0x00).
+   * 4. Sending subcommand to transmit the control file: \x02 + size + " " + cfName + \n
+   * 5. Waiting for ACK (0x00).
+   * 6. Writing control file content + \x00.
+   * 7. Waiting for ACK (0x00).
+   * 8. Sending subcommand to transmit the data file: \x03 + size + " " + dfName + \n
+   * 9. Waiting for ACK (0x00).
+   * 10. Writing data file bytes + \x00.
+   * 11. Waiting for ACK (0x00).
+   */
+  async lprPrint(
+    printerIp: string,
+    source: PrintSource,
+    jobName: string,
+    opts: PrintOptions = {},
+    port = 515,
+  ): Promise<any> {
+    const bytes = await this.resolveBytes(source);
+    if (!bytes) {
+      console.log(`[LPR] (dev) Would LPR print "${jobName}" → ${printerIp}:${port}`);
+      return { mock: true };
+    }
+
+    const host = 'localhost';
+    const user = opts.requestingUser || 'PrintLoop';
+    const jobId = String(Math.floor(Math.random() * 900) + 100).padStart(3, '0');
+    // Clean leading slash from path to use as the LPR queue name, e.g. "/raw" -> "raw"
+    const queue = (opts.path && opts.path.replace(/^\//, '')) || 'raw';
+
+    const controlContent = [
+      `H${host}`,
+      `P${user}`,
+      `J${jobName}`,
+      `ldfA${jobId}${host}`,
+      `UdfA${jobId}${host}`,
+    ].join('\n') + '\n';
+    const controlBytes = Buffer.from(controlContent);
+
+    const sock = await this.openSocket(printerIp, port);
+
+    const waitAck = (): Promise<void> => {
+      return new Promise((resolve, reject) => {
+        sock.once('data', (data) => {
+          if (data.length > 0 && data[0] === 0) {
+            resolve();
+          } else {
+            reject(new Error(`LPR protocol error: expected ACK (0), got ${data.length > 0 ? data[0] : 'no-data'}`));
+          }
+        });
+        sock.once('error', reject);
+      });
+    };
+
+    return new Promise((resolve, reject) => {
+      sock.setTimeout(120_000);
+      sock.once('error', (err) => {
+        sock.destroy();
+        reject(err);
+      });
+      sock.once('timeout', () => {
+        sock.destroy();
+        reject(new Error('LPR connection timeout'));
+      });
+
+      (async () => {
+        try {
+          // 1. Receive job command
+          sock.write(Buffer.from(`\x02${queue}\n`));
+          await waitAck();
+
+          // 2. Send control file header command
+          const controlFileCmd = `\x02${controlBytes.length} cfA${jobId}${host}\n`;
+          sock.write(Buffer.from(controlFileCmd));
+          await waitAck();
+
+          // Send control file contents + zero byte
+          sock.write(controlBytes);
+          sock.write(Buffer.from('\x00'));
+          await waitAck();
+
+          // 3. Send data file header command
+          const dataFileCmd = `\x03${bytes.length} dfA${jobId}${host}\n`;
+          sock.write(Buffer.from(dataFileCmd));
+          await waitAck();
+
+          // Send data file contents + zero byte
+          sock.write(bytes);
+          sock.write(Buffer.from('\x00'));
+          await waitAck();
+
+          sock.end();
+          console.log(`[LPR] Job sent to ${printerIp}:${port} (queue: ${queue}) — "${jobName}" ${bytes.length}B`);
+          resolve({ lpr: true, transport: 'lpr', bytes: bytes.length });
+        } catch (e) {
+          sock.destroy();
+          console.error('[LPR] protocol error:', (e as any).message);
+          reject(e);
+        }
+      })();
+    });
+  }
+
+  /**
+   * Dispatch a document via Email-to-Print / ePrint (e.g. HP ePrint).
+   *
+   * Sends an email to the printer's email address with the PDF buffer
+   * attached as application/pdf. Bypasses firewalls/NATs completely.
+   */
+  async emailPrint(
+    printerEmail: string,
+    source: PrintSource,
+    jobName: string,
+    opts: PrintOptions = {},
+  ): Promise<any> {
+    const bytes = await this.resolveBytes(source);
+    if (!bytes) {
+      console.log(`[EMAIL] (dev) Would email print "${jobName}" to ${printerEmail}`);
+      return { mock: true };
+    }
+
+    const { EmailService } = await import('./email.service.js');
+    const emailService = new EmailService();
+    const cleanFileName = jobName.replace(/[^A-Za-z0-9 _.\-]/g, '_') || 'document';
+    const filename = cleanFileName.endsWith('.pdf') ? cleanFileName : `${cleanFileName}.pdf`;
+
+    const success = await emailService.send({
+      to: printerEmail,
+      subject: `Print Job: ${jobName}`,
+      html: `<p>Please print the attached document <strong>${jobName}</strong> from PrintLoop.</p>`,
+      attachments: [
+        {
+          filename,
+          content: bytes,
+          contentType: 'application/pdf',
+        },
+      ],
+    });
+
+    console.log(`[EMAIL] ePrint sent to ${printerEmail} — success=${success}`);
+    return { email: true, transport: 'email', success };
+  }
+
+  /**
    * Open a raw TCP socket to (host, port). When `TS_SOCKS5_PROXY` is
    * set (Railway + Tailscale userspace deploy), the socket is opened
    * through Tailscale's local SOCKS5 proxy so the connection routes

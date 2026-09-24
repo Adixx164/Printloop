@@ -1,0 +1,32 @@
+{
+  "blockingPatterns": [
+    "find\\([^)]*\\)",
+    "findOne\\([^)]*\\)",
+    "count\\([^)]*\\)",
+    "createQueryBuilder\\([^)]*\\)\\.getMany\\(\\)",
+    "createQueryBuilder\\([^)]*\\)\\.getOne\\(\\)",
+    "createQueryBuilder\\([^)]*\\)\\.getRawMany\\(\\)",
+    "createQueryBuilder\\([^)]*\\)\\.getRawOne\\(\\)",
+    "Repository\\([^)]*\\)\\.find",
+    "Repository\\([^)]*\\)\\.findOne",
+    "Repository\\([^)]*\\)\\.count",
+    "Manager\\([^)]*\\)\\.find",
+    "Manager\\([^)]*\\)\\.findOne"
+  ],
+  "allowedPaths": [
+    "src/platform/**",
+    "src/admin/**",
+    "src/routes/platform/**",
+    "src/routes/admin/**",
+    "src/services/renderEnqueue.service.ts",
+    "src/services/payout.service.ts",
+    "migrations/1718100000000-PostgresBaseline.ts",
+    "migrations/*Baseline*"
+  ],
+  "requiredTenantColumn": "tenantId",
+  "entityChecks": {
+    "requireTenantIdColumn": true,
+    "requireTenantIdIndex": true,
+    "requireTenantIdNotNull": true
+  }
+}
