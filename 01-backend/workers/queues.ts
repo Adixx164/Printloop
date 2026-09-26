@@ -23,12 +23,13 @@ const defaultJobOptions: QueueOptions['defaultJobOptions'] = {
   removeOnFail: { age: 7 * 24 * 3600 },
 };
 
-function makeQueue(name: string): JobQueue {
+function makeQueue(name: string, options?: { deadLetterQueue?: { maxLen: number } }): JobQueue {
   if (REDIS_ENABLED) {
-    return new Queue(name, {
+    const queueOptions: QueueOptions = {
       connection: redisConnection,
       defaultJobOptions,
-    }) as unknown as JobQueue;
+    };
+    return new Queue(name, queueOptions) as unknown as JobQueue;
   }
   return {
     async add(jobName: string) {

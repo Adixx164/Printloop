@@ -3,16 +3,17 @@
 #
 # Render Infrastructure as Code
 # Deploy with: render deploy --config render.yaml
+# Or connect repo at https://dashboard.render.com and Render will auto-detect this file
 
 services:
-  # Backend API
+  # Backend API (uses npm)
   - type: web
     name: printloop-api
     runtime: node
     plan: free
     region: frankfurt
     rootDir: 01-backend
-    buildCommand: "npm install && npm run build"
+    buildCommand: "npm ci && npm run build"
     startCommand: "npm start"
     healthCheckPath: /health
     envVars:
@@ -48,12 +49,12 @@ services:
       - key: SEED_DEMO
         value: "1"
 
-  # Frontend - Static Site
+  # Frontend - Static Site (uses pnpm)
   - type: static
     name: printloop-frontend
     plan: free
     rootDir: printloop-new-frontend
-    buildCommand: "npm install && npm run build"
+    buildCommand: "corepack enable && pnpm install --frozen-lockfile && pnpm run build"
     staticPublishPath: ./dist
     headers:
       - path: /*
@@ -71,14 +72,14 @@ services:
       - key: VITE_PAYSTACK_PUBLIC_KEY
         sync: false
 
-  # Render Worker
+  # Render Worker (uses npm)
   - type: web
     name: printloop-render-worker
     runtime: node
     plan: free
     region: frankfurt
     rootDir: render-worker
-    buildCommand: "npm install && npm run build"
+    buildCommand: "npm ci && npm run build"
     startCommand: "npm start"
     envVars:
       - key: NODE_ENV
@@ -99,6 +100,25 @@ services:
         sync: false
       - key: AWS_SECRET_ACCESS_KEY
         sync: false
+      - key: AWS_REGION
+        sync: false
+      - key: S3_ENDPOINT
+        sync: false
+      - key: S3_FORCE_PATH_STYLE
+        sync: false
+      - key: RENDER_DEFAULT_DPI
+        value: "300"
+      - key: RENDER_MAX_DPI
+        value: "600"
+      - key: RENDER_TEMP_DIR
+        value: "/tmp/printloop-render"
+      - key: PRINTLOOP_API_URL
+        fromService:
+          type: web
+          name: printloop-api
+          property: hostport
+      - key: METRICS_PORT
+        value: "9091"
 
   # Redis for BullMQ + caching
   - type: redis

@@ -8,6 +8,9 @@ export const config = {
   bullmq: {
     queueName: 'render',
     concurrency: parseInt(process.env.RENDER_CONCURRENCY || '2', 10),
+    attempts: parseInt(process.env.RENDER_ATTEMPTS || '3', 10),
+    backoffDelay: parseInt(process.env.RENDER_BACKOFF_DELAY || '5000', 10),
+    backoffType: (process.env.RENDER_BACKOFF_TYPE as 'exponential' | 'fixed') || 'exponential',
   },
   s3: {
     region: process.env.AWS_REGION || 'us-east-1',
@@ -23,7 +26,7 @@ export const config = {
     tempDir: process.env.RENDER_TEMP_DIR || '/tmp/printloop-render',
   },
   callback: {
-    url: process.env.RENDER_CALLBACK_URL || 'http://localhost:4000/api/internal/render/callback',
+    url: process.env.RENDER_CALLBACK_URL || process.env.PRINTLOOP_API_URL ? `${process.env.PRINTLOOP_API_URL}/api/internal/render/callback` : 'http://localhost:4000/api/internal/render/callback',
     secret: process.env.RENDER_CALLBACK_SECRET || '',
   },
   logging: {

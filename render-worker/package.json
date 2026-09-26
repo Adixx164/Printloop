@@ -6,7 +6,9 @@
   "scripts": {
     "build": "tsc",
     "start": "node dist/worker.js",
+    "start:dlq": "node dist/dlq-worker.js",
     "dev": "ts-node src/worker.ts",
+    "dev:dlq": "ts-node src/dlq-worker.ts",
     "lint": "eslint src --ext .ts"
   },
   "dependencies": {
