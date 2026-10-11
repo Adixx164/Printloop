@@ -3,6 +3,7 @@ import { REDIS_ENABLED } from '../config/redis';
 import { PrintJob, PrintJobStatus, JobType } from '../entities/printJob.entity';
 import { AppDataSource } from '../config/database';
 import { applyRenderCostReconciliation } from './costReconciliation.service';
+import { stuckRendersGauge } from './metrics';
 
 /**
  * Enqueue a render job for a paid PrintJob and flip its status to
@@ -240,6 +241,9 @@ export async function reconcileStuckRenders(opts?: {
     .andWhere('pj.updatedAt < :cutoff', { cutoff: cutoff.toISOString() })
     .getMany();
 
+  // Update the stuck renders gauge
+  stuckRendersGauge.set(stuck.length);
+
   let reenqueued = 0;
   let failed = 0;
   let recovered = 0;
@@ -266,6 +270,16 @@ export async function reconcileStuckRenders(opts?: {
         `[reconcile] failed to recover stuck job ${job.id}:`,
         err,
       );
+      // Move to DLQ by marking as FAILED - will be picked up by DLQ worker
+      try {
+        await applyRenderFailure({
+          printJobId: job.id,
+          errorMessage: `Reconciliation failed: ${err instanceof Error ? err.message : 'Unknown error'}`,
+        });
+        failed++;
+      } catch (dlqErr) {
+        console.error(`[reconcile] failed to move job ${job.id} to DLQ:`, dlqErr);
+      }
     }
   }
 

@@ -1,10 +1,27 @@
-import { Worker, Queue } from 'bullmq';
+import { Worker, Queue, Job } from 'bullmq';
 import { config } from './config';
 import { logger } from './utils/logger';
 import { downloadFromS3, uploadToS3, generateRenderKey, writeTempFile, deleteTempFile, getPresignedUrl } from './utils/s3';
 import { pdfToPwgRaster, normalizeToPdfA, generatePreviewImages } from './pipeline/render';
 import * as fs from 'fs/promises';
 import * as path from 'path';
+import express from 'express';
+import { renderMetricsRegistry, renderJobsTotal, renderDuration, renderRetriesTotal, renderQueueDepth, stuckRendersGauge } from './metrics';
+
+async function updateQueueDepth(queue: Queue) {
+  try {
+    const [waiting, active, delayed] = await Promise.all([
+      queue.getWaitingCount(),
+      queue.getActiveCount(),
+      queue.getDelayedCount(),
+    ]);
+    renderQueueDepth.set({ status: 'waiting' }, waiting);
+    renderQueueDepth.set({ status: 'active' }, active);
+    renderQueueDepth.set({ status: 'delayed' }, delayed);
+  } catch (err) {
+    logger.warn({ err }, 'Failed to update queue depth');
+  }
+}
 
 export interface RenderJobData {
   printJobId: string;
@@ -84,11 +101,20 @@ async function callbackFailureToBackend(payload: RenderFailurePayload): Promise<
   }
 }
 
-async function processRenderJob(job: { data: RenderJobData; updateProgress: (n: number) => Promise<void> }) {
+async function processRenderJob(job: Job<RenderJobData>) {
   const { printJobId, fileId, tenantId, printerProfileId, printerProfile, sourceFileUrl, fileName, printConfiguration } = job.data;
-  const log = logger.child({ printJobId, tenantId, printerProfileId });
+  const attempt = job.attemptsMade + 1; // BullMQ tracks attemptsMade (0-indexed)
+  const log = logger.child({ printJobId, tenantId, printerProfileId, attempt });
+  
+  // Track retry metric
+  if (attempt > 1) {
+    renderRetriesTotal.inc({ attempt: String(attempt) });
+    log.info({ attempt, maxAttempts: config.bullmq.attempts }, 'Retry attempt');
+  }
   
   log.info('Starting render job');
+  
+  const startTime = Date.now();
   
   await job.updateProgress(5);
   
@@ -144,6 +170,8 @@ async function processRenderJob(job: { data: RenderJobData; updateProgress: (n: 
     
     await job.updateProgress(90);
     
+    const durationMs = Date.now() - startTime;
+    
     await callbackToBackend({
       printJobId,
       renderedKey,
@@ -151,14 +179,23 @@ async function processRenderJob(job: { data: RenderJobData; updateProgress: (n: 
       previewImageUrls,
       pageCount: result.pageCount,
       bytes: result.pwgBuffer.length,
-      durationMs: 0, // TODO: track actual duration
+      durationMs,
     });
     
-    log.info('Render callback sent to backend');
+    const durationSec = durationMs / 1000;
+    renderDuration.observe({ status: 'success' }, durationSec);
+    renderJobsTotal.inc({ status: 'success' });
+    
+    log.info({ durationMs }, 'Render callback sent to backend');
     
     await job.updateProgress(100);
     
   } catch (error) {
+    const durationMs = Date.now() - startTime;
+    const durationSec = durationMs / 1000;
+    renderDuration.observe({ status: 'failed' }, durationSec);
+    renderJobsTotal.inc({ status: 'failed' });
+    
     log.error({ err: error }, 'Render job failed');
     
     await callbackFailureToBackend({
@@ -212,16 +249,41 @@ async function main() {
     s3Bucket: config.s3.bucket,
   }, 'Configuration');
 
+  // Start metrics server
+  const metricsApp = express();
+  metricsApp.get('/metrics', async (req, res) => {
+    try {
+      res.set('Content-Type', renderMetricsRegistry.contentType);
+      res.end(await renderMetricsRegistry.metrics());
+    } catch (err) {
+      logger.error({ err }, 'Error generating metrics');
+      res.status(500).send('Error generating metrics');
+    }
+  });
+
+  const METRICS_PORT = parseInt(process.env.METRICS_PORT || '9091', 10);
+  metricsApp.listen(METRICS_PORT, () => {
+    logger.info({ port: METRICS_PORT }, 'Metrics server listening');
+  });
+
   const worker = createWorker();
+
+  // Periodic queue depth update
+  const queue = new Queue(config.bullmq.queueName, { connection: { url: config.redis.url } });
+  const depthInterval = setInterval(() => updateQueueDepth(queue), 10000);
 
   process.on('SIGINT', async () => {
     logger.info('Shutting down...');
+    clearInterval(depthInterval);
+    await queue.close();
     await worker.close();
     process.exit(0);
   });
 
   process.on('SIGTERM', async () => {
     logger.info('Shutting down...');
+    clearInterval(depthInterval);
+    await queue.close();
     await worker.close();
     process.exit(0);
   });

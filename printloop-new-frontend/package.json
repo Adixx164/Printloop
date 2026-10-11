@@ -51,13 +51,14 @@
     "yjs": "^13.6.32",
     "yup": "^1.4.0"
   },
-  "devDependencies": {
+"devDependencies": {
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18.3.0",
     "@vitejs/plugin-react": "^4.3.1",
     "autoprefixer": "^10.4.19",
     "jsdom": "^29.1.1",
     "postcss": "^8.4.38",
+    "serve": "^14.2.3",
     "tailwindcss": "^3.4.4",
     "typescript": "^5.4.5",
     "vite": "^5.3.1",
