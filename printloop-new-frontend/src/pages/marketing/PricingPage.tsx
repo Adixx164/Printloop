@@ -70,10 +70,10 @@ export default function PricingPage() {
       <main className="flex-1">
         <section className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-14 sm:py-20">
           <Reveal variant="rise">
-            <div className="editorial-label text-persimmon mb-3">▸ PRICING</div>
+            <div className="editorial-label text-process mb-3">▸ PRICING</div>
             <h1 className="pl-serif font-extrabold text-[38px] leading-[1.02] sm:text-[54px] sm:leading-[0.98] tracking-tight mb-5 max-w-3xl">
               Honest per-page prices,{" "}
-              <em className="italic text-persimmon font-semibold">published before you pay.</em>
+              <em className="italic text-ochre font-semibold">published before you pay.</em>
             </h1>
             <p className="pl-serif italic text-ink/60 text-sm sm:text-base max-w-2xl">
               No hidden markups. The shop's matrix is public, the checkout shows the exact
@@ -86,30 +86,30 @@ export default function PricingPage() {
               <Reveal key={t.name} variant="rise">
                 <div
                   className={`border-4 border-ink p-6 flex flex-col h-full ${
-                    i === 1 ? "bg-ink text-paper" : "bg-paper-light"
+                    i === 1 ? "bg-ink text-paper-light" : "bg-paper-warm"
                   }`}
                 >
                   <div className="flex items-center justify-between mb-4">
-                    <span className="editorial-label text-persimmon">{t.tag}</span>
-                    <span className={`pl-mono text-[10px] ${i === 1 ? "text-paper/50" : "text-ink/40"}`}>
+                    <span className="editorial-label text-process">{t.tag}</span>
+                    <span className={`pl-mono text-[10px] ${i === 1 ? "text-paper-light/50" : "text-ink/40"}`}>
                       {String(i + 1).padStart(2, "0")}
                     </span>
                   </div>
                   <h2 className="pl-serif text-xl font-bold mb-1">{t.name}</h2>
                   <div className="mb-1">
                     <span className="pl-mono text-4xl font-bold">{t.price}</span>
-                    <span className={`text-xs ml-1 ${i === 1 ? "text-paper/60" : "text-ink/55"}`}>
+                    <span className={`text-xs ml-1 ${i === 1 ? "text-paper-light/60" : "text-ink/55"}`}>
                       {t.unit}
                     </span>
                   </div>
-                  <p className={`pl-serif italic text-xs mb-4 ${i === 1 ? "text-paper/60" : "text-ink/55"}`}>
+                  <p className={`pl-serif italic text-xs mb-4 ${i === 1 ? "text-paper-light/60" : "text-ink/55"}`}>
                     {t.note}
                   </p>
                   <ul className="space-y-2 text-sm flex-1 mb-6">
                     {t.items.map((item) => (
                       <li key={item} className="flex items-start gap-2">
-                        <span className="text-persimmon font-bold mt-px">▸</span>
-                        <span className={i === 1 ? "text-paper/85" : ""}>{item}</span>
+                        <span className="text-process font-bold mt-px">▸</span>
+                        <span className={i === 1 ? "text-paper-light/85" : "text-ink/85"}>{item}</span>
                       </li>
                     ))}
                   </ul>
@@ -117,8 +117,8 @@ export default function PricingPage() {
                     to={t.to}
                     className={`text-center font-bold text-xs tracking-editorial py-3 border-2 ${
                       i === 1
-                        ? "bg-persimmon text-paper border-persimmon hover:bg-paper hover:text-ink hover:border-paper"
-                        : "bg-ink text-paper border-ink hover:bg-persimmon hover:border-persimmon"
+                        ? "bg-process text-paper-light border-process hover:bg-process-ink hover:border-process-ink"
+                        : "bg-ink text-paper-light border-ink hover:bg-process hover:border-process"
                     }`}
                   >
                     {t.cta} →
@@ -128,7 +128,7 @@ export default function PricingPage() {
             ))}
           </div>
 
-          <div className="border-2 border-ochre/60 bg-ochre/10 p-5 mt-8 text-sm pl-serif">
+          <div className="border-2 border-ochre bg-ochre/10 p-5 mt-8 text-sm pl-serif">
             <span className="font-bold">Fine print:</span> gateway processing fees (Paystack)
             apply on top of the per-page price. Office documents are priced on the
             <span className="font-bold"> confirmed</span> converted page count — differences

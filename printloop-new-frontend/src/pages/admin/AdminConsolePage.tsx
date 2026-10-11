@@ -89,11 +89,11 @@ const ALL_PRIVILEGES = [
 
 function AdminTable({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="border-2 border-ink overflow-hidden">
-      <div className="bg-ink text-paper px-5 py-3">
+    <div className="border-2 border-gray-900 overflow-hidden">
+      <div className="bg-gray-900 text-gray-50 px-5 py-3">
         <div className="editorial-label">{title}</div>
       </div>
-      <div className="overflow-x-auto bg-paper-light">{children}</div>
+      <div className="overflow-x-auto bg-gray-100">{children}</div>
     </div>
   );
 }
@@ -107,15 +107,15 @@ function StatTile({
   label: string;
   value: React.ReactNode;
   dark?: boolean;
-  accent?: "sage" | "ochre";
+  accent?: "emerald" | "amber";
 }) {
   const bg = dark
-    ? "bg-ink text-paper"
-    : accent === "sage"
-    ? "bg-sage text-paper"
-    : "border-2 border-ink bg-paper-light text-ink";
+    ? "bg-gray-900 text-gray-50"
+    : accent === "emerald"
+    ? "bg-emerald-600 text-gray-50"
+    : "border-2 border-gray-900 bg-gray-100 text-gray-900";
   const labelClass =
-    dark || accent === "sage" ? "text-paper/70" : accent === "ochre" ? "text-ochre" : "text-fog";
+    dark || accent === "emerald" ? "text-gray-50/70" : accent === "amber" ? "text-amber-500" : "text-gray-500";
   return (
     <div className={`p-5 ${bg}`}>
       <div className={`editorial-label mb-2 ${labelClass}`}>{label}</div>
@@ -133,12 +133,12 @@ function EnvTile({
   emoji: string;
   value: string;
   label: string;
-  color: "sage" | "fog" | "ochre";
+  color: "emerald" | "gray" | "amber";
 }) {
   const map = {
-    sage: "border-2 border-sage bg-sage/10 text-sage",
-    fog: "border-2 border-fog bg-fog/10 text-fog",
-    ochre: "border-2 border-ochre bg-ochre/10 text-ochre",
+    emerald: "border-2 border-emerald-600 bg-emerald-600/10 text-emerald-600",
+    gray: "border-2 border-gray-500 bg-gray-500/10 text-gray-500",
+    amber: "border-2 border-amber-500 bg-amber-500/10 text-amber-500",
   };
   return (
     <div className={`p-5 text-center ${map[color]}`}>
@@ -165,16 +165,16 @@ function DashboardTab() {
   return (
     <div className="max-w-5xl space-y-7">
       <div>
-        <div className="editorial-label text-persimmon mb-1">ADMIN CONSOLE</div>
-        <h1 className="pl-serif text-4xl font-bold text-ink mb-1">Dashboard</h1>
-        <p className="pl-serif italic text-ink/60">
+        <div className="editorial-label text-indigo-600 mb-1">ADMIN CONSOLE</div>
+        <h1 className="pl-serif text-4xl font-bold text-gray-900 mb-1">Dashboard</h1>
+        <p className="pl-serif italic text-gray-50/60">
           System overview, fleet health, and environmental impact.
         </p>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 border-2 border-ink">
-        <StatTile label="TOTAL USERS" value={data.users?.total ?? "—"} accent="sage" />
-        <div className="border-l-2 border-ink">
+      <div className="grid grid-cols-2 md:grid-cols-4 border-2 border-gray-900">
+        <StatTile label="TOTAL USERS" value={data.users?.total ?? "—"} accent="emerald" />
+        <div className="border-l-2 border-gray-900">
           <StatTile
             label="PRINTERS ONLINE"
             value={
@@ -188,58 +188,58 @@ function DashboardTab() {
             dark
           />
         </div>
-        <div className="border-l-2 border-ink">
+        <div className="border-l-2 border-gray-900">
           <StatTile label="PAGES TODAY" value={pagesToday} />
         </div>
-        <div className="border-l-2 border-ink">
+        <div className="border-l-2 border-gray-900">
           <StatTile
             label="TODAY'S REVENUE"
             value={`₦${Number(data.revenue?.today || 0).toLocaleString()}`}
-            accent="ochre"
+            accent="amber"
           />
         </div>
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <div className="border-2 border-ink p-4">
-          <div className="editorial-label text-fog mb-1">JOBS TOTAL</div>
+        <div className="border-2 border-gray-900 p-4">
+          <div className="editorial-label text-gray-500 mb-1">JOBS TOTAL</div>
           <div className="pl-mono text-2xl font-bold">{data.jobs?.total ?? 0}</div>
         </div>
-        <div className="border-2 border-ink p-4">
-          <div className="editorial-label text-fog mb-1">PENDING NOW</div>
+        <div className="border-2 border-gray-900 p-4">
+          <div className="editorial-label text-gray-500 mb-1">PENDING NOW</div>
           <div className="pl-mono text-2xl font-bold">{data.jobs?.pendingNow ?? 0}</div>
         </div>
-        <div className="border-2 border-ink p-4">
-          <div className="editorial-label text-fog mb-1">FAILED TODAY</div>
-          <div className="pl-mono text-2xl font-bold text-persimmon">
+        <div className="border-2 border-gray-900 p-4">
+          <div className="editorial-label text-gray-500 mb-1">FAILED TODAY</div>
+          <div className="pl-mono text-2xl font-bold text-indigo-600">
             {data.jobs?.failedToday ?? 0}
           </div>
         </div>
-        <div className="border-2 border-ink p-4">
-          <div className="editorial-label text-fog mb-1">BLOCKED USERS</div>
+        <div className="border-2 border-gray-900 p-4">
+          <div className="editorial-label text-gray-500 mb-1">BLOCKED USERS</div>
           <div className="pl-mono text-2xl font-bold">{data.users?.blocked ?? 0}</div>
         </div>
       </div>
 
       <div>
-        <div className="editorial-label text-ink/50 mb-3">ENVIRONMENTAL IMPACT · TODAY</div>
+        <div className="editorial-label text-gray-50/50 mb-3">ENVIRONMENTAL IMPACT · TODAY</div>
         <div className="grid grid-cols-3 gap-4">
-          <EnvTile emoji="🌳" value={(pagesToday / 8333).toFixed(3)} label="TREES CONSUMED" color="sage" />
-          <EnvTile emoji="☁️" value={`${(pagesToday * 0.0054).toFixed(2)} kg`} label="CO₂ PRODUCED" color="fog" />
-          <EnvTile emoji="⚡" value={`${(pagesToday * 0.0023).toFixed(2)} kWh`} label="ENERGY USED" color="ochre" />
+          <EnvTile emoji="🌳" value={(pagesToday / 8333).toFixed(3)} label="TREES CONSUMED" color="emerald" />
+          <EnvTile emoji="☁️" value={`${(pagesToday * 0.0054).toFixed(2)} kg`} label="CO₂ PRODUCED" color="gray" />
+          <EnvTile emoji="⚡" value={`${(pagesToday * 0.0023).toFixed(2)} kWh`} label="ENERGY USED" color="amber" />
         </div>
       </div>
 
-      <div className="border-2 border-ink bg-paper-light p-5">
-        <div className="editorial-label text-persimmon mb-4">DAILY REVENUE · LAST 30 DAYS</div>
+      <div className="border-2 border-gray-900 bg-gray-100 p-5">
+        <div className="editorial-label text-indigo-600 mb-4">DAILY REVENUE · LAST 30 DAYS</div>
         <div className="flex items-end gap-1 h-32">
           {byDay.length === 0 && (
-            <div className="text-fog italic text-sm">No revenue in this period.</div>
+            <div className="text-gray-500 italic text-sm">No revenue in this period.</div>
           )}
           {byDay.map((row) => (
             <div
               key={row.date}
-              className="flex-1 bg-sage/80 hover:bg-persimmon transition-colors"
+              className="flex-1 bg-emerald-600/80 hover:bg-indigo-600 transition-colors"
               style={{ height: `${Math.max(5, (Number(row.revenue) / maxRev) * 100)}%` }}
               title={`${row.date}: ₦${Number(row.revenue).toLocaleString()} · ${row.jobCount} txns`}
             />
@@ -250,7 +250,7 @@ function DashboardTab() {
       <AdminTable title="RECENT AUDIT ENTRIES">
         <table className="w-full text-left text-sm">
           <thead>
-            <tr className="border-b border-ink/20 bg-ink/5 text-ink/70">
+            <tr className="border-b border-gray-900/20 bg-gray-900/5 text-gray-50/70">
               <th className="p-3 font-semibold">Time</th>
               <th className="p-3 font-semibold">Actor</th>
               <th className="p-3 font-semibold">Action</th>
@@ -259,14 +259,14 @@ function DashboardTab() {
           <tbody>
             {logs.length === 0 && (
               <tr>
-                <td colSpan={3} className="p-4 text-fog italic text-center">
+                <td colSpan={3} className="p-4 text-gray-500 italic text-center">
                   No audit entries yet.
                 </td>
               </tr>
             )}
             {logs.map((log) => (
-              <tr key={log.id} className="border-b border-ink/10 last:border-0 hover:bg-ink/5">
-                <td className="p-3 text-ink/60 whitespace-nowrap text-xs">
+              <tr key={log.id} className="border-b border-gray-900/10 last:border-0 hover:bg-gray-900/5">
+                <td className="p-3 text-gray-50/60 whitespace-nowrap text-xs">
                   {new Date(log.createdAt).toLocaleString()}
                 </td>
                 <td className="p-3 font-bold">{log.actorName}</td>
@@ -332,9 +332,9 @@ function UsersTab({ canManageAdmins }: { canManageAdmins: boolean }) {
     <div className="max-w-6xl space-y-6">
       <div className="flex justify-between items-end gap-4">
         <div>
-          <div className="editorial-label text-persimmon mb-1">ADMIN CONSOLE</div>
-          <h1 className="pl-serif text-4xl font-bold text-ink mb-1">Users & Admins</h1>
-          <p className="pl-serif italic text-ink/60">Manage roles, privileges, and accounts.</p>
+          <div className="editorial-label text-indigo-600 mb-1">ADMIN CONSOLE</div>
+          <h1 className="pl-serif text-4xl font-bold text-gray-900 mb-1">Users & Admins</h1>
+          <p className="pl-serif italic text-gray-50/60">Manage roles, privileges, and accounts.</p>
         </div>
         <input
           value={search}
@@ -350,7 +350,7 @@ function UsersTab({ canManageAdmins }: { canManageAdmins: boolean }) {
       <AdminTable title={`USERS — ${data?.total ?? 0} ACCOUNTS`}>
         <table className="w-full text-left border-collapse text-sm">
           <thead>
-            <tr className="bg-ink/5 border-b border-ink/20 text-ink/70">
+            <tr className="bg-gray-900/5 border-b border-gray-900/20 text-gray-50/70">
               <th className="p-3 font-semibold">User</th>
               <th className="p-3 font-semibold">Role</th>
               <th className="p-3 font-semibold">Privileges</th>
@@ -361,14 +361,14 @@ function UsersTab({ canManageAdmins }: { canManageAdmins: boolean }) {
           <tbody>
             {isLoading && (
               <tr>
-                <td colSpan={5} className="p-6 text-center text-fog italic">
+                <td colSpan={5} className="p-6 text-center text-gray-500 italic">
                   Loading…
                 </td>
               </tr>
             )}
             {!isLoading && users.length === 0 && (
               <tr>
-                <td colSpan={5} className="p-6 text-center text-fog italic">
+                <td colSpan={5} className="p-6 text-center text-gray-500 italic">
                   No users found.
                 </td>
               </tr>
@@ -377,19 +377,19 @@ function UsersTab({ canManageAdmins }: { canManageAdmins: boolean }) {
               const name = `${u.firstName} ${u.lastName}`;
               const privs: string[] = u.adminPrivileges || [];
               return (
-                <tr key={u.id} className="border-b border-ink/10 last:border-0 hover:bg-ink/5">
+                <tr key={u.id} className="border-b border-gray-900/10 last:border-0 hover:bg-gray-900/5">
                   <td className="p-3">
-                    <div className="font-bold text-ink">{name}</div>
-                    <div className="text-xs text-fog">{u.email}</div>
+                    <div className="font-bold text-gray-900">{name}</div>
+                    <div className="text-xs text-gray-500">{u.email}</div>
                   </td>
                   <td className="p-3">
                     <span
                       className={`pl-pill ${
                         u.role === "super_admin"
-                          ? "bg-sage text-paper"
+                          ? "bg-emerald-600 text-gray-50"
                           : u.role === "admin"
-                          ? "bg-ochre text-paper"
-                          : "bg-ink/10 text-ink"
+                          ? "bg-amber-500 text-gray-50"
+                          : "bg-gray-900/10 text-gray-900"
                       }`}
                     >
                       {String(u.role || "user").replace(/_/g, " ")}
@@ -397,15 +397,15 @@ function UsersTab({ canManageAdmins }: { canManageAdmins: boolean }) {
                   </td>
                   <td className="p-3 max-w-[260px]">
                     {u.role === "user" ? (
-                      <span className="text-xs text-fog italic">None</span>
+                      <span className="text-xs text-gray-500 italic">None</span>
                     ) : u.role === "super_admin" ? (
-                      <span className="text-xs font-bold text-sage">Full Access</span>
+                      <span className="text-xs font-bold text-emerald-600">Full Access</span>
                     ) : (
                       <div className="flex flex-wrap gap-1">
                         {ALL_PRIVILEGES.map((priv) => (
                           <label
                             key={priv}
-                            className="flex items-center gap-1 text-[9px] bg-ink/5 border border-ink/15 px-1 py-0.5 cursor-pointer hover:bg-ink/10"
+                            className="flex items-center gap-1 text-[9px] bg-gray-900/5 border border-gray-900/15 px-1 py-0.5 cursor-pointer hover:bg-gray-900/10"
                             title={priv}
                           >
                             <input
@@ -413,7 +413,7 @@ function UsersTab({ canManageAdmins }: { canManageAdmins: boolean }) {
                               checked={privs.includes(priv)}
                               onChange={() => handlePriv(u.id, privs, priv)}
                               disabled={!canManageAdmins}
-                              className="accent-sage w-2.5 h-2.5"
+                              className="accent-emerald-600 w-2.5 h-2.5"
                             />
                             {priv.replace("manage_", "m:").replace("view_", "v:")}
                           </label>
@@ -423,16 +423,16 @@ function UsersTab({ canManageAdmins }: { canManageAdmins: boolean }) {
                   </td>
                   <td className="p-3">
                     {u.isBlocked ? (
-                      <span className="pl-pill bg-persimmon text-paper text-[10px]">BLOCKED</span>
+                      <span className="pl-pill bg-indigo-600 text-gray-50 text-[10px]">BLOCKED</span>
                     ) : (
-                      <span className="pl-pill bg-sage/15 text-sage text-[10px]">ACTIVE</span>
+                      <span className="pl-pill bg-emerald-600/15 text-emerald-600 text-[10px]">ACTIVE</span>
                     )}
                   </td>
                   <td className="p-3 text-right space-x-2 whitespace-nowrap">
                     {canManageAdmins && u.role === "user" && (
                       <button
                         onClick={() => handleRole(u.id, name, "admin")}
-                        className="text-xs text-sage hover:underline font-bold"
+                        className="text-xs text-emerald-600 hover:underline font-bold"
                       >
                         Make Admin
                       </button>
@@ -440,7 +440,7 @@ function UsersTab({ canManageAdmins }: { canManageAdmins: boolean }) {
                     {canManageAdmins && u.role === "admin" && (
                       <button
                         onClick={() => handleRole(u.id, name, "user")}
-                        className="text-xs text-ochre hover:underline font-bold"
+                        className="text-xs text-amber-500 hover:underline font-bold"
                       >
                         Demote
                       </button>
@@ -448,7 +448,7 @@ function UsersTab({ canManageAdmins }: { canManageAdmins: boolean }) {
                     {canManageAdmins && (
                       <button
                         onClick={() => handleBlock(u.id, name, !u.isBlocked)}
-                        className="text-xs text-persimmon hover:underline font-bold"
+                        className="text-xs text-indigo-600 hover:underline font-bold"
                       >
                         {u.isBlocked ? "Unblock" : "Block"}
                       </button>
@@ -470,7 +470,7 @@ function UsersTab({ canManageAdmins }: { canManageAdmins: boolean }) {
           >
             ← PREV
           </button>
-          <span className="px-4 py-2 text-xs font-bold border-2 border-ink bg-paper">
+          <span className="px-4 py-2 text-xs font-bold border-2 border-gray-900 bg-gray-50">
             {page} / {totalPages}
           </span>
           <button
@@ -578,16 +578,16 @@ function PricingCard({
   );
 
   return (
-    <div className="border-2 border-ink p-5 space-y-4 bg-paper-light">
+    <div className="border-2 border-gray-900 p-5 space-y-4 bg-gray-100">
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <div className="flex items-center gap-3">
-          <span className="pl-serif text-xl font-bold text-ink">{c.paperSize}</span>
-          <span className="pl-pill bg-ink/10 text-ink text-[10px] uppercase">
+          <span className="pl-serif text-xl font-bold text-gray-900">{c.paperSize}</span>
+          <span className="pl-pill bg-gray-900/10 text-gray-900 text-[10px] uppercase">
             {String(c.colorType).replace("_", " ")}
           </span>
           <span
             className={`pl-pill text-[10px] uppercase ${
-              meta.isActive ? "bg-sage/15 text-sage" : "bg-ink/10 text-fog"
+              meta.isActive ? "bg-emerald-600/15 text-emerald-600" : "bg-gray-900/10 text-gray-500"
             }`}
           >
             {meta.isActive ? "active" : "inactive"}
@@ -596,7 +596,7 @@ function PricingCard({
         {canManage && (
           <button
             onClick={remove}
-            className="text-xs text-persimmon font-bold hover:underline"
+            className="text-xs text-indigo-600 font-bold hover:underline"
           >
             DELETE
           </button>
@@ -607,7 +607,7 @@ function PricingCard({
       <div className="overflow-x-auto">
         <table className="w-full border-separate border-spacing-1 text-sm">
           <thead>
-            <tr className="text-fog">
+            <tr className="text-gray-500">
               <th className="text-left editorial-label text-[10px] py-1 px-2">₦ / PAGE</th>
               <th className="editorial-label text-[10px] py-1">100 DPI</th>
               <th className="editorial-label text-[10px] py-1">300 DPI</th>
@@ -616,13 +616,13 @@ function PricingCard({
           </thead>
           <tbody>
             <tr>
-              <td className="editorial-label text-[10px] text-ink py-1 px-2">SIMPLEX</td>
+              <td className="editorial-label text-[10px] text-gray-900 py-1 px-2">SIMPLEX</td>
               <td>{cell("price100Simplex")}</td>
               <td>{cell("price300Simplex")}</td>
               <td>{cell("price600Simplex")}</td>
             </tr>
             <tr>
-              <td className="editorial-label text-[10px] text-ink py-1 px-2">DUPLEX</td>
+              <td className="editorial-label text-[10px] text-gray-900 py-1 px-2">DUPLEX</td>
               <td>{cell("price100Duplex")}</td>
               <td>{cell("price300Duplex")}</td>
               <td>{cell("price600Duplex")}</td>
@@ -632,7 +632,7 @@ function PricingCard({
       </div>
 
       <div>
-        <label className="editorial-label text-[10px] block mb-1 text-fog">NOTES</label>
+        <label className="editorial-label text-[10px] block mb-1 text-gray-500">NOTES</label>
         <input
           value={meta.notes}
           onChange={(e) => setMeta((f) => ({ ...f, notes: e.target.value }))}
@@ -642,7 +642,7 @@ function PricingCard({
         />
       </div>
 
-      <div className="flex items-center justify-between gap-4 flex-wrap border-t border-ink/15 pt-3">
+      <div className="flex items-center justify-between gap-4 flex-wrap border-t border-gray-900/15 pt-3">
         <div className="flex items-center gap-4">
           <label className="flex items-center gap-2 cursor-pointer select-none">
             <input
@@ -650,11 +650,11 @@ function PricingCard({
               checked={meta.isActive}
               onChange={(e) => setMeta((f) => ({ ...f, isActive: e.target.checked }))}
               disabled={!canManage}
-              className="accent-sage w-4 h-4"
+              className="accent-emerald-600 w-4 h-4"
             />
-            <span className="text-xs font-bold text-ink">Active</span>
+            <span className="text-xs font-bold text-gray-900">Active</span>
           </label>
-          <div className="text-xs text-fog">
+          <div className="text-xs text-gray-500">
             Per-page price. Blank cell = falls back to {money(c.pricePerPage)} ×
             multipliers.
           </div>
@@ -665,8 +665,8 @@ function PricingCard({
             disabled={!dirty || saving}
             className={`text-xs font-bold px-4 py-2 border-2 transition-colors ${
               dirty && !saving
-                ? "border-sage bg-sage text-paper"
-                : "border-ink/20 text-fog cursor-not-allowed"
+                ? "border-emerald-600 bg-emerald-600 text-gray-50"
+                : "border-gray-900/20 text-gray-500 cursor-not-allowed"
             }`}
           >
             {saving ? "SAVING…" : "SAVE"}
@@ -729,9 +729,9 @@ function PricingTab({ canManage }: { canManage: boolean }) {
     <div className="max-w-4xl space-y-6">
       <div className="flex justify-between items-end gap-4 flex-wrap">
         <div>
-          <div className="editorial-label text-persimmon mb-1">ADMIN CONSOLE</div>
-          <h1 className="pl-serif text-4xl font-bold text-ink mb-1">Charging & Pricing</h1>
-          <p className="pl-serif italic text-ink/60">
+          <div className="editorial-label text-indigo-600 mb-1">ADMIN CONSOLE</div>
+          <h1 className="pl-serif text-4xl font-bold text-gray-900 mb-1">Charging & Pricing</h1>
+          <p className="pl-serif italic text-gray-50/60">
             Per-page price for every (DPI × simplex/duplex) combination, per paper &amp;
             colour. Leave a cell blank to fall back to the legacy multiplier.
           </p>
@@ -739,7 +739,7 @@ function PricingTab({ canManage }: { canManage: boolean }) {
         {canManage && (
           <button
             onClick={() => setShowAdd(!showAdd)}
-            className="pl-btn bg-sage text-paper border-sage hover:bg-ink hover:border-ink"
+            className="pl-btn bg-emerald-600 text-gray-50 border-emerald-600 hover:bg-gray-900 hover:border-gray-900"
           >
             {showAdd ? "CANCEL" : "+ ADD PRICING"}
           </button>
@@ -747,8 +747,8 @@ function PricingTab({ canManage }: { canManage: boolean }) {
       </div>
 
       {showAdd && canManage && (
-        <form onSubmit={handleAdd} className="border-2 border-sage p-5 bg-sage/5 space-y-3">
-          <div className="editorial-label text-sage mb-2">NEW PRICING CONFIG</div>
+        <form onSubmit={handleAdd} className="border-2 border-emerald-600 p-5 bg-emerald-600/5 space-y-3">
+          <div className="editorial-label text-emerald-600 mb-2">NEW PRICING CONFIG</div>
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="editorial-label text-[10px] block mb-1">PAPER</label>
@@ -783,7 +783,7 @@ function PricingTab({ canManage }: { canManage: boolean }) {
           <div className="overflow-x-auto">
             <table className="w-full border-separate border-spacing-1 text-sm">
               <thead>
-                <tr className="text-fog">
+                <tr className="text-gray-500">
                   <th className="text-left editorial-label text-[10px] py-1 px-2">
                     ₦ / PAGE
                   </th>
@@ -795,7 +795,7 @@ function PricingTab({ canManage }: { canManage: boolean }) {
               <tbody>
                 {(["Simplex", "Duplex"] as const).map((sided) => (
                   <tr key={sided}>
-                    <td className="editorial-label text-[10px] text-ink py-1 px-2">
+                    <td className="editorial-label text-[10px] text-gray-900 py-1 px-2">
                       {sided.toUpperCase()}
                     </td>
                     {(["100", "300", "600"] as const).map((dpi) => {
@@ -823,7 +823,7 @@ function PricingTab({ canManage }: { canManage: boolean }) {
           <button
             type="submit"
             disabled={creating}
-            className="pl-btn bg-sage text-paper border-sage"
+            className="pl-btn bg-emerald-600 text-gray-50 border-emerald-600"
           >
             {creating ? "ADDING…" : "ADD CONFIG →"}
           </button>
@@ -831,7 +831,7 @@ function PricingTab({ canManage }: { canManage: boolean }) {
       )}
 
       {configs.length === 0 ? (
-        <div className="border-2 border-ink/20 bg-ink/5 p-8 text-center text-fog italic">
+        <div className="border-2 border-gray-900/20 bg-gray-900/5 p-8 text-center text-gray-500 italic">
           No pricing configs yet.{" "}
           {canManage && "Use “+ ADD PRICING” to create your first one."}
         </div>
@@ -848,8 +848,8 @@ function PricingTab({ canManage }: { canManage: boolean }) {
       )}
 
       {!canManage && (
-        <div className="border-2 border-ink/20 bg-ink/5 p-4 text-sm text-fog italic text-center">
-          You need the <strong className="text-ink">manage_pricing</strong> privilege to edit
+        <div className="border-2 border-gray-900/20 bg-gray-900/5 p-4 text-sm text-gray-500 italic text-center">
+          You need the <strong className="text-gray-900">manage_pricing</strong> privilege to edit
           pricing.
         </div>
       )}
@@ -867,9 +867,9 @@ function AppLogTab() {
   return (
     <div className="max-w-6xl space-y-6">
       <div>
-        <div className="editorial-label text-persimmon mb-1">ADMIN CONSOLE</div>
-        <h1 className="pl-serif text-4xl font-bold text-ink mb-1">App Log</h1>
-        <p className="pl-serif italic text-ink/60">
+        <div className="editorial-label text-indigo-600 mb-1">ADMIN CONSOLE</div>
+        <h1 className="pl-serif text-4xl font-bold text-gray-900 mb-1">App Log</h1>
+        <p className="pl-serif italic text-gray-50/60">
           Append-only audit log of administrative actions.
         </p>
       </div>
@@ -877,7 +877,7 @@ function AppLogTab() {
       <AdminTable title="AUDIT LOG — READ ONLY">
         <table className="w-full text-left text-sm">
           <thead>
-            <tr className="border-b border-ink/20 bg-ink/5 text-ink/70">
+            <tr className="border-b border-gray-900/20 bg-gray-900/5 text-gray-50/70">
               <th className="p-3 font-semibold whitespace-nowrap">Time</th>
               <th className="p-3 font-semibold">Actor</th>
               <th className="p-3 font-semibold">Action</th>
@@ -888,28 +888,28 @@ function AppLogTab() {
           <tbody>
             {isLoading && (
               <tr>
-                <td colSpan={5} className="p-6 text-center text-fog italic">
+                <td colSpan={5} className="p-6 text-center text-gray-500 italic">
                   Loading…
                 </td>
               </tr>
             )}
             {!isLoading && logs.length === 0 && (
               <tr>
-                <td colSpan={5} className="p-6 text-center text-fog italic">
+                <td colSpan={5} className="p-6 text-center text-gray-500 italic">
                   No audit entries.
                 </td>
               </tr>
             )}
             {logs.map((log) => (
-              <tr key={log.id} className="border-b border-ink/10 last:border-0 hover:bg-ink/5">
-                <td className="p-3 text-fog whitespace-nowrap text-xs">
+              <tr key={log.id} className="border-b border-gray-900/10 last:border-0 hover:bg-gray-900/5">
+                <td className="p-3 text-gray-500 whitespace-nowrap text-xs">
                   {new Date(log.createdAt).toLocaleString()}
                 </td>
-                <td className="p-3 font-bold text-ink">{log.actorName}</td>
-                <td className="p-3 pl-mono text-[10px] uppercase text-persimmon">{log.action}</td>
-                <td className="p-3 text-xs text-fog">{log.target}</td>
+                <td className="p-3 font-bold">{log.actorName}</td>
+                <td className="p-3 pl-mono text-[10px] uppercase text-indigo-600">{log.action}</td>
+                <td className="p-3 text-xs text-gray-500">{log.target}</td>
                 <td
-                  className="p-3 text-fog max-w-xs truncate"
+                  className="p-3 text-gray-500 max-w-xs truncate"
                   title={JSON.stringify(log.detail)}
                 >
                   {log.detail ? JSON.stringify(log.detail) : "—"}
@@ -929,7 +929,7 @@ function AppLogTab() {
           >
             ← PREV
           </button>
-          <span className="px-4 py-2 text-xs font-bold border-2 border-ink bg-paper">
+          <span className="px-4 py-2 text-xs font-bold border-2 border-gray-900 bg-gray-50">
             {page} / {totalPages}
           </span>
           <button
@@ -1001,26 +1001,26 @@ export default function AdminConsolePage() {
 
   return (
     <div className="flex flex-col lg:flex-row lg:h-screen">
-      {/* ── Mobile / tablet top bar ─────────────────────────────────
-         The desktop sidebar (lg:) is hidden, replaced by:
-           - a compact bg-sage header with admin name + sign out
-           - a horizontally-scrollable tab strip directly below */}
-      <header className="lg:hidden bg-sage text-paper px-4 sm:px-5 py-3 flex items-center justify-between gap-3">
+{/* ── Mobile / tablet top bar ─────────────────────────────────
+          The desktop sidebar (lg:) is hidden, replaced by:
+            - a compact bg-emerald-600 header with admin name + sign out
+            - a horizontally-scrollable tab strip directly below */}
+      <header className="lg:hidden bg-emerald-600 text-gray-50 px-4 sm:px-5 py-3 flex items-center justify-between gap-3">
         <div className="min-w-0">
-          <div className="editorial-label text-paper/50 text-[9px]">PRINTLOOP ADMIN</div>
+          <div className="editorial-label text-gray-50/50 text-[9px]">PRINTLOOP ADMIN</div>
           <div className="pl-serif text-base font-bold leading-tight truncate">
             {currentUser?.firstName || "System"} {currentUser?.lastName || "Admin"}
           </div>
         </div>
         <button
           onClick={handleSignOut}
-          className="text-[10px] font-bold tracking-editorial px-3 py-1.5 border border-persimmon/40 text-persimmon bg-paper/10 hover:bg-persimmon hover:text-paper transition-colors flex-shrink-0"
+          className="text-[10px] font-bold tracking-editorial px-3 py-1.5 border border-indigo-600/40 text-indigo-600 bg-gray-50/10 hover:bg-indigo-600 hover:text-gray-50 transition-colors flex-shrink-0"
         >
           SIGN OUT
         </button>
       </header>
       <nav
-        className="lg:hidden bg-sage text-paper overflow-x-auto border-t border-paper/10"
+        className="lg:hidden bg-emerald-600 text-gray-50 overflow-x-auto border-t border-gray-50/10"
         aria-label="Admin sections"
       >
         <div className="flex">
@@ -1030,8 +1030,8 @@ export default function AdminConsolePage() {
               onClick={() => setTab(item.key)}
               className={`px-4 py-3 text-[11px] font-bold tracking-editorial uppercase whitespace-nowrap transition-colors flex-shrink-0 ${
                 tab === item.key
-                  ? "bg-paper text-sage"
-                  : "text-paper/80 hover:bg-ink/20 hover:text-paper"
+                  ? "bg-gray-50 text-emerald-600"
+                  : "text-gray-50/80 hover:bg-gray-900/20 hover:text-gray-50"
               }`}
             >
               {item.label}
@@ -1041,13 +1041,13 @@ export default function AdminConsolePage() {
       </nav>
 
       {/* ── Desktop sidebar ─────────────────────────────────────── */}
-      <aside className="hidden lg:flex w-64 bg-sage text-paper flex-shrink-0 flex-col overflow-y-auto">
-        <div className="px-5 py-6 border-b border-paper/10">
-          <div className="editorial-label text-paper/50 mb-1">PRINTLOOP ADMIN</div>
+      <aside className="hidden lg:flex w-64 bg-emerald-600 text-gray-50 flex-shrink-0 flex-col overflow-y-auto">
+        <div className="px-5 py-6 border-b border-gray-50/10">
+          <div className="editorial-label text-gray-50/50 mb-1">PRINTLOOP ADMIN</div>
           <div className="pl-serif text-xl font-bold leading-tight">
             {currentUser?.firstName || "System"} {currentUser?.lastName || "Admin"}
           </div>
-          <div className="text-[11px] text-paper/60 mt-1 uppercase tracking-wider font-semibold">
+          <div className="text-[11px] text-gray-50/60 mt-1 uppercase tracking-wider font-semibold">
             {isSuperAdmin ? "Super Administrator" : "Administrator"}
           </div>
         </div>
@@ -1059,8 +1059,8 @@ export default function AdminConsolePage() {
               onClick={() => setTab(item.key)}
               className={`w-full text-left px-5 py-3 flex items-center gap-3 transition-colors text-sm font-medium ${
                 tab === item.key
-                  ? "bg-paper text-sage font-bold"
-                  : "text-paper/80 hover:bg-ink/20 hover:text-paper"
+                  ? "bg-gray-50 text-emerald-600 font-bold"
+                  : "text-gray-50/80 hover:bg-gray-900/20 hover:text-gray-50"
               }`}
             >
               <span className="text-base">■</span>
@@ -1069,11 +1069,11 @@ export default function AdminConsolePage() {
           ))}
         </nav>
 
-        <div className="px-5 py-4 border-t border-paper/10 space-y-2">
-          <div className="editorial-label text-paper/40 mb-3">V1 · TYPEORM</div>
+        <div className="px-5 py-4 border-t border-gray-50/10 space-y-2">
+          <div className="editorial-label text-gray-50/40 mb-3">V1 · TYPEORM</div>
           <button
             onClick={handleSignOut}
-            className="w-full text-left px-3 py-2 text-xs font-bold text-persimmon/90 hover:bg-persimmon hover:text-paper transition-colors border border-persimmon/30"
+            className="w-full text-left px-3 py-2 text-xs font-bold text-indigo-600/90 hover:bg-indigo-600 hover:text-gray-50 transition-colors border border-indigo-600/30"
           >
             SIGN OUT →
           </button>
@@ -1081,7 +1081,7 @@ export default function AdminConsolePage() {
       </aside>
 
       {/* ── Main content area ──────────────────────────────────── */}
-      <main className="flex-1 bg-paper overflow-y-auto p-4 sm:p-6 lg:p-8 animate-fadein">{content}</main>
+      <main className="flex-1 bg-gray-50 overflow-y-auto p-4 sm:p-6 lg:p-8 animate-fadein">{content}</main>
     </div>
   );
 }

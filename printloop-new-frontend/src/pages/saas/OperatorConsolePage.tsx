@@ -15,11 +15,11 @@ export default function OperatorConsolePage() {
   const ops = useGetOpsSummaryQuery(undefined, { pollingInterval: 30_000 });
 
   if (me.isLoading || balance.isLoading) {
-    return <p className="p-8 text-fog pl-serif italic">Loading operator console…</p>;
+    return <p className="p-8 text-gray-500 pl-serif italic">Loading operator console…</p>;
   }
   if (me.isError || !me.data) {
     return (
-      <p className="p-8 text-persimmon font-semibold">
+      <p className="p-8 text-indigo-600 font-semibold">
         Could not load your operator console.
       </p>
     );
@@ -32,11 +32,11 @@ export default function OperatorConsolePage() {
   return (
     <div className="max-w-5xl mx-auto p-4 sm:p-6 space-y-6">
       <div>
-        <div className="editorial-label text-persimmon mb-1">▸ OPERATOR CONSOLE</div>
+        <div className="editorial-label text-indigo-600 mb-1">▸ OPERATOR CONSOLE</div>
         <h1 className="pl-serif font-extrabold text-3xl sm:text-4xl leading-none tracking-tight">
           {tenant.name}
         </h1>
-        <p className="mt-1 text-sm text-ink/60 font-mono">
+        <p className="mt-1 text-sm text-gray-50/60 font-mono">
           {tenant.slug}.printloop.app
         </p>
       </div>
@@ -48,7 +48,7 @@ export default function OperatorConsolePage() {
       <div>
         <div className="flex items-center justify-between mb-3">
           <h2 className="pl-serif font-extrabold text-xl">Today at a glance</h2>
-          <span className="text-[11px] text-ink/40 font-mono">
+          <span className="text-[11px] text-gray-50/40 font-mono">
             {ops.isFetching ? "refreshing…" : "live · every 30s"}
           </span>
         </div>
@@ -91,10 +91,10 @@ export default function OperatorConsolePage() {
         <div
           className={`border-2 rounded-pl p-4 flex flex-wrap items-center justify-between gap-3 ${
             ops.data.liveGate.isDiscoverable
-              ? "border-sage bg-sage/10"
+              ? "border-emerald-600 bg-emerald-600/10"
               : ops.data.liveGateMet
-              ? "border-ochre bg-ochre/10"
-              : "border-ink bg-paper-light"
+              ? "border-amber-500 bg-amber-500/10"
+              : "border-gray-900 bg-gray-100"
           }`}
         >
           <div>
@@ -105,7 +105,7 @@ export default function OperatorConsolePage() {
                 ? "Ready to go live — flip the switch in Printers"
                 : "Not yet visible to customers"}
             </div>
-            <div className="text-xs text-ink/60 mt-1">
+            <div className="text-xs text-gray-50/60 mt-1">
               {gateHint(ops.data.liveGate)}
             </div>
           </div>
@@ -134,7 +134,7 @@ export default function OperatorConsolePage() {
         />
       </div>
 
-      <div className="border-2 border-ink rounded-pl p-5 bg-paper-light">
+      <div className="border-2 border-gray-900 rounded-pl p-5 bg-gray-100">
         <h2 className="pl-serif font-extrabold text-xl mb-2">Quick actions</h2>
         <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 text-sm">
           <ActionLink to="/saas/operator/printers" label="Manage printers" />
@@ -161,10 +161,10 @@ function OperatorCard({
   sub?: string;
 }) {
   const tone = accent
-    ? "border-ink bg-ink text-paper"
+    ? "border-indigo-600 bg-indigo-600 text-gray-50"
     : warn
-    ? "border-persimmon bg-persimmon/5 text-ink"
-    : "border-ink bg-paper-light text-ink";
+    ? "border-indigo-600 bg-indigo-600/10 text-gray-900"
+    : "border-gray-900 bg-gray-100 text-gray-900";
   return (
     <div className={`rounded-pl p-4 sm:p-5 border-2 ${tone}`}>
       <div className="editorial-label opacity-70 text-[10px]">
@@ -172,7 +172,7 @@ function OperatorCard({
       </div>
       <div className="font-mono text-2xl font-bold mt-1">{value}</div>
       {sub && (
-        <div className="text-[11px] font-bold text-persimmon mt-0.5">{sub}</div>
+        <div className="text-[11px] font-bold text-indigo-600 mt-0.5">{sub}</div>
       )}
     </div>
   );
@@ -201,7 +201,7 @@ function ActionLink({ to, label }: { to: string; label: string }) {
   return (
     <Link
       to={to}
-      className="block border-2 border-ink rounded-pl px-4 py-3 font-bold hover:border-sage hover:text-sage"
+      className="block border-2 border-gray-900 rounded-pl px-4 py-3 font-bold hover:border-emerald-600 hover:text-emerald-600"
     >
       {label} →
     </Link>

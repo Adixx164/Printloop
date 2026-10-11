@@ -1,0 +1,1116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SNEAKER HYPE - Design System Preview</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Clash+Display:wght@400;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            width: 100%;
+            height: 100%;
+            background: #0A0E27;
+            color: #FFFFFF;
+            font-family: 'Inter', sans-serif;
+            overflow-x: hidden;
+        }
+
+        /* ANIMATIONS */
+        @keyframes neon-pulse {
+            0%, 100% {
+                box-shadow: 0 0 20px rgba(255, 23, 68, 0.5), 0 0 40px rgba(255, 23, 68, 0.3);
+            }
+            50% {
+                box-shadow: 0 0 30px rgba(0, 217, 255, 0.6), 0 0 60px rgba(0, 217, 255, 0.4);
+            }
+        }
+
+        @keyframes gradient-shift {
+            0%, 100% {
+                background-position: 0% 50%;
+            }
+            50% {
+                background-position: 100% 50%;
+            }
+        }
+
+        @keyframes glow-in {
+            from {
+                box-shadow: 0 0 0 rgba(255, 23, 68, 0), 0 0 0 rgba(0, 217, 255, 0);
+            }
+            to {
+                box-shadow: 0 0 30px rgba(255, 23, 68, 0.6), 0 0 50px rgba(0, 217, 255, 0.4);
+            }
+        }
+
+        @keyframes slide-in {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* CONTAINER */
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 2rem;
+        }
+
+        /* HERO SECTION */
+        .hero {
+            padding: 120px 2rem 80px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255, 23, 68, 0.1) 0%, transparent 70%);
+            animation: neon-pulse 4s ease-in-out infinite;
+            pointer-events: none;
+        }
+
+        .hero-content {
+            position: relative;
+            z-index: 1;
+            animation: slide-in 0.8s ease-out;
+        }
+
+        .hero h1 {
+            font-family: 'Clash Display', sans-serif;
+            font-size: 5rem;
+            font-weight: 700;
+            letter-spacing: -2px;
+            margin-bottom: 1rem;
+            background: linear-gradient(135deg, #FF1744, #00D9FF, #FFFF00);
+            background-size: 300% 300%;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: gradient-shift 6s ease infinite;
+            text-transform: uppercase;
+            line-height: 1;
+        }
+
+        .hero p {
+            font-size: 1.5rem;
+            color: #B0B3C1;
+            margin-bottom: 2rem;
+            font-weight: 500;
+        }
+
+        /* SECTION HEADERS */
+        .section {
+            padding: 80px 0;
+            border-top: 1px solid #3A4158;
+        }
+
+        .section-title {
+            font-family: 'Clash Display', sans-serif;
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 3rem;
+            text-transform: uppercase;
+            letter-spacing: -1px;
+            color: #FFFFFF;
+        }
+
+        /* COLOR PALETTE */
+        .palette-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 2rem;
+            margin-bottom: 3rem;
+        }
+
+        .color-swatch {
+            border-radius: 8px;
+            padding: 2rem;
+            cursor: pointer;
+            transition: all 0.15s cubic-bezier(0.34, 1.56, 0.64, 1);
+            border: 1px solid rgba(255, 23, 68, 0.2);
+        }
+
+        .color-swatch:hover {
+            transform: translateY(-8px);
+        }
+
+        .color-sample {
+            width: 100%;
+            height: 120px;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.15s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .color-swatch:hover .color-sample {
+            box-shadow: 0 0 30px currentColor;
+            filter: brightness(1.2);
+        }
+
+        .color-name {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .color-hex {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            color: #B0B3C1;
+            font-weight: 400;
+        }
+
+        /* TYPOGRAPHY SECTION */
+        .typography-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 3rem;
+            margin-bottom: 2rem;
+        }
+
+        .typography-item {
+            padding: 2rem;
+            background: #1A1F3A;
+            border-radius: 8px;
+            border: 1px solid #3A4158;
+        }
+
+        .typography-item h3 {
+            font-family: 'Clash Display', sans-serif;
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+            color: #FF1744;
+            text-transform: uppercase;
+        }
+
+        .clash-display-demo {
+            font-family: 'Clash Display', sans-serif;
+            font-size: 3rem;
+            font-weight: 700;
+            letter-spacing: -1px;
+            line-height: 1.1;
+            margin-bottom: 1.5rem;
+            text-transform: uppercase;
+        }
+
+        .inter-demo {
+            font-family: 'Inter', sans-serif;
+            font-size: 1rem;
+            line-height: 1.6;
+            color: #B0B3C1;
+            margin-bottom: 1rem;
+        }
+
+        .mono-demo {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 2rem;
+            font-weight: 700;
+            color: #00D9FF;
+            margin-bottom: 0.5rem;
+            letter-spacing: 1px;
+        }
+
+        /* BUTTONS */
+        .button {
+            font-family: 'Inter', sans-serif;
+            font-weight: 600;
+            padding: 0.875rem 1.75rem;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            text-transform: uppercase;
+            font-size: 0.85rem;
+            letter-spacing: 1px;
+            transition: all 0.15s cubic-bezier(0.34, 1.56, 0.64, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .button-primary {
+            background: #FF1744;
+            color: #0A0E27;
+            box-shadow: 0 0 20px rgba(255, 23, 68, 0.4);
+        }
+
+        .button-primary:hover {
+            box-shadow: 0 0 40px rgba(255, 23, 68, 0.8);
+            transform: translateY(-2px);
+        }
+
+        .button-primary:active {
+            transform: translateY(0);
+        }
+
+        .button-secondary {
+            background: transparent;
+            color: #00D9FF;
+            border: 2px solid #00D9FF;
+            box-shadow: inset 0 0 20px rgba(0, 217, 255, 0);
+        }
+
+        .button-secondary:hover {
+            box-shadow: inset 0 0 20px rgba(0, 217, 255, 0.3), 0 0 30px rgba(0, 217, 255, 0.6);
+            background: rgba(0, 217, 255, 0.1);
+        }
+
+        .button-disabled {
+            background: #3A4158;
+            color: #8A8D9B;
+            cursor: not-allowed;
+            text-decoration: line-through;
+            opacity: 0.6;
+        }
+
+        .button-disabled:hover {
+            box-shadow: none;
+            transform: none;
+        }
+
+        /* COMPONENTS SECTION */
+        .components-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin-bottom: 3rem;
+        }
+
+        .component-card {
+            background: #1A1F3A;
+            border: 1px solid #3A4158;
+            border-radius: 8px;
+            padding: 2rem;
+            transition: all 0.15s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .component-card:hover {
+            border-color: #FF1744;
+            box-shadow: 0 0 30px rgba(255, 23, 68, 0.3);
+        }
+
+        .component-card h4 {
+            font-family: 'Clash Display', sans-serif;
+            font-size: 1.2rem;
+            margin-bottom: 1.5rem;
+            text-transform: uppercase;
+            color: #00D9FF;
+        }
+
+        /* SNEAKER CARD */
+        .sneaker-card {
+            background: #252D4A;
+            border: 1px solid #3A4158;
+            border-radius: 12px;
+            overflow: hidden;
+            transition: all 0.15s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .sneaker-card:hover {
+            transform: translateY(-8px);
+            border-color: #FF1744;
+            box-shadow: 0 20px 60px rgba(255, 23, 68, 0.2);
+        }
+
+        .sneaker-image {
+            width: 100%;
+            height: 200px;
+            background: linear-gradient(135deg, rgba(255, 23, 68, 0.2), rgba(0, 217, 255, 0.2));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3rem;
+            color: rgba(255, 255, 255, 0.3);
+        }
+
+        .sneaker-info {
+            padding: 1.5rem;
+        }
+
+        .sneaker-name {
+            font-family: 'Clash Display', sans-serif;
+            font-size: 1.3rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            margin-bottom: 0.5rem;
+            color: #FFFFFF;
+        }
+
+        .sneaker-price {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #FF1744;
+            margin-bottom: 0.75rem;
+            letter-spacing: 1px;
+        }
+
+        .sneaker-countdown {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+            color: #00D9FF;
+            margin-bottom: 1rem;
+            font-weight: 600;
+        }
+
+        .sneaker-button {
+            width: 100%;
+            background: #FF1744;
+            color: #0A0E27;
+            border: none;
+            padding: 0.75rem;
+            border-radius: 6px;
+            font-family: 'Inter', sans-serif;
+            font-weight: 600;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: all 0.15s cubic-bezier(0.34, 1.56, 0.64, 1);
+            font-size: 0.8rem;
+            letter-spacing: 1px;
+        }
+
+        .sneaker-button:hover {
+            box-shadow: 0 0 30px rgba(255, 23, 68, 0.7);
+            transform: translateY(-2px);
+        }
+
+        /* BADGES */
+        .badge {
+            display: inline-block;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-right: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .badge-new {
+            background: #FF1744;
+            color: #0A0E27;
+        }
+
+        .badge-trending {
+            background: #00D9FF;
+            color: #0A0E27;
+        }
+
+        .badge-soldout {
+            background: #3A4158;
+            color: #B0B3C1;
+            text-decoration: line-through;
+        }
+
+        /* HYPE METER */
+        .hype-meter-container {
+            margin: 2rem 0;
+        }
+
+        .hype-meter-label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.75rem;
+            font-family: 'Inter', sans-serif;
+            font-size: 0.85rem;
+            color: #B0B3C1;
+        }
+
+        .hype-meter-bar {
+            width: 100%;
+            height: 12px;
+            background: #252D4A;
+            border-radius: 6px;
+            overflow: hidden;
+            border: 1px solid #3A4158;
+        }
+
+        .hype-meter-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #FF1744, #FFFF00, #00D9FF);
+            background-size: 200% 100%;
+            border-radius: 6px;
+            animation: gradient-shift 3s ease infinite;
+            transition: width 0.3s ease;
+        }
+
+        /* INPUT */
+        .input-group {
+            margin: 2rem 0;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 0.75rem;
+            font-size: 0.9rem;
+            color: #B0B3C1;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .input {
+            width: 100%;
+            padding: 0.875rem 1.25rem;
+            background: #1A1F3A;
+            border: 2px solid #3A4158;
+            border-radius: 8px;
+            color: #FFFFFF;
+            font-family: 'Inter', sans-serif;
+            font-size: 1rem;
+            transition: all 0.15s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .input:focus {
+            outline: none;
+            border-color: #00D9FF;
+            box-shadow: 0 0 30px rgba(0, 217, 255, 0.4), inset 0 0 20px rgba(0, 217, 255, 0.1);
+            background: rgba(0, 217, 255, 0.05);
+        }
+
+        /* APP DEMO */
+        .app-demo {
+            background: #1A1F3A;
+            border: 1px solid #3A4158;
+            border-radius: 12px;
+            overflow: hidden;
+            margin-bottom: 3rem;
+        }
+
+        .app-header {
+            background: #252D4A;
+            padding: 1.5rem 2rem;
+            border-bottom: 1px solid #3A4158;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .app-header h4 {
+            font-family: 'Clash Display', sans-serif;
+            font-size: 1.5rem;
+            text-transform: uppercase;
+            color: #FFFFFF;
+        }
+
+        .app-header-icon {
+            font-size: 1.5rem;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .app-header-icon:hover {
+            color: #FF1744;
+            transform: scale(1.1);
+        }
+
+        .app-hero {
+            padding: 2rem;
+            background: linear-gradient(135deg, rgba(255, 23, 68, 0.1), rgba(0, 217, 255, 0.1));
+            border-bottom: 1px solid #3A4158;
+        }
+
+        .app-hero-image {
+            width: 100%;
+            height: 250px;
+            background: linear-gradient(135deg, rgba(255, 23, 68, 0.2), rgba(0, 217, 255, 0.2));
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 5rem;
+            color: rgba(255, 255, 255, 0.2);
+            margin-bottom: 1.5rem;
+        }
+
+        .app-hero-info {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .app-hero-name {
+            font-family: 'Clash Display', sans-serif;
+            font-size: 2rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            grid-column: 1 / -1;
+            color: #FFFFFF;
+        }
+
+        .app-hero-stat {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #FF1744;
+        }
+
+        .app-hero-label {
+            font-size: 0.75rem;
+            color: #B0B3C1;
+            text-transform: uppercase;
+        }
+
+        .app-hero-timer {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1.1rem;
+            color: #00D9FF;
+            font-weight: 600;
+            margin-top: 1rem;
+            grid-column: 1 / -1;
+        }
+
+        .app-section {
+            padding: 2rem;
+            border-bottom: 1px solid #3A4158;
+        }
+
+        .app-section:last-child {
+            border-bottom: none;
+        }
+
+        .app-section h5 {
+            font-family: 'Clash Display', sans-serif;
+            font-size: 1.1rem;
+            text-transform: uppercase;
+            margin-bottom: 1.5rem;
+            color: #00D9FF;
+        }
+
+        .sneaker-scroll {
+            display: flex;
+            gap: 1rem;
+            overflow-x: auto;
+            padding-bottom: 0.5rem;
+            scroll-behavior: smooth;
+        }
+
+        .sneaker-scroll::-webkit-scrollbar {
+            height: 6px;
+        }
+
+        .sneaker-scroll::-webkit-scrollbar-track {
+            background: #252D4A;
+            border-radius: 3px;
+        }
+
+        .sneaker-scroll::-webkit-scrollbar-thumb {
+            background: #FF1744;
+            border-radius: 3px;
+        }
+
+        .sneaker-scroll-item {
+            flex: 0 0 calc(33.333% - 1rem);
+            min-width: 200px;
+        }
+
+        .sneaker-mini {
+            background: #252D4A;
+            border: 1px solid #3A4158;
+            border-radius: 8px;
+            overflow: hidden;
+            transition: all 0.15s cubic-bezier(0.34, 1.56, 0.64, 1);
+            height: 100%;
+        }
+
+        .sneaker-mini:hover {
+            border-color: #FF1744;
+            box-shadow: 0 10px 30px rgba(255, 23, 68, 0.2);
+        }
+
+        .sneaker-mini-image {
+            width: 100%;
+            height: 120px;
+            background: linear-gradient(135deg, rgba(255, 23, 68, 0.15), rgba(0, 217, 255, 0.15));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+        }
+
+        .sneaker-mini-content {
+            padding: 1rem;
+        }
+
+        .sneaker-mini-name {
+            font-family: 'Clash Display', sans-serif;
+            font-size: 0.9rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            margin-bottom: 0.5rem;
+            color: #FFFFFF;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .sneaker-mini-price {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+            color: #FF1744;
+            font-weight: 600;
+        }
+
+        /* FOOTER */
+        .footer {
+            padding: 3rem 0;
+            text-align: center;
+            border-top: 1px solid #3A4158;
+            color: #B0B3C1;
+        }
+
+        .footer-text {
+            font-size: 0.95rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .footer-link {
+            color: #00D9FF;
+            text-decoration: none;
+            position: relative;
+            transition: all 0.15s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .footer-link::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            width: 0;
+            height: 2px;
+            background: linear-gradient(90deg, #FF1744, #00D9FF);
+            transition: width 0.15s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .footer-link:hover::after {
+            width: 100%;
+            box-shadow: 0 0 10px rgba(0, 217, 255, 0.6);
+        }
+
+        /* RESPONSIVE */
+        @media (max-width: 768px) {
+            .hero h1 {
+                font-size: 3rem;
+            }
+
+            .hero p {
+                font-size: 1.1rem;
+            }
+
+            .section-title {
+                font-size: 1.8rem;
+            }
+
+            .palette-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .typography-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .components-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .app-hero-info {
+                grid-template-columns: 1fr;
+            }
+
+            .app-hero-name {
+                font-size: 1.5rem;
+            }
+
+            .sneaker-scroll-item {
+                flex: 0 0 calc(50% - 0.5rem);
+            }
+        }
+
+        /* SCROLLBAR STYLING */
+        ::-webkit-scrollbar {
+            width: 10px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #0A0E27;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #FF1744;
+            border-radius: 5px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #00D9FF;
+            box-shadow: 0 0 10px rgba(0, 217, 255, 0.5);
+        }
+    </style>
+</head>
+<body>
+    <!-- HERO SECTION -->
+    <section class="hero">
+        <div class="hero-content">
+            <h1>SNEAKER HYPE</h1>
+            <p>A bold design system for Gen-Z e-commerce</p>
+        </div>
+    </section>
+
+    <div class="container">
+        <!-- COLOR PALETTE SECTION -->
+        <section class="section">
+            <h2 class="section-title">Color Palette</h2>
+            <div class="palette-grid">
+                <div class="color-swatch">
+                    <div class="color-sample" style="background: #FF1744;"></div>
+                    <div class="color-name">Primary Pink</div>
+                    <div class="color-hex">#FF1744</div>
+                </div>
+                <div class="color-swatch">
+                    <div class="color-sample" style="background: #00D9FF;"></div>
+                    <div class="color-name">Secondary Cyan</div>
+                    <div class="color-hex">#00D9FF</div>
+                </div>
+                <div class="color-swatch">
+                    <div class="color-sample" style="background: #FFFF00;"></div>
+                    <div class="color-name">Accent Yellow</div>
+                    <div class="color-hex">#FFFF00</div>
+                </div>
+                <div class="color-swatch">
+                    <div class="color-sample" style="background: #0A0E27;"></div>
+                    <div class="color-name">Background</div>
+                    <div class="color-hex">#0A0E27</div>
+                </div>
+                <div class="color-swatch">
+                    <div class="color-sample" style="background: #1A1F3A;"></div>
+                    <div class="color-name">Surface</div>
+                    <div class="color-hex">#1A1F3A</div>
+                </div>
+                <div class="color-swatch">
+                    <div class="color-sample" style="background: #252D4A;"></div>
+                    <div class="color-name">Surface Elevated</div>
+                    <div class="color-hex">#252D4A</div>
+                </div>
+                <div class="color-swatch">
+                    <div class="color-sample" style="background: #3A4158;"></div>
+                    <div class="color-name">Border</div>
+                    <div class="color-hex">#3A4158</div>
+                </div>
+                <div class="color-swatch">
+                    <div class="color-sample" style="background: #FFFFFF;"></div>
+                    <div class="color-name">Text Primary</div>
+                    <div class="color-hex">#FFFFFF</div>
+                </div>
+                <div class="color-swatch">
+                    <div class="color-sample" style="background: #B0B3C1;"></div>
+                    <div class="color-name">Text Secondary</div>
+                    <div class="color-hex">#B0B3C1</div>
+                </div>
+                <div class="color-swatch">
+                    <div class="color-sample" style="background: #00E676;"></div>
+                    <div class="color-name">Success</div>
+                    <div class="color-hex">#00E676</div>
+                </div>
+                <div class="color-swatch">
+                    <div class="color-sample" style="background: #FFA500;"></div>
+                    <div class="color-name">Warning</div>
+                    <div class="color-hex">#FFA500</div>
+                </div>
+                <div class="color-swatch">
+                    <div class="color-sample" style="background: #FF1744;"></div>
+                    <div class="color-name">Error</div>
+                    <div class="color-hex">#FF1744</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- TYPOGRAPHY SECTION -->
+        <section class="section">
+            <h2 class="section-title">Typography Scale</h2>
+            <div class="typography-grid">
+                <div class="typography-item">
+                    <h3>Clash Display</h3>
+                    <div class="clash-display-demo">Limited<br>Drop</div>
+                    <p class="inter-demo">Bold, geometric typeface for headlines and call-to-action text. Perfect for commanding attention on product pages and marketing materials.</p>
+                </div>
+                <div class="typography-item">
+                    <h3>Inter + JetBrains Mono</h3>
+                    <p class="inter-demo">Clean, modern sans-serif for body text and descriptions. Ensures excellent readability across all screen sizes.</p>
+                    <div class="mono-demo">$189.99</div>
+                    <p class="inter-demo" style="font-size: 0.8rem; color: #8A8D9B;">Monospace font for prices, timers, and technical data. Gives precision and energy to numerical information.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- COMPONENTS SECTION -->
+        <section class="section">
+            <h2 class="section-title">Components</h2>
+
+            <!-- BUTTONS -->
+            <div class="component-card" style="grid-column: 1;">
+                <h4>Buttons</h4>
+                <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+                    <button class="button button-primary">Shop Now</button>
+                    <button class="button button-secondary">Learn More</button>
+                    <button class="button button-disabled">Sold Out</button>
+                </div>
+            </div>
+
+            <div class="components-grid">
+                <!-- BADGES -->
+                <div class="component-card">
+                    <h4>Badges</h4>
+                    <div>
+                        <span class="badge badge-new">New Drop</span>
+                        <span class="badge badge-trending">Trending</span>
+                        <span class="badge badge-soldout">Sold Out</span>
+                    </div>
+                </div>
+
+                <!-- HYPE METER -->
+                <div class="component-card">
+                    <h4>Hype Meter</h4>
+                    <div class="hype-meter-container">
+                        <div class="hype-meter-label">
+                            <span>Demand Level</span>
+                            <span style="color: #FF1744; font-weight: 600;">🔥 EXTREME</span>
+                        </div>
+                        <div class="hype-meter-bar">
+                            <div class="hype-meter-fill" style="width: 95%;"></div>
+                        </div>
+                    </div>
+                    <div class="hype-meter-container">
+                        <div class="hype-meter-label">
+                            <span>Sold Out in</span>
+                            <span style="color: #00D9FF; font-weight: 600;">3.2 seconds</span>
+                        </div>
+                        <div class="hype-meter-bar">
+                            <div class="hype-meter-fill" style="width: 45%;"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SNEAKER CARD -->
+                <div class="component-card" style="grid-column: 1;">
+                    <h4>Sneaker Card</h4>
+                    <div class="sneaker-card">
+                        <div class="sneaker-image">👟</div>
+                        <div class="sneaker-info">
+                            <div class="sneaker-name">Air Max Pulse</div>
+                            <div class="sneaker-price">$189</div>
+                            <div class="sneaker-countdown">🕐 RELEASING IN 2:34:15</div>
+                            <button class="sneaker-button">Notify Me</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- INPUT FIELD -->
+                <div class="component-card" style="grid-column: 1;">
+                    <h4>Input Field</h4>
+                    <div class="input-group">
+                        <label>Search Drops</label>
+                        <input type="text" class="input" placeholder="Jordan, Nike, Adidas..." />
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- APP DEMO -->
+        <section class="section">
+            <h2 class="section-title">App Demo</h2>
+            <div class="app-demo">
+                <div class="app-header">
+                    <h4>🔥 Drops</h4>
+                    <div class="app-header-icon">🔍</div>
+                </div>
+
+                <!-- Featured Hero -->
+                <div class="app-hero">
+                    <div class="app-hero-image">👟</div>
+                    <div class="app-hero-name">Jordan 1 Retro</div>
+                    <div class="app-hero-info">
+                        <div>
+                            <div class="app-hero-stat">$179</div>
+                            <div class="app-hero-label">Price</div>
+                        </div>
+                        <div>
+                            <div class="app-hero-stat">1M+</div>
+                            <div class="app-hero-label">Waiting</div>
+                        </div>
+                    </div>
+                    <div class="app-hero-timer">⏱️ DROP IN 4:27:52</div>
+                </div>
+
+                <!-- Upcoming Releases -->
+                <div class="app-section">
+                    <h5>Upcoming Releases</h5>
+                    <div class="sneaker-scroll">
+                        <div class="sneaker-scroll-item">
+                            <div class="sneaker-mini">
+                                <div class="sneaker-mini-image">👟</div>
+                                <div class="sneaker-mini-content">
+                                    <div class="sneaker-mini-name">Dunk Low</div>
+                                    <div class="sneaker-mini-price">$125</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="sneaker-scroll-item">
+                            <div class="sneaker-mini">
+                                <div class="sneaker-mini-image">🏃</div>
+                                <div class="sneaker-mini-content">
+                                    <div class="sneaker-mini-name">Air Zoom GT</div>
+                                    <div class="sneaker-mini-price">$140</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="sneaker-scroll-item">
+                            <div class="sneaker-mini">
+                                <div class="sneaker-mini-image">⚡</div>
+                                <div class="sneaker-mini-content">
+                                    <div class="sneaker-mini-name">Blazer OG</div>
+                                    <div class="sneaker-mini-price">$110</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Watchlist -->
+                <div class="app-section">
+                    <h5>Your Watchlist</h5>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                        <div class="sneaker-mini">
+                            <div class="sneaker-mini-image">🌟</div>
+                            <div class="sneaker-mini-content">
+                                <div class="sneaker-mini-name">Yeezy 350</div>
+                                <div class="sneaker-mini-price">$220</div>
+                            </div>
+                        </div>
+                        <div class="sneaker-mini">
+                            <div class="sneaker-mini-image">💎</div>
+                            <div class="sneaker-mini-content">
+                                <div class="sneaker-mini-name">Travis Scott</div>
+                                <div class="sneaker-mini-price">$165</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- FOOTER -->
+        <footer class="footer">
+            <div class="footer-text">Generated by <a href="#" class="footer-link">Design System Builder</a> Skill</div>
+            <div class="footer-text">SNEAKER HYPE © 2026</div>
+        </footer>
+    </div>
+
+    <script>
+        // TIMER FUNCTIONALITY
+        function updateTimers() {
+            const timerElements = document.querySelectorAll('[data-timer]');
+
+            // Update any timer displays if needed
+            // For demo purposes, we're using static countdown text
+        }
+
+        // INTERACTIVE FEATURES
+        document.addEventListener('DOMContentLoaded', function() {
+            // Color swatch click feedback
+            document.querySelectorAll('.color-swatch').forEach(swatch => {
+                swatch.addEventListener('click', function() {
+                    const hex = this.querySelector('.color-hex').textContent;
+                    // Copy to clipboard
+                    navigator.clipboard.writeText(hex);
+
+                    // Visual feedback
+                    const originalText = this.querySelector('.color-hex').textContent;
+                    this.querySelector('.color-hex').textContent = 'Copied!';
+                    setTimeout(() => {
+                        this.querySelector('.color-hex').textContent = originalText;
+                    }, 1500);
+                });
+            });
+
+            // Button interaction logging
+            document.querySelectorAll('.button').forEach(button => {
+                button.addEventListener('click', function(e) {
+                    if (!this.classList.contains('button-disabled')) {
+                        console.log('Button clicked:', this.textContent);
+                    }
+                });
+            });
+
+            // Sneaker card interaction
+            document.querySelectorAll('.sneaker-button').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const original = this.textContent;
+                    this.textContent = '✓ Notified!';
+                    this.style.background = '#00E676';
+                    setTimeout(() => {
+                        this.textContent = original;
+                        this.style.background = '#FF1744';
+                    }, 2000);
+                });
+            });
+
+            // Input focus animation
+            document.querySelectorAll('.input').forEach(input => {
+                input.addEventListener('focus', function() {
+                    this.parentElement.style.transform = 'scale(1.02)';
+                });
+                input.addEventListener('blur', function() {
+                    this.parentElement.style.transform = 'scale(1)';
+                });
+            });
+
+            // Header icon interaction
+            document.querySelectorAll('.app-header-icon').forEach(icon => {
+                icon.addEventListener('click', function() {
+                    console.log('Search activated');
+                });
+            });
+        });
+
+        // Scroll-triggered animations
+        const observerOptions = {
+            threshold: 0.1,
+            rootMargin: '0px 0px -50px 0px'
+        };
+
+        const observer = new IntersectionObserver(function(entries) {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.style.animation = 'slide-in 0.6s ease-out forwards';
+                    observer.unobserve(entry.target);
+                }
+            });
+        }, observerOptions);
+
+        document.querySelectorAll('.component-card, .sneaker-card, .app-demo').forEach(el => {
+            observer.observe(el);
+        });
+    </script>
+</body>
+</html>

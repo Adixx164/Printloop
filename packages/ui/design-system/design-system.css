@@ -1,0 +1,313 @@
+/* PrintLoop Design System - CSS Variables */
+/* Six print-shop inks + Archivo / IBM Plex Sans. Source: sample.html */
+/* Import: @import './design-system.css'; */
+
+@import url('https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800;900&family=IBM+Plex+Sans:wght@400;500;600&display=swap');
+
+:root {
+  /* ===========================================
+     INK PRIMITIVES (source of truth: sample.html)
+     =========================================== */
+  --sheet: #F9FBFF;
+  --paper: #FFFFFF;
+  --toner: #17140F;
+  --muted: #6E6A61;
+  --ink-soft: #3B372F;
+  --process: #0077C8;
+  --process-ink: #005E9E;
+  --register: #CE2B37;
+  --highlight: #FFD400;
+  --pass: #177245;
+  --hairline: #E3E8F0;
+  --r: 3px;
+  --rail: 52px;
+
+  /* tints */
+  --tint-ticket-shadow: #E3E9F4;
+  --tint-cool: #F1F5FC;
+  --row-hover: #F2F5FB;
+  --btn-hover: #EDF1F8;
+  --primary-hover: #0066AD;
+  --danger-hover: #B0222C;
+  --ghost-hover: #EAF2FA;
+  --badge-bg: #EDF0F6;
+  --badge-ready: #E9F3EE;
+  --badge-render: #E9F2FA;
+  --alert-border: #EFC7CC;
+  --alert-bg: #FDF0F1;
+
+  /* ===========================================
+     BRAND COLORS (process-blue scale)
+     =========================================== */
+  --color-brand-50: #E9F2FA;
+  --color-brand-100: #D6E8F6;
+  --color-brand-200: #A9CDEC;
+  --color-brand-300: #7BB0E0;
+  --color-brand-400: #3F92D4;
+  --color-brand-500: #0077C8;
+  --color-brand-600: #005E9E;
+  --color-brand-700: #004877;
+  --color-brand-800: #003254;
+  --color-brand-900: #001F35;
+  --color-brand-950: #00111F;
+
+  /* ===========================================
+     NEUTRAL COLORS (ink / paper)
+     =========================================== */
+  --color-neutral-0: #FFFFFF;
+  --color-neutral-50: #F9FBFF;
+  --color-neutral-100: #F1F5FC;
+  --color-neutral-200: #E3E8F0;
+  --color-neutral-300: #C9D0DA;
+  --color-neutral-400: #8A857B;
+  --color-neutral-500: #6E6A61;
+  --color-neutral-600: #3B372F;
+  --color-neutral-700: #2A261F;
+  --color-neutral-800: #211D17;
+  --color-neutral-900: #17140F;
+  --color-neutral-950: #100E0A;
+
+  /* ===========================================
+     SEMANTIC COLORS
+     =========================================== */
+  --color-success-50: #E9F3EE;
+  --color-success-100: #D5EBDF;
+  --color-success-500: #177245;
+  --color-success-600: #136039;
+  --color-success-700: #0F4E2E;
+
+  --color-warning-50: #FFFBE6;
+  --color-warning-100: #FFF3B8;
+  --color-warning-500: #FFD400;
+  --color-warning-600: #C7944A;
+  --color-warning-700: #8A6A2E;
+
+  --color-error-50: #FDF0F1;
+  --color-error-100: #F9DDE0;
+  --color-error-500: #CE2B37;
+  --color-error-600: #B0222C;
+  --color-error-700: #8F1B23;
+
+  --color-info-50: #E9F2FA;
+  --color-info-100: #D6E8F6;
+  --color-info-500: #0077C8;
+  --color-info-600: #005E9E;
+  --color-info-700: #004877;
+
+  /* ===========================================
+     SEMANTIC ALIASES (compat layer — components keep resolving)
+     =========================================== */
+  --color-primary: var(--process);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-active: var(--process-ink);
+  --color-primary-foreground: var(--paper);
+
+  --color-secondary: var(--color-neutral-100);
+  --color-secondary-hover: var(--color-neutral-200);
+  --color-secondary-foreground: var(--toner);
+
+  --color-destructive: var(--register);
+  --color-destructive-hover: var(--danger-hover);
+  --color-destructive-foreground: var(--paper);
+
+  --color-muted: var(--color-neutral-100);
+  --color-muted-foreground: var(--muted);
+
+  --color-accent: var(--color-brand-50);
+  --color-accent-foreground: var(--process-ink);
+
+  --color-background: var(--sheet);
+  --color-foreground: var(--toner);
+
+  --color-card: var(--paper);
+  --color-card-foreground: var(--toner);
+
+  --color-popover: var(--paper);
+  --color-popover-foreground: var(--toner);
+
+  --color-border: var(--hairline);
+  --color-input: var(--hairline);
+  --color-ring: var(--process);
+
+  /* ink aliases */
+  --color-sheet: var(--sheet);
+  --color-paper: var(--paper);
+  --color-toner: var(--toner);
+  --color-ink-soft: var(--ink-soft);
+  --color-process: var(--process);
+  --color-process-ink: var(--process-ink);
+  --color-register: var(--register);
+  --color-highlight: var(--highlight);
+  --color-pass: var(--pass);
+  --color-hairline: var(--hairline);
+
+  /* ===========================================
+     TYPOGRAPHY
+     =========================================== */
+  --font-display: 'Archivo', 'Helvetica Neue', Arial, sans-serif;
+  --font-body: 'IBM Plex Sans', system-ui, -apple-system, sans-serif;
+  --font-data: 'Archivo', 'Helvetica Neue', Arial, sans-serif;
+  --font-mono: var(--font-data);
+
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --text-base: 1rem;
+  --text-lg: 1.125rem;
+  --text-xl: 1.25rem;
+  --text-2xl: 1.5rem;
+  --text-3xl: 1.875rem;
+  --text-4xl: 2.25rem;
+
+  --leading-xs: 1rem;
+  --leading-sm: 1.25rem;
+  --leading-base: 1.6;
+  --leading-lg: 1.75rem;
+  --leading-xl: 1.75rem;
+  --leading-2xl: 2rem;
+  --leading-3xl: 2.25rem;
+  --leading-4xl: 2.5rem;
+
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+  --font-weight-extrabold: 800;
+  --font-weight-black: 900;
+
+  --tracking-tight: -0.02em;
+  --tracking-normal: 0;
+  --tracking-wide: 0.02em;
+  --tracking-editorial: 0.16em;
+
+  /* ===========================================
+     SPACING (4px base unit)
+     =========================================== */
+  --space-0: 0;
+  --space-1: 0.25rem;   /* 4px */
+  --space-2: 0.5rem;    /* 8px */
+  --space-3: 0.75rem;   /* 12px */
+  --space-4: 1rem;      /* 16px */
+  --space-5: 1.25rem;   /* 20px */
+  --space-6: 1.5rem;    /* 24px */
+  --space-8: 2rem;      /* 32px */
+  --space-10: 2.5rem;   /* 40px */
+  --space-12: 3rem;     /* 48px */
+  --space-16: 4rem;     /* 64px */
+  --space-20: 5rem;     /* 80px */
+  --space-24: 6rem;     /* 96px */
+
+  /* ===========================================
+     BORDERS
+     =========================================== */
+  --radius-none: 0;
+  --radius-sm: 2px;
+  --radius-md: 3px;
+  --radius-lg: 4px;
+  --radius-xl: 6px;
+  --radius-2xl: 10px;
+  --radius-full: 9999px;
+  --radius-pl: var(--r);
+
+  --border-width-default: 1px;
+  --border-width-thick: 2px;
+
+  /* ===========================================
+     SHADOWS (hard offset only — never blurred)
+     =========================================== */
+  --shadow-0: none;
+  --shadow-1: 4px 4px 0 var(--tint-ticket-shadow);
+  --shadow-2: 6px 6px 0 var(--tint-ticket-shadow);
+  --shadow-3: 10px 10px 0 var(--tint-ticket-shadow);
+  --shadow-4: 12px 12px 0 var(--tint-ticket-shadow);
+  --shadow-ticket: 12px 12px 0 var(--tint-ticket-shadow);
+  --shadow-glow: 0 0 0 1px var(--process), 0 0 0 4px var(--color-accent);
+
+  /* ===========================================
+     EFFECTS
+     =========================================== */
+  --transition-fast: 150ms ease;
+  --transition-normal: 200ms ease;
+  --transition-slow: 300ms ease;
+
+  /* ===========================================
+     BREAKPOINTS
+     =========================================== */
+  --breakpoint-sm: 640px;
+  --breakpoint-md: 768px;
+  --breakpoint-lg: 1024px;
+  --breakpoint-xl: 1280px;
+  --breakpoint-2xl: 1536px;
+
+  /* ===========================================
+     Z-INDEX
+     =========================================== */
+  --z-hide: -1;
+  --z-base: 0;
+  --z-dropdown: 100;
+  --z-sticky: 200;
+  --z-fixed: 300;
+  --z-modal-backdrop: 400;
+  --z-modal: 500;
+  --z-popover: 600;
+  --z-tooltip: 700;
+  --z-toast: 800;
+
+  color-scheme: light;
+}
+
+/* ===========================================
+   BASE STYLES
+   =========================================== */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-size: 16px;
+  scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  font-family: var(--font-body);
+  font-size: var(--text-base);
+  line-height: var(--leading-base);
+  color: var(--toner);
+  background-color: var(--sheet);
+  color-scheme: light;
+  overflow-x: hidden;
+}
+
+a {
+  color: var(--process-ink);
+  text-underline-offset: 3px;
+}
+
+::selection {
+  background-color: var(--process);
+  color: var(--paper);
+}
+
+:focus-visible {
+  outline: 3px solid var(--process);
+  outline-offset: 3px;
+  border-radius: 2px;
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

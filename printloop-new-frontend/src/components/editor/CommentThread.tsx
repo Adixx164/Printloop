@@ -86,9 +86,9 @@ export function CommentThread({
         onClick={() => { onClick(); setIsExpanded(!isExpanded); }}
         className={`relative flex items-center gap-1.5 px-2 py-1 rounded-full border-2 transition-all duration-200 ${
           thread.status === 'resolved' 
-            ? 'border-sage bg-sage/10 text-sage' 
-            : 'border-persimmon bg-persimmon/10 text-persimmon'
-        } ${isActive ? 'scale-110 shadow-[4px_4px_0_#1A1410]' : ''}`}
+            ? 'border-pass bg-pass/10 text-pass' 
+            : 'border-process bg-process/10 text-process'
+        } ${isActive ? 'scale-110 shadow-soft' : ''}`}
         aria-label={`Comment thread: ${thread.comments.length} ${thread.comments.length === 1 ? 'comment' : 'comments'}`}
         style={{ pointerEvents: 'auto' }}
       >
@@ -103,11 +103,11 @@ export function CommentThread({
 
       {/* Expanded comment panel */}
       {isExpanded && (
-        <div className="absolute left-full top-0 ml-2 w-full max-w-[90vw] min-h-[120px] bg-paper border-2 border-ink rounded-pl shadow-[8px_8px_0_#1A1410] pointer-events-auto z-30 animate-fadein">
+        <div className="absolute left-full top-0 ml-2 w-full max-w-[90vw] min-h-[120px] bg-paper-warm border-2 border-ink rounded-pl shadow-soft pointer-events-auto z-30 animate-fadein">
           {/* Header */}
           <div className="flex items-start justify-between gap-2 p-3 border-b-2 border-ink bg-ink/5">
             <div className="flex items-center gap-2">
-              <span className={`w-2 h-2 rounded-full ${thread.status === 'resolved' ? 'bg-sage' : 'bg-persimmon'}`} />
+              <span className={`w-2 h-2 rounded-full ${thread.status === 'resolved' ? 'bg-pass' : 'bg-process'}`} />
               <span className="text-[10px] font-bold tracking-editorial uppercase">
                 {thread.status === 'resolved' ? 'Resolved' : 'Active'}
               </span>
@@ -118,7 +118,7 @@ export function CommentThread({
                   variant="ghost" 
                   size="sm" 
                   onClick={onReopen}
-                  className="text-sage hover:bg-sage/10"
+                  className="text-pass hover:bg-pass/10"
                   aria-label="Reopen thread"
                 >
                   Reopen
@@ -128,7 +128,7 @@ export function CommentThread({
                   variant="ghost" 
                   size="sm" 
                   onClick={onResolve}
-                  className="text-persimmon hover:bg-persimmon/10"
+                  className="text-process hover:bg-process/10"
                   aria-label="Resolve thread"
                 >
                   Resolve
@@ -139,7 +139,7 @@ export function CommentThread({
                   variant="ghost" 
                   size="sm" 
                   onClick={onDelete}
-                  className="text-persimmon hover:bg-persimmon/10"
+                  className="text-process hover:bg-process/10"
                   aria-label="Delete thread"
                 >
                   Delete
@@ -192,7 +192,7 @@ export function CommentThread({
               onKeyDown={handleKeyDown}
               placeholder="Add a comment..."
               rows={2}
-              className="w-full px-3 py-2 border-2 border-ink rounded-md bg-paper text-sm font-medium resize-none focus:outline-none focus:border-persimmon"
+              className="w-full px-3 py-2 border-2 border-ink rounded-sm bg-paper-light text-sm font-medium resize-none focus:outline-none focus:border-process"
               disabled={isSubmitting}
               aria-label="Add comment"
             />

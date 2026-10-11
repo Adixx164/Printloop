@@ -1,0 +1,75 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="1420" viewBox="0 0 800 1420">
+  <defs>
+    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#1A1410"/>
+    </marker>
+  </defs>
+  <rect width="800" height="1420" fill="#FFFFFF"/>
+
+  <!-- Title -->
+  <text x="400" y="40" text-anchor="middle" font-family="Fraunces, serif" font-size="24" fill="#D14B2C" font-weight="700">PrintLoop — Printing Flow</text>
+  <line x1="100" y1="55" x2="700" y2="55" stroke="#1A1410" stroke-width="1.5" stroke-dasharray="4,4"/>
+
+  <rect x="240" y="80" width="320" height="50" rx="8" fill="#E8F0E4" stroke="#1A1410" stroke-width="2"/>
+  <text x="400" y="110" text-anchor="middle" font-family="Inter, sans-serif" font-size="14" fill="#1A1410" font-weight="600">Customer Opens App</text>
+  <rect x="240" y="150" width="320" height="50" rx="8" fill="#E8F0E4" stroke="#1A1410" stroke-width="2"/>
+  <text x="400" y="180" text-anchor="middle" font-family="Inter, sans-serif" font-size="14" fill="#1A1410" font-weight="600">Map Shows Nearby Print Shops</text>
+  <rect x="240" y="220" width="320" height="50" rx="8" fill="#E8F0E4" stroke="#1A1410" stroke-width="2"/>
+  <text x="400" y="250" text-anchor="middle" font-family="Inter, sans-serif" font-size="14" fill="#1A1410" font-weight="600">Select a Shop</text>
+  <rect x="240" y="290" width="320" height="50" rx="8" fill="#E8F0E4" stroke="#1A1410" stroke-width="2"/>
+  <text x="400" y="320" text-anchor="middle" font-family="Inter, sans-serif" font-size="14" fill="#1A1410" font-weight="600">See Services & Pricing</text>
+  <rect x="240" y="360" width="320" height="50" rx="8" fill="#E8F0E4" stroke="#1A1410" stroke-width="2"/>
+  <text x="400" y="390" text-anchor="middle" font-family="Inter, sans-serif" font-size="14" fill="#1A1410" font-weight="600">Choose Print Mode</text>
+  <line x1="400" y1="130" x2="400" y2="150" stroke="#1A1410" stroke-width="2" marker-end="url(#arrowhead)"/>
+  <line x1="400" y1="200" x2="400" y2="220" stroke="#1A1410" stroke-width="2" marker-end="url(#arrowhead)"/>
+  <line x1="400" y1="270" x2="400" y2="290" stroke="#1A1410" stroke-width="2" marker-end="url(#arrowhead)"/>
+  <line x1="400" y1="340" x2="400" y2="360" stroke="#1A1410" stroke-width="2" marker-end="url(#arrowhead)"/>
+  <line x1="400" y1="410" x2="400" y2="430" stroke="#1A1410" stroke-width="2" marker-end="url(#arrowhead)"/>
+  <rect x="80" y="430" width="200" height="40" rx="8" fill="#FFF8F0" stroke="#1A1410" stroke-width="2"/>
+  <text x="180" y="455" text-anchor="middle" font-family="Inter, sans-serif" font-size="13" fill="#1A1410" font-weight="600">Single</text>
+  <rect x="300" y="430" width="200" height="40" rx="8" fill="#FFF8F0" stroke="#1A1410" stroke-width="2"/>
+  <text x="400" y="455" text-anchor="middle" font-family="Inter, sans-serif" font-size="13" fill="#1A1410" font-weight="600">Batch</text>
+  <rect x="520" y="430" width="200" height="40" rx="8" fill="#FFF8F0" stroke="#1A1410" stroke-width="2"/>
+  <text x="620" y="455" text-anchor="middle" font-family="Inter, sans-serif" font-size="13" fill="#1A1410" font-weight="600">Group</text>
+  <line x1="180" y1="470" x2="400" y2="520" stroke="#1A1410" stroke-width="2" marker-end="url(#arrowhead)"/>
+  <line x1="400" y1="470" x2="400" y2="520" stroke="#1A1410" stroke-width="2" marker-end="url(#arrowhead)"/>
+  <line x1="620" y1="470" x2="400" y2="520" stroke="#1A1410" stroke-width="2" marker-end="url(#arrowhead)"/>
+  <rect x="240" y="520" width="320" height="50" rx="8" fill="#E8F0E4" stroke="#1A1410" stroke-width="2"/>
+  <text x="400" y="550" text-anchor="middle" font-family="Inter, sans-serif" font-size="14" fill="#1A1410" font-weight="600">Upload File(s)</text>
+  <rect x="240" y="590" width="320" height="50" rx="8" fill="#E8F0E4" stroke="#1A1410" stroke-width="2"/>
+  <text x="400" y="620" text-anchor="middle" font-family="Inter, sans-serif" font-size="14" fill="#1A1410" font-weight="600">Customize (paper, size, color, finish)</text>
+  <rect x="240" y="660" width="320" height="50" rx="8" fill="#E8F0E4" stroke="#1A1410" stroke-width="2"/>
+  <text x="400" y="690" text-anchor="middle" font-family="Inter, sans-serif" font-size="14" fill="#1A1410" font-weight="600">Preview Generated</text>
+  <line x1="400" y1="570" x2="400" y2="590" stroke="#1A1410" stroke-width="2" marker-end="url(#arrowhead)"/>
+  <line x1="400" y1="640" x2="400" y2="660" stroke="#1A1410" stroke-width="2" marker-end="url(#arrowhead)"/>
+  <line x1="400" y1="710" x2="400" y2="730" stroke="#1A1410" stroke-width="2" marker-end="url(#arrowhead)"/>
+  <polygon points="400,730 480,755 400,780 320,755" fill="#F5E0D8" stroke="#1A1410" stroke-width="2"/>
+  <text x="400" y="760" text-anchor="middle" font-family="Inter, sans-serif" font-size="14" fill="#1A1410" font-weight="600">Satisfied?</text>
+  <line x1="320" y1="755" x2="230" y2="615" stroke="#1A1410" stroke-width="2" marker-end="url(#arrowhead)"/>
+  <text x="283.0" y="681.0" font-family="Inter, sans-serif" font-size="13" fill="#1A1410" font-weight="600">No</text>
+  <line x1="400" y1="780" x2="400" y2="830" stroke="#1A1410" stroke-width="2" marker-end="url(#arrowhead)"/>
+  <text x="408.0" y="801.0" font-family="Inter, sans-serif" font-size="13" fill="#1A1410" font-weight="600">Yes</text>
+  <rect x="240" y="830" width="320" height="50" rx="8" fill="#E8F0E4" stroke="#1A1410" stroke-width="2"/>
+  <text x="400" y="860" text-anchor="middle" font-family="Inter, sans-serif" font-size="14" fill="#1A1410" font-weight="600">Pay Online</text>
+  <rect x="240" y="900" width="320" height="50" rx="8" fill="#E8F0E4" stroke="#1A1410" stroke-width="2"/>
+  <text x="400" y="930" text-anchor="middle" font-family="Inter, sans-serif" font-size="14" fill="#1A1410" font-weight="600">Get Authentication Code</text>
+  <rect x="240" y="970" width="320" height="50" rx="8" fill="#E8F0E4" stroke="#1A1410" stroke-width="2"/>
+  <text x="400" y="1000" text-anchor="middle" font-family="Inter, sans-serif" font-size="14" fill="#1A1410" font-weight="600">Order Sent to Shop</text>
+  <rect x="240" y="1040" width="320" height="50" rx="8" fill="#E8F0E4" stroke="#1A1410" stroke-width="2"/>
+  <text x="400" y="1070" text-anchor="middle" font-family="Inter, sans-serif" font-size="14" fill="#1A1410" font-weight="600">Shop Prints Job</text>
+  <rect x="240" y="1110" width="320" height="50" rx="8" fill="#E8F0E4" stroke="#1A1410" stroke-width="2"/>
+  <text x="400" y="1140" text-anchor="middle" font-family="Inter, sans-serif" font-size="14" fill="#1A1410" font-weight="600">Job Ready for Pickup</text>
+  <rect x="240" y="1180" width="320" height="50" rx="8" fill="#E8F0E4" stroke="#1A1410" stroke-width="2"/>
+  <text x="400" y="1210" text-anchor="middle" font-family="Inter, sans-serif" font-size="14" fill="#1A1410" font-weight="600">Customer Shows Auth Code</text>
+  <rect x="240" y="1250" width="320" height="50" rx="8" fill="#E8F0E4" stroke="#1A1410" stroke-width="2"/>
+  <text x="400" y="1280" text-anchor="middle" font-family="Inter, sans-serif" font-size="14" fill="#1A1410" font-weight="600">Shop Verifies & Hands Over</text>
+  <rect x="240" y="1320" width="320" height="50" rx="8" fill="#E8F0E4" stroke="#1A1410" stroke-width="2"/>
+  <text x="400" y="1350" text-anchor="middle" font-family="Inter, sans-serif" font-size="14" fill="#1A1410" font-weight="600">Done</text>
+  <line x1="400" y1="880" x2="400" y2="900" stroke="#1A1410" stroke-width="2" marker-end="url(#arrowhead)"/>
+  <line x1="400" y1="950" x2="400" y2="970" stroke="#1A1410" stroke-width="2" marker-end="url(#arrowhead)"/>
+  <line x1="400" y1="1020" x2="400" y2="1040" stroke="#1A1410" stroke-width="2" marker-end="url(#arrowhead)"/>
+  <line x1="400" y1="1090" x2="400" y2="1110" stroke="#1A1410" stroke-width="2" marker-end="url(#arrowhead)"/>
+  <line x1="400" y1="1160" x2="400" y2="1180" stroke="#1A1410" stroke-width="2" marker-end="url(#arrowhead)"/>
+  <line x1="400" y1="1230" x2="400" y2="1250" stroke="#1A1410" stroke-width="2" marker-end="url(#arrowhead)"/>
+  <line x1="400" y1="1300" x2="400" y2="1320" stroke="#1A1410" stroke-width="2" marker-end="url(#arrowhead)"/>
+</svg>

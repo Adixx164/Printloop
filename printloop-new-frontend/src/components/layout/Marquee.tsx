@@ -43,7 +43,7 @@ export function Marquee({
   }, [reactive]);
 
   return (
-    <div className="bg-ink text-paper py-2 overflow-hidden border-b-2 border-persimmon">
+    <div className="bg-gray-900 text-gray-50 py-2 overflow-hidden border-b-2 border-indigo-600">
       <div
         ref={ref}
         className={`flex gap-12 whitespace-nowrap ${reactive ? "" : "animate-marquee"}`}
@@ -51,7 +51,7 @@ export function Marquee({
         {tape.map((item, i) => (
           <span
             key={i}
-            className={`text-[10px] tracking-editorial font-bold ${item.accent ? "text-persimmon" : ""}`}
+            className={`text-[10px] tracking-editorial font-bold ${item.accent ? "text-indigo-600" : ""}`}
           >
             {item.text}
           </span>

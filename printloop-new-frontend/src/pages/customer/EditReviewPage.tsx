@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'sonner';
-import { ArrowLeft, CheckCircle, AlertCircle, CreditCard, Download, FileText, Eye, EyeOff } from 'lucide-react';
+import { ArrowLeft, CheckCircle, AlertCircle, CreditCard } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { UniverEditor } from '@/components/editor';
 import { useEditorSession } from '@/hooks/useEditorSession';
@@ -119,7 +119,7 @@ export default function EditReviewPage() {
     return (
       <div className="flex items-center justify-center min-h-[500px]">
         <div className="flex flex-col items-center gap-4">
-          <div className="w-10 h-10 border-4 border-persimmon border-t-transparent rounded-full animate-spin" />
+          <div className="w-10 h-10 border-4 border-process border-t-transparent rounded-full animate-spin" />
           <p className="pl-serif italic text-ink/60">Loading edit review...</p>
         </div>
       </div>
@@ -129,7 +129,7 @@ export default function EditReviewPage() {
   if (!token || !session) {
     return (
       <div className="max-w-3xl mx-auto p-6">
-        <div className="border-2 border-ink rounded-pl p-8 text-center">
+        <div className="border-2 border-ink bg-paper-light rounded-pl p-8 text-center">
           <div className="text-4xl mb-3">📝</div>
           <h2 className="pl-serif font-bold text-xl mb-2">Edit session not found</h2>
           <p className="text-ink/60 mb-4">This document is not available for review or the session has expired.</p>
@@ -154,7 +154,7 @@ export default function EditReviewPage() {
             BACK
           </Button>
           <div>
-            <div className="editorial-label text-persimmon">EDIT REVIEW</div>
+            <div className="editorial-label text-process">EDIT REVIEW</div>
             <h1 className="pl-serif font-extrabold text-2xl sm:text-3xl leading-tight">
               {document?.name || 'Untitled Document'}
             </h1>
@@ -163,8 +163,8 @@ export default function EditReviewPage() {
 
         <div className="flex items-center gap-3 flex-wrap">
           {/* Connection status */}
-          <div className={`flex items-center gap-1.5 px-3 py-1.5 border-2 rounded-pl ${isConnected ? 'border-sage bg-sage/10' : 'border-persimmon bg-persimmon/10'}`}>
-            <span className={`w-2 h-2 rounded-full ${isConnected ? 'bg-sage' : 'bg-persimmon'}`} />
+          <div className={`flex items-center gap-1.5 px-3 py-1.5 border-2 rounded-pl ${isConnected ? 'border-pass bg-pass/10' : 'border-process bg-process/10'}`}>
+            <span className={`w-2 h-2 rounded-full ${isConnected ? 'bg-pass' : 'bg-process'}`} />
             <span className="text-[10px] font-bold tracking-editorial">
               {isConnected ? 'LIVE' : 'OFFLINE'}
             </span>
@@ -172,10 +172,10 @@ export default function EditReviewPage() {
 
           {/* Status badge */}
           <div className={`flex items-center gap-1.5 px-3 py-1.5 border-2 rounded-pl ${
-            isPendingCustomer ? 'border-persimmon bg-persimmon/10' :
+            isPendingCustomer ? 'border-process bg-process/10' :
             isApproved ? 'border-ochre bg-ochre/10' :
             isAwaitingPayment ? 'border-ochre bg-ochre/10' :
-            'border-sage bg-sage/10'
+            'border-pass bg-pass/10'
           }`}>
             <span className="text-[10px] font-bold tracking-editorial">
               {isPendingCustomer ? 'AWAITING YOUR REVIEW' :
@@ -188,7 +188,7 @@ export default function EditReviewPage() {
       </div>
 
       {/* Document info */}
-      <div className="border-2 border-ink bg-paper-light rounded-pl p-4">
+      <div className="border-2 border-ink bg-paper-warm rounded-pl p-4">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm mb-4">
           <div>
             <div className="editorial-label text-ink/60">PRINT JOB</div>
@@ -204,7 +204,7 @@ export default function EditReviewPage() {
           </div>
           <div>
             <div className="editorial-label text-ink/60">TOTAL EDIT FEE</div>
-            <div className="font-bold text-persimmon pl-mono">₦{Number(sessionInfo?.totalEditFee || 0).toLocaleString()}</div>
+            <div className="font-bold text-process pl-mono">₦{Number(sessionInfo?.totalEditFee || 0).toLocaleString()}</div>
           </div>
         </div>
 
@@ -215,7 +215,7 @@ export default function EditReviewPage() {
               type="checkbox"
               checked={showOriginal}
               onChange={(e) => setShowOriginal(e.target.checked)}
-              className="w-4 h-4 border-2 border-ink rounded accent-persimmon"
+              className="w-4 h-4 border-2 border-ink rounded-sm accent-process"
             />
             <span className="text-sm font-medium">
               {showOriginal ? 'Showing Original' : 'Showing Edited Version'}
@@ -253,10 +253,10 @@ export default function EditReviewPage() {
           ) : null}
 
           {!token ? (
-            <div className="border-2 border-ink rounded-pl p-8 text-center min-h-[600px] flex flex-col items-center justify-center">
+            <div className="border-2 border-gray-900 bg-gray-100 rounded-pl p-8 text-center min-h-[600px] flex flex-col items-center justify-center">
               <div className="text-4xl mb-3">📄</div>
               <h2 className="pl-serif font-bold text-xl mb-2">Document not available</h2>
-              <p className="text-ink/60 mb-4">The document is still being prepared or the session has expired.</p>
+              <p className="text-gray-900/60 mb-4">The document is still being prepared or the session has expired.</p>
               <Button variant="ghost" onClick={handleBack}>← Back to Dashboard</Button>
             </div>
           ) : null}
@@ -264,28 +264,28 @@ export default function EditReviewPage() {
 
         {/* Sidebar */}
         <div className="space-y-4">
-          {/* Status card */}
+{/* Status card */}
           <div className={`border-2 rounded-pl p-5 ${
-            isPendingCustomer ? 'border-persimmon bg-persimmon/5' :
+            isPendingCustomer ? 'border-process bg-process/10' :
             isApproved ? 'border-ochre bg-ochre/10' :
-            'border-sage bg-sage/5'
+            'border-pass bg-pass/10'
           }`}>
             <div className="flex items-center gap-3 mb-3">
               <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                isPendingCustomer ? 'bg-persimmon/20' :
-                isApproved ? 'bg-ochre/20' :
-                'bg-sage/20'
+                isPendingCustomer ? 'bg-process/10' :
+                isApproved ? 'bg-ochre/10' :
+                'bg-pass/10'
               }`}>
                 {isPendingCustomer ? (
-                <AlertCircle className="w-5 h-5 text-persimmon" />
+                <AlertCircle className="w-5 h-5 text-process" />
               ) : isApproved ? (
                 <CheckCircle className="w-5 h-5 text-ochre" />
               ) : (
-                <CheckCircle className="w-5 h-5 text-sage" />
+                <CheckCircle className="w-5 h-5 text-pass" />
               )}
               </div>
               <div>
-                <div className="editorial-label text-persimmon">STATUS</div>
+                <div className="editorial-label text-process">STATUS</div>
                 <div className="pl-serif font-bold text-lg">
                   {isPendingCustomer ? 'REVIEW REQUIRED' : isApproved ? 'APPROVED' : 'COMPLETED'}
                 </div>
@@ -317,7 +317,7 @@ export default function EditReviewPage() {
                   </Button>
                 </div>
               </div>
-) : null}
+            ) : null}
 
             {isApproved ? (
               <div className="space-y-3">
@@ -341,8 +341,8 @@ export default function EditReviewPage() {
           </div>
 
           {/* Edit instructions */}
-          <div className="border-2 border-ink bg-paper-light rounded-pl p-4">
-            <div className="editorial-label text-persimmon mb-2">YOUR INSTRUCTIONS</div>
+          <div className="border-2 border-ink bg-paper-warm rounded-pl p-4">
+            <div className="editorial-label text-process mb-2">YOUR INSTRUCTIONS</div>
             <p className="pl-serif italic text-ink/70 whitespace-pre-wrap text-sm">
               {sessionInfo?.printJob?.editingInstructions || 'No specific instructions provided.'}
             </p>
@@ -358,8 +358,8 @@ export default function EditReviewPage() {
 
           {/* Bank details for payment */}
           {isApproved && sessionInfo?.bankDetails ? (
-            <div className="border-2 border-ink bg-paper-light rounded-pl p-4">
-              <div className="editorial-label text-persimmon mb-3">PAYMENT DETAILS</div>
+<div className="border-2 border-ink bg-paper-warm rounded-pl p-4">
+              <div className="editorial-label text-process mb-3">PAYMENT DETAILS</div>
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
                   <span className="editorial-label">Account Name</span>
@@ -389,18 +389,18 @@ export default function EditReviewPage() {
       {/* Reject Dialog */}
       {showRejectDialog ? (
         <div className="fixed inset-0 bg-ink/75 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fadein">
-          <form onSubmit={(e) => { e.preventDefault(); handleReject(); }} className="bg-paper border-4 border-ink shadow-[8px_8px_0_#000] p-6 max-w-md w-full rounded animate-fadein">
+          <form onSubmit={(e) => { e.preventDefault(); handleReject(); }} className="bg-paper-light border-4 border-ink shadow-ticket p-6 max-w-md w-full rounded-sm animate-fadein">
             <button
               type="button"
               onClick={() => { setShowRejectDialog(false); setRejectReason(''); }}
-              className="absolute top-3 right-3 text-ink bg-paper border-2 border-ink p-1 font-bold hover:bg-persimmon hover:text-paper leading-none transition-colors w-7 h-7 flex items-center justify-center rounded"
+              className="absolute top-3 right-3 text-ink bg-paper-light border-2 border-ink p-1 font-bold hover:bg-process hover:text-paper leading-none transition-colors w-7 h-7 flex items-center justify-center rounded-sm"
               aria-label="Close"
             >
               ✕
             </button>
 
             <div className="mb-4">
-              <div className="editorial-label text-persimmon mb-1">REQUEST CHANGES</div>
+              <div className="editorial-label text-process mb-1">REQUEST CHANGES</div>
               <h2 className="pl-serif text-2xl font-bold tracking-tight leading-tight">
                 What needs to be fixed?
               </h2>
@@ -412,7 +412,7 @@ export default function EditReviewPage() {
                 onChange={(e) => setRejectReason(e.target.value)}
                 placeholder="Describe the changes needed (e.g., 'Page 3 formatting is off', 'Logo is wrong color', 'Page numbers missing'...)"
                 rows={4}
-                className="w-full border-2 border-ink p-3 text-sm bg-paper-light font-medium resize-y focus:outline-none focus:border-persimmon"
+                className="w-full border-2 border-ink p-3 text-sm bg-paper-light font-medium resize-y focus:outline-none focus:border-process"
                 required
               />
             </div>

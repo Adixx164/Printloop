@@ -34,7 +34,7 @@ export default function PrintPreview({
 
   if (!showInner) {
     return (
-      <div className="h-full grid place-items-center text-ink/50 pl-serif italic min-h-[420px]">
+      <div className="h-full grid place-items-center text-gray-900/50 pl-serif italic min-h-[420px]">
         Upload a file to preview.
       </div>
     );
@@ -44,8 +44,8 @@ export default function PrintPreview({
     <Suspense fallback={
       <div className="flex items-center justify-center py-12">
         <div className="flex flex-col items-center gap-3">
-          <div className="w-8 h-8 border-3 border-persimmon border-t-transparent rounded-full animate-spin" />
-          <p className="pl-serif italic text-ink/50 text-sm">Loading PDF preview…</p>
+          <div className="w-8 h-8 border-3 border-indigo-600 border-t-transparent rounded-full animate-spin" />
+          <p className="pl-serif italic text-gray-900/50 text-sm">Loading PDF preview…</p>
         </div>
       </div>
     }>

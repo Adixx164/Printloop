@@ -44,21 +44,21 @@ export function CookieConsent() {
       role="dialog"
       aria-label="Cookie consent"
     >
-      <div className="bg-paper border-2 border-ink rounded-pl p-4 sm:p-6 shadow-xl">
+      <div className="bg-gray-50 border-2 border-gray-900 rounded-pl p-4 sm:p-6 shadow-xl">
         <div className="flex items-start gap-3">
           <div className="shrink-0 text-2xl">🍪</div>
           <div className="flex-1">
             <h3 className="font-bold text-sm sm:text-base">
               We respect your privacy
             </h3>
-            <p className="text-ink/70 text-sm sm:text-base mt-1">
+            <p className="text-gray-900/70 text-sm sm:text-base mt-1">
               PrintLoop uses only <strong>strictly necessary cookies</strong>:
               authentication tokens (HttpOnly, Secure) and tenant context
               (sessionStorage). We do <strong>not</strong> use analytics,
               advertising, or tracking cookies.
             </p>
-            <p className="text-ink/60 text-xs mt-2">
-              See our <a href="/privacy" className="text-persimmon underline hover:text-persimmon/80">
+            <p className="text-gray-900/60 text-xs mt-2">
+              See our <a href="/privacy" className="text-indigo-600 underline hover:text-indigo-600/80">
                 Privacy Policy
               </a> for details.
             </p>

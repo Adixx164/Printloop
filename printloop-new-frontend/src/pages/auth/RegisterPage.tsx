@@ -55,18 +55,18 @@ export default function RegisterPage() {
     <div className="grid grid-cols-1 md:grid-cols-[1.1fr_1fr] md:min-h-[600px]">
       {/* ── Branding panel ────────────────────────────────────────── */}
       {/* On mobile this becomes a compact strip; on desktop it's a full panel. */}
-      <aside className="bg-ink text-paper px-5 sm:px-7 md:px-9 py-6 sm:py-8 md:py-10 relative overflow-hidden">
-        <div className="absolute -top-16 -right-16 w-40 sm:w-60 h-40 sm:h-60 rounded-full bg-persimmon/20 pointer-events-none" />
-        <div className="hidden md:block absolute -bottom-20 -left-20 w-52 h-52 rounded-full bg-ochre/15 pointer-events-none" />
+      <aside className="bg-gray-900 text-gray-50 px-5 sm:px-7 md:px-9 py-6 sm:py-8 md:py-10 relative overflow-hidden">
+        <div className="absolute -top-16 -right-16 w-40 sm:w-60 h-40 sm:h-60 rounded-full bg-indigo-600/20 pointer-events-none" />
+        <div className="hidden md:block absolute -bottom-20 -left-20 w-52 h-52 rounded-full bg-amber-500/15 pointer-events-none" />
 
         <div className="relative z-10">
           <div className="font-serif font-extrabold text-2xl sm:text-3xl tracking-tight mb-4 md:mb-10">
-            PrintLoop<span className="text-persimmon">.</span>
+            PrintLoop<span className="text-indigo-600">.</span>
           </div>
-          <div className="editorial-label text-persimmon mb-2 md:mb-3">▸ JOIN THE LOOP</div>
+          <div className="editorial-label text-indigo-600 mb-2 md:mb-3">▸ JOIN THE LOOP</div>
           <h1 className="pl-serif font-extrabold text-[26px] sm:text-[34px] md:text-[44px] lg:text-[54px] leading-[1.02] md:leading-[0.95] tracking-tight mb-3 md:mb-4 max-w-sm">
             Your campus print station,{" "}
-            <em className="text-persimmon italic font-semibold">finally</em> done right.
+            <em className="text-indigo-600 italic font-semibold">finally</em> done right.
           </h1>
           <p className="pl-serif italic text-sm sm:text-base md:text-lg opacity-80 max-w-sm leading-snug mb-4 md:mb-8">
             Upload from your phone. Pay online. Walk into any PrintLoop station and your prints are
@@ -93,26 +93,26 @@ export default function RegisterPage() {
 
           <div className="hidden md:flex absolute bottom-7 left-9 right-9 justify-between items-baseline text-[11px] tracking-editorial opacity-55">
             <span>★ PRINTLOOP — LAGOS</span>
-            <span className="text-ochre text-lg">❦</span>
+            <span className="text-amber-500 text-lg">❦</span>
           </div>
         </div>
       </aside>
 
       {/* ── Form panel ────────────────────────────────────────────── */}
       <section className="px-4 sm:px-6 md:px-8 py-6 sm:py-8 md:py-10 flex flex-col justify-center">
-        <div className="editorial-label text-persimmon mb-2">▸ STEP 01 OF 03 — CREATE ACCOUNT</div>
+        <div className="editorial-label text-indigo-600 mb-2">▸ STEP 01 OF 03 — CREATE ACCOUNT</div>
         <h2 className="pl-serif font-bold text-2xl sm:text-3xl mb-1 tracking-tight">
           Begin your account.
         </h2>
-        <p className="text-sm text-ink/65 mb-6">
+        <p className="text-sm text-gray-50/65 mb-6">
           Already have one?{" "}
-          <Link to={ROUTES.AUTH.LOGIN} className="text-persimmon font-bold border-b-2 border-persimmon">
+          <Link to={ROUTES.AUTH.LOGIN} className="text-indigo-600 font-bold border-b-2 border-indigo-600">
             Sign in instead →
           </Link>
         </p>
 
         {serverError && (
-          <div className="border-2 border-persimmon bg-persimmon/10 text-ink p-3 rounded mb-4 text-sm font-semibold">
+          <div className="border-2 border-indigo-600 bg-indigo-600/10 text-gray-900 p-3 rounded mb-4 text-sm font-semibold">
             {serverError}
           </div>
         )}
@@ -188,7 +188,7 @@ export default function RegisterPage() {
             CREATE ACCOUNT
           </Button>
 
-          <p className="text-center text-xs text-ink/55 mt-4">
+          <p className="text-center text-xs text-gray-50/55 mt-4">
             By continuing you agree to the PrintLoop terms.
           </p>
         </form>

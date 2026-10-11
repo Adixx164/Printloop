@@ -124,9 +124,9 @@ export default function PrinterProfilesTab({ canManage }: { canManage: boolean }
     <div className="max-w-5xl space-y-6">
       <div className="flex justify-between items-end gap-4 flex-wrap">
         <div>
-          <div className="editorial-label text-persimmon mb-1">ADMIN CONSOLE</div>
-          <h1 className="pl-serif text-4xl font-bold text-ink mb-1">Printer Profiles</h1>
-          <p className="pl-serif italic text-ink/60">
+          <div className="editorial-label text-indigo-600 mb-1">ADMIN CONSOLE</div>
+          <h1 className="pl-serif text-4xl font-bold text-gray-900 mb-1">Printer Profiles</h1>
+          <p className="pl-serif italic text-gray-50/60">
             What your printers can actually do. Cloud renders rasterize at the
             <span className="font-bold"> default profile's</span> capability — never above it.
           </p>
@@ -139,13 +139,13 @@ export default function PrinterProfilesTab({ canManage }: { canManage: boolean }
       </div>
 
       {(editing || (canManage && !isLoading && !profiles.length)) && (
-        <form onSubmit={handleSave} className="border-4 border-ink bg-paper-light p-5 space-y-4">
+        <form onSubmit={handleSave} className="border-4 border-gray-900 bg-gray-100 p-5 space-y-4">
           <div className="flex items-center justify-between">
-            <span className="editorial-label text-persimmon">
+            <span className="editorial-label text-indigo-600">
               {editing ? "EDIT PRINTER" : "NEW PRINTER"}
             </span>
             {editing && (
-              <button type="button" onClick={resetForm} className="text-xs font-bold text-ink/55 hover:text-persimmon">
+              <button type="button" onClick={resetForm} className="text-xs font-bold text-gray-50/55 hover:text-indigo-600">
                 CANCEL ✕
               </button>
             )}
@@ -217,7 +217,7 @@ export default function PrinterProfilesTab({ canManage }: { canManage: boolean }
                 type="checkbox"
                 checked={form.duplex}
                 onChange={(e) => setForm({ ...form, duplex: e.target.checked })}
-                className="w-4 h-4 accent-persimmon"
+                className="w-4 h-4 accent-indigo-600"
               />
               Duplex capable
             </label>
@@ -226,7 +226,7 @@ export default function PrinterProfilesTab({ canManage }: { canManage: boolean }
                 type="checkbox"
                 checked={form.isDefault}
                 onChange={(e) => setForm({ ...form, isDefault: e.target.checked })}
-                className="w-4 h-4 accent-persimmon"
+                className="w-4 h-4 accent-indigo-600"
               />
               Default for cloud renders
             </label>
@@ -240,16 +240,16 @@ export default function PrinterProfilesTab({ canManage }: { canManage: boolean }
         </form>
       )}
 
-      <div className="border-2 border-ink overflow-hidden">
-        <div className="bg-ink text-paper px-5 py-3">
+      <div className="border-2 border-gray-900 overflow-hidden">
+        <div className="bg-gray-900 text-gray-50 px-5 py-3">
           <div className="editorial-label">
             {isLoading ? "LOADING…" : `PRINTERS — ${profiles.length} TOTAL`}
           </div>
         </div>
-        <div className="overflow-x-auto bg-paper-light">
+        <div className="overflow-x-auto bg-gray-100">
           <table className="w-full text-left text-sm">
             <thead>
-              <tr className="border-b border-ink/20 bg-ink/5 text-ink/70">
+              <tr className="border-b border-gray-900/20 bg-gray-900/5 text-gray-50/70">
                 <th className="p-3 font-semibold">Printer</th>
                 <th className="p-3 font-semibold">Capabilities</th>
                 <th className="p-3 font-semibold">Driver</th>
@@ -260,38 +260,38 @@ export default function PrinterProfilesTab({ canManage }: { canManage: boolean }
             <tbody>
               {!isLoading && profiles.length === 0 && !editing && (
                 <tr>
-                  <td colSpan={5} className="p-6 text-center text-fog italic">
+                  <td colSpan={5} className="p-6 text-center text-gray-500 italic">
                     No printer profiles yet{canManage ? " — add your first printer." : "."}
                   </td>
                 </tr>
               )}
               {profiles.map((p) => (
-                <tr key={p.id} className="border-b border-ink/10 last:border-0 hover:bg-ink/5">
+                <tr key={p.id} className="border-b border-gray-900/10 last:border-0 hover:bg-gray-900/5">
                   <td className="p-3">
                     <div className="font-bold text-xs">{p.displayName}</div>
-                    <div className="text-[11px] text-fog pl-mono mt-0.5">{p.ippUri || "no IPP URI"}</div>
+                    <div className="text-[11px] text-gray-500 pl-mono mt-0.5">{p.ippUri || "no IPP URI"}</div>
                   </td>
-                  <td className="p-3 text-xs text-ink/70">{capsSummary(p)}</td>
-                  <td className="p-3 text-xs text-fog uppercase">{p.driverKind}</td>
+                  <td className="p-3 text-xs text-gray-50/70">{capsSummary(p)}</td>
+                  <td className="p-3 text-xs text-gray-500 uppercase">{p.driverKind}</td>
                   <td className="p-3">
                     {p.isDefault ? (
-                      <span className="pl-pill text-[10px] font-bold uppercase bg-persimmon/15 text-persimmon border border-persimmon/30">
+                      <span className="pl-pill text-[10px] font-bold uppercase bg-indigo-600/15 text-indigo-600 border border-indigo-600/30">
                         RENDER DEFAULT
                       </span>
                     ) : (
-                      <span className="text-fog text-xs">—</span>
+                      <span className="text-gray-500 text-xs">—</span>
                     )}
                   </td>
                   <td className="p-3 text-right whitespace-nowrap">
                     {canManage && (
                       <>
-                        <button onClick={() => toggleDefault(p)} className="text-xs font-bold text-ochre hover:underline mr-3">
+                        <button onClick={() => toggleDefault(p)} className="text-xs font-bold text-amber-500 hover:underline mr-3">
                           {p.isDefault ? "CLEAR DEFAULT" : "MAKE DEFAULT"}
                         </button>
-                        <button onClick={() => openEdit(p)} className="text-xs font-bold text-ink hover:underline mr-3">
+                        <button onClick={() => openEdit(p)} className="text-xs font-bold text-gray-900 hover:underline mr-3">
                           EDIT
                         </button>
-                        <button onClick={() => handleDelete(p)} className="text-xs font-bold text-persimmon hover:underline">
+                        <button onClick={() => handleDelete(p)} className="text-xs font-bold text-indigo-600 hover:underline">
                           DELETE
                         </button>
                       </>

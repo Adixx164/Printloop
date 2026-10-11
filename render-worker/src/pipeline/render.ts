@@ -1,6 +1,7 @@
 import { logger } from '../utils/logger';
 import * as fs from 'fs/promises';
 import * as path from 'path';
+import { renderDuration, renderJobsTotal } from '../metrics';
 
 const VENDOR_ROOT = process.env.VENDOR_ROOT || path.resolve(__dirname, '../../../vendor/openprinting');
 
@@ -44,39 +45,52 @@ export async function pdfToPwgRaster(
   inputPdfPath: string,
   options: RenderOptions
 ): Promise<RenderResult> {
-  const outputPwgPath = inputPdfPath.replace(/\.pdf$/i, '.pwg');
+  const timer = renderDuration.startTimer({ status: 'started' });
+  renderJobsTotal.inc({ status: 'started' });
   
-  const pdftopwg = await getBinaryPath('pdftopwg');
-  
-  const args = [
-    '-d', `${options.dpi}`,
-    '-p', options.pageSize,
-    options.color ? '-c' : '-g',
-    options.duplex ? '-D' : '',
-    inputPdfPath,
-    outputPwgPath,
-  ].filter(Boolean);
+  try {
+    const outputPwgPath = inputPdfPath.replace(/\.pdf$/i, '.pwg');
+    
+    const pdftopwg = await getBinaryPath('pdftopwg');
+    
+    const args = [
+      '-d', `${options.dpi}`,
+      '-p', options.pageSize,
+      options.color ? '-c' : '-g',
+      options.duplex ? '-D' : '',
+      inputPdfPath,
+      outputPwgPath,
+    ].filter(Boolean);
 
-  logger.info({ args: [pdftopwg, ...args] }, 'Running pdftopwg');
-  
-  const { stdout, stderr } = await runCommand(pdftopwg, args);
-  
-  if (stderr) {
-    logger.warn({ stderr }, 'pdftopwg stderr');
+    logger.info({ args: [pdftopwg, ...args] }, 'Running pdftopwg');
+    
+    const { stdout, stderr } = await runCommand(pdftopwg, args);
+    
+    if (stderr) {
+      logger.warn({ stderr }, 'pdftopwg stderr');
+    }
+
+    const pwgBuffer = await fs.readFile(outputPwgPath);
+    const meta = await parsePwgMeta(outputPwgPath);
+    
+    await fs.unlink(outputPwgPath).catch(() => {});
+    
+    const result = {
+      pwgBuffer,
+      pageCount: meta.pages,
+      colorPages: meta.colorPages,
+      monoPages: meta.monoPages,
+      mediaSize: options.pageSize,
+    };
+    
+    timer({ status: 'success' });
+    renderJobsTotal.inc({ status: 'success' });
+    return result;
+  } catch (err) {
+    timer({ status: 'failed' });
+    renderJobsTotal.inc({ status: 'failed' });
+    throw err;
   }
-
-  const pwgBuffer = await fs.readFile(outputPwgPath);
-  const meta = await parsePwgMeta(outputPwgPath);
-  
-  await fs.unlink(outputPwgPath).catch(() => {});
-  
-  return {
-    pwgBuffer,
-    pageCount: meta.pages,
-    colorPages: meta.colorPages,
-    monoPages: meta.monoPages,
-    mediaSize: options.pageSize,
-  };
 }
 
 export async function normalizeToPdfA(inputPdfPath: string): Promise<string> {

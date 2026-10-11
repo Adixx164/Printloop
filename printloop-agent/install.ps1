@@ -91,6 +91,196 @@ function Test-Command {
     return [bool](Get-Command $Name -ErrorAction SilentlyContinue)
 }
 
+# ─────────────────────────────────────────────────────────────────────
+#  Auto-Discovery Helpers (NEW)
+# ─────────────────────────────────────────────────────────────────────
+
+# Detect USB printers that are currently connected
+function Get-ConnectedUSBPrinters {
+    $printers = @()
+    
+    # Get USB printer devices via WMI
+    $usbDevices = Get-WmiObject -Class Win32_USBControllerDevice -ErrorAction SilentlyContinue | ForEach-Object {
+        $dependent = [Wmi]$_.Dependent
+        if ($dependent.PNPClass -eq 'Printer') {
+            $dependent
+        }
+    }
+    
+    foreach ($dev in $usbDevices) {
+        $printer = Get-WmiObject -Class Win32_Printer -Filter "DeviceID = '$($dev.DeviceID)'" -ErrorAction SilentlyContinue
+        if ($printer) {
+            $printers += [PSCustomObject]@{
+                Name = $printer.Name
+                PortName = $printer.PortName
+                DriverName = $printer.DriverName
+                Location = $printer.Location
+                ConnectionType = 'USB'
+                IsDefault = $printer.Default
+                DeviceID = $dev.DeviceID
+            }
+        }
+    }
+    
+    # Also get printers connected via USB print server (network but local)
+    $netPrinters = Get-WmiObject -Class Win32_Printer -Filter "Network = False AND Local = True" -ErrorAction SilentlyContinue | Where-Object {
+        $_.PortName -match '^(USB|DOT4|WSDPRINT)'
+    }
+    
+    foreach ($p in $netPrinters) {
+        if (-not ($printers | Where-Object { $_.Name -eq $p.Name })) {
+            $printers += [PSCustomObject]@{
+                Name = $p.Name
+                PortName = $p.PortName
+                DriverName = $p.DriverName
+                Location = $p.Location
+                ConnectionType = 'USB/Local'
+                IsDefault = $p.Default
+            }
+        }
+    }
+    
+    return $printers
+}
+
+# Discover network printers on the LAN via mDNS/Bonjour, SNMP, and port scanning
+function Discover-NetworkPrinters {
+    $printers = @()
+    
+    # 1. mDNS/Bonjour discovery (IPP printers)
+    try {
+        $mdns = Get-DnsClientCache -Entry '*._ipp._tcp.local' -ErrorAction SilentlyContinue
+        if ($mdns) {
+            foreach ($record in $mdns) {
+                if ($record.RecordType -eq 'SRV') {
+                    $parts = $record.RecordData -split ' '
+                    if ($parts.Count -ge 4) {
+                        $port = $parts[2]
+                        $host = $parts[3].TrimEnd('.')
+                        $printers += [PSCustomObject]@{
+                            Name = $record.Name
+                            Host = $host
+                            Port = $port
+                            Transport = 'ipp'
+                            DiscoveryMethod = 'mDNS/Bonjour'
+                        }
+                    }
+                }
+            }
+        }
+    } catch {}
+    
+    # 2. Common printer ports scan (IPP 631, Raw 9100, LPD 515)
+    $localSubnet = Get-NetIPConfiguration | Where-Object { $_.IPv4DefaultGateway } | Select-Object -First 1 -ExpandProperty IPv4Address | Select-Object -First 1 -ExpandProperty IPAddress
+    if ($localSubnet) {
+        $baseIp = $localSubnet -replace '\.\d+$', ''
+        $commonPorts = @(
+            @{Port=631; Transport='ipp'; Path='/ipp/print'},
+            @{Port=9100; Transport='raw9100'; Path=''},
+            @{Port=515; Transport='lpd'; Path=''},
+            @{Port=631; Transport='ipp'; Path='/ipp/print'}
+        )
+        
+        $ips = 1..254 | ForEach-Object { "$baseIp.$_" }
+        $foundPrinters = @()
+        
+        foreach ($ip in $ips) {
+            foreach ($portInfo in $commonPorts) {
+                $socket = New-Object System.Net.Sockets.TcpClient
+                $result = $socket.BeginConnect($ip, $portInfo.Port, $null, $null)
+                $success = $result.AsyncWaitHandle.WaitOne(200)  # 200ms timeout
+                if ($success -and $socket.Connected) {
+                    # Try to get printer info
+                    $name = "Printer at $ip"
+                    $foundPrinters += [PSCustomObject]@{
+                        Name = "Printer at $ip"
+                        Host = $ip
+                        Port = $portInfo.Port
+                        Transport = $portInfo.Transport
+                        Path = $portInfo.Path
+                        DiscoveryMethod = 'Port Scan'
+                    }
+                    $socket.Close()
+                    break  # Found a printer on this IP, move to next IP
+                }
+                $socket.Close()
+            }
+        }
+        $printers += $foundPrinters
+    }
+    
+    return $printers
+}
+
+# Auto-detect the best transport for a given printer
+function Select-BestTransport {
+    param(
+        [PSCustomObject]$Printer
+    )
+    
+    # USB/Local printers -> spooler (best quality, supports all features)
+    if ($Printer.ConnectionType -in @('USB', 'USB/Local')) {
+        return @{ Transport = 'spooler'; Reason = 'USB/Local printer detected; spooler mode gives best quality and supports all paper/color options' }
+    }
+    
+    # Network printer with IPP -> ipp
+    if ($Printer.Transport -eq 'ipp') {
+        return @{ Transport = 'ipp'; Reason = 'IPP-capable network printer detected; IPP gives full feature support and job confirmation' }
+    }
+    
+    # Network printer with only raw 9100 -> raw9100
+    if ($Printer.Transport -eq 'raw9100') {
+        return @{ Transport = 'raw9100'; Reason = 'JetDirect-only printer detected; raw9100 with PJL works reliably' }
+    }
+    
+    # Network printer with LPD
+    if ($Printer.Transport -eq 'lpd') {
+        return @{ Transport = 'lpd'; Reason = 'LPD-capable printer detected' }
+    }
+    
+    # Default: if we found it on network but can't determine, try IPP first
+    return @{ Transport = 'ipp'; Reason = 'Network printer detected; defaulting to IPP (try raw9100 if it fails)' }
+}
+
+# Auto-configure printer with zero prompts
+function Auto-ConfigurePrinter {
+    Write-Host ''
+    Write-Host '── Auto-Discovering Printers ──' -ForegroundColor Cyan
+    
+    $usbPrinters = Get-ConnectedUSBPrinters
+    $netPrinters = Discover-NetworkPrinters
+    $allPrinters = $usbPrinters + $netPrinters
+    
+    if ($allPrinters.Count -eq 0) {
+        Write-Warning "No printers detected. Please connect a printer (USB or network) and re-run."
+        return $null
+    }
+    
+    Write-Host "Found $($allPrinters.Count) printer(s):"
+    foreach ($p in $allPrinters) {
+        $defaultMark = if ($p.IsDefault) { ' (DEFAULT)' } else { '' }
+        $connInfo = if ($p.ConnectionType) { " [$($p.ConnectionType)]" } elseif ($p.Host) { " [$($p.Host):$($p.Port)]" } else { '' }
+        Write-Host "  - $($p.Name)$connInfo$defaultMark"
+    }
+    
+    # Auto-select: prefer default printer, then USB, then first network
+    $selected = $allPrinters | Where-Object { $_.IsDefault } | Select-Object -First 1
+    if (-not $selected) { $selected = $allPrinters | Where-Object { $_.ConnectionType -in @('USB', 'USB/Local') } | Select-Object -First 1 }
+    if (-not $selected) { $selected = $allPrinters | Select-Object -First 1 }
+    
+    $transportInfo = Select-BestTransport -Printer $selected
+    $transport = $transportInfo.Transport
+    $reason = $transportInfo.Reason
+    
+    Write-Host "[ok] Auto-selected: $($selected.Name) → $transport ($reason)"
+    
+    return @{
+        Printer = $selected
+        Transport = $transport
+        Reason = $reason
+    }
+}
+
 # Refresh the current PowerShell session's PATH so just-installed tools
 # show up without making the operator restart their shell.
 function Refresh-Path {
@@ -261,6 +451,10 @@ try {
 #  4. .env wizard — with spooler support + printer auto-detection
 # ─────────────────────────────────────────────────────────────────────
 
+# ─────────────────────────────────────────────────────────────────────
+#  4. .env wizard — AUTO-DISCOVERY with manual fallback
+# ─────────────────────────────────────────────────────────────────────
+
 $envFile = Join-Path $AgentDir '.env'
 if (-not (Test-Path $envFile)) {
     Write-Host ''
@@ -269,70 +463,118 @@ if (-not (Test-Path $envFile)) {
     $baseUrl  = Read-Host 'PrintLoop cloud URL (e.g. https://printloop-production.up.railway.app)'
     $kioskKey = Read-Host 'Kiosk API key (from Admin > Kiosks > this kiosk)'
 
+    # Try auto-discovery first
     Write-Host ''
-    Write-Host 'Transport mode:'
-    Write-Host '  [1] spooler  — USB or any locally-installed printer (recommended for most shops)'
-    Write-Host '  [2] ipp      — network printer that speaks IPP (HP, Brother, Canon, etc.)'
-    Write-Host '  [3] raw9100  — Sharp MX-series or other JetDirect-only printers'
-    $choice = Read-Host 'Choose [1/2/3, default 1]'
-    if ([string]::IsNullOrWhiteSpace($choice)) { $choice = '1' }
+    Write-Host 'Attempting automatic printer discovery...' -ForegroundColor Yellow
+    $autoConfig = Auto-ConfigurePrinter
 
-    $transport = switch ($choice) {
-        '2' { 'ipp' }
-        '3' { 'raw9100' }
-        default { 'spooler' }
-    }
-
-    $printerLine = ''   # PRINTER_IP=...
-    $nameLine    = ''   # PRINTER_NAME=...
-    $cmdLine     = ''   # SPOOLER_COMMAND=...
-
-    if ($transport -eq 'spooler') {
-        # Enumerate local printer queues so the operator picks from a
-        # numbered list — no guessing the right printer name.
+    if ($null -eq $autoConfig) {
+        # Fallback to manual mode
         Write-Host ''
-        Write-Host 'Local printer queues on this PC:'
-        $printers = @(Get-Printer | Where-Object { $_.Type -ne 'Connection' -or $true } | Sort-Object Name)
-        if ($printers.Count -eq 0) {
-            Write-Warning "No installed printer queues found. Connect or install the printer first, then re-run."
-            $printerName = Read-Host 'Enter the printer queue name manually'
-        } else {
-            for ($i = 0; $i -lt $printers.Count; $i++) {
-                $p = $printers[$i]
-                $marker = ''
-                if ($p.Default) { $marker = ' (default)' }
-                $num = $i + 1
-                Write-Host "  [$num] $($p.Name)  -- $($p.PortName)$marker"
-            }
-            $pick = Read-Host 'Choose printer number (or type a name)'
-            if ($pick -match '^\d+$' -and [int]$pick -ge 1 -and [int]$pick -le $printers.Count) {
-                $printerName = $printers[[int]$pick - 1].Name
+        Write-Host 'Falling back to manual configuration...' -ForegroundColor Yellow
+        
+        Write-Host ''
+        Write-Host 'Transport mode:'
+        Write-Host '  [1] spooler  — USB or any locally-installed printer (recommended for most shops)'
+        Write-Host '  [2] ipp      — network printer that speaks IPP (HP, Brother, Canon, etc.)'
+        Write-Host '  [3] raw9100  — Sharp MX-series or other JetDirect-only printers'
+        Write-Host '  [4] printnode — PrintNode cloud proxy (works behind NAT/firewall)'
+        Write-Host '  [5] lpd       — Legacy LPD/LPR protocol (Kyocera, Ricoh, Unix print servers)'
+        Write-Host '  [5] email     — Email-to-print (HP ePrint, Canon, Epson)'
+        $choice = Read-Host 'Choose [1/2/3/4/5/6, default 1]'
+        if ([string]::IsNullOrWhiteSpace($choice)) { $choice = '1' }
+
+        $transport = switch ($choice) {
+            '2' { 'ipp' }
+            '3' { 'raw9100' }
+            '4' { 'printnode' }
+            '5' { 'lpd' }
+            '6' { 'email' }
+            default { 'spooler' }
+        }
+
+        $printerLine = ''
+        $nameLine    = ''
+        $cmdLine     = ''
+
+        if ($transport -eq 'spooler') {
+            Write-Host ''
+            Write-Host 'Local printer queues on this PC:'
+            $printers = @(Get-Printer | Where-Object { $_.Type -ne 'Connection' -or $true } | Sort-Object Name)
+            if ($printers.Count -eq 0) {
+                Write-Warning "No installed printer queues found. Connect or install the printer first, then re-run."
+                $printerName = Read-Host 'Enter the printer queue name manually'
             } else {
-                $printerName = $pick
+                for ($i = 0; $i -lt $printers.Count; $i++) {
+                    $p = $printers[$i]
+                    $marker = ''
+                    if ($p.Default) { $marker = ' (default)' }
+                    $num = $i + 1
+                    Write-Host "  [$num] $($p.Name)  -- $($p.PortName)$marker"
+                }
+                $pick = Read-Host 'Choose printer number (or type a name)'
+                if ($pick -match '^\d+$' -and [int]$pick -ge 1 -and [int]$pick -le $printers.Count) {
+                    $printerName = $printers[[int]$pick - 1].Name
+                } else {
+                    $printerName = $pick
+                }
             }
-        }
-        Write-Host "[ok] Spooler target: $printerName"
+            Write-Host "[ok] Spooler target: $printerName"
 
-        $printerLine = "PRINTER_IP=$printerName"     # spooler mode reuses PRINTER_IP as the queue name fallback
-        $nameLine    = "PRINTER_NAME=$printerName"
+            $printerLine = "PRINTER_IP=$printerName"
+            $nameLine    = "PRINTER_NAME=$printerName"
 
-        # If we found SumatraPDF, default the command to it — silent
-        # PDF printing with no UI popup. Falls back to PowerShell's
-        # Verb-PrintTo when SumatraPDF wasn't installed.
-        $sumatra = Find-Sumatra
-        if ($sumatra) {
-            # Single-quoted concatenation so PowerShell doesn't try to
-            # interpret {printer} / {file} — those are LITERAL tokens
-            # the agent substitutes at print time.
-            $cmdLine = 'SPOOLER_COMMAND="' + $sumatra + '" -print-to "{printer}" "{file}"'
-            Write-Host "[ok] Defaulting SPOOLER_COMMAND to SumatraPDF: $sumatra"
+            $sumatra = Find-Sumatra
+            if ($sumatra) {
+                $cmdLine = 'SPOOLER_COMMAND="' + $sumatra + '" -print-to "{printer}" "{file}"'
+                Write-Host "[ok] Defaulting SPOOLER_COMMAND to SumatraPDF: $sumatra"
+            } else {
+                $cmdLine = "# SPOOLER_COMMAND not set - using the agent's built-in PowerShell PrintTo default."
+                Write-Host "[note] SumatraPDF not detected; agent will use PowerShell PrintTo (may re-rasterize PDFs)."
+            }
+        } elseif ($transport -eq 'printnode') {
+            $pnKey = Read-Host 'PrintNode API Key'
+            $pnPrinterId = Read-Host 'PrintNode Printer ID'
+            $printerLine = "PRINTNODE_API_KEY=$pnKey`nPRINTNODE_PRINTER_ID=$pnPrinterId"
+        } elseif ($transport -eq 'email') {
+            $emailAddr = Read-Host 'Printer Email Address (e.g. printer123@hpeprint.com)'
+            $printerLine = "EMAIL_TO_PRINT_ADDRESS=$emailAddr"
+            # SMTP config
+            $smtpHost = Read-Host 'SMTP Host (e.g. smtp.gmail.com)'
+            $smtpPort = Read-Host 'SMTP Port (e.g. 587)'
+            $smtpUser = Read-Host 'SMTP Username'
+            $smtpPass = Read-Host 'SMTP Password'
+            $smtpFrom = Read-Host 'From Address (e.g. PrintLoop <noreply@printloop.ng>)'
+            $cmdLine = "SMTP_HOST=$smtpHost`nSMTP_PORT=$smtpPort`nSMTP_USER=$smtpUser`nSMTP_PASS=$smtpPass`nSMTP_FROM=$smtpFrom"
         } else {
-            $cmdLine = "# SPOOLER_COMMAND not set - using the agent's built-in PowerShell PrintTo default."
-            Write-Host "[note] SumatraPDF not detected; agent will use PowerShell PrintTo (may re-rasterize PDFs)."
+            $printerIp = Read-Host 'Printer IP on this LAN (e.g. 192.168.0.111)'
+            $printerLine = "PRINTER_IP=$printerIp"
         }
+
+        $transport = $transport
     } else {
-        $printerIp = Read-Host 'Printer IP on this LAN (e.g. 192.168.0.111)'
-        $printerLine = "PRINTER_IP=$printerIp"
+        # Use auto-discovered configuration
+        $selected = $autoConfig.Printer
+        $transport = $autoConfig.Transport
+        $reason = $autoConfig.Reason
+
+        $printerLine = "PRINTER_IP=$($selected.Name)"
+        $nameLine    = "PRINTER_NAME=$($selected.Name)"
+        $cmdLine     = ''
+
+        if ($transport -eq 'spooler') {
+            $sumatra = Find-Sumatra
+            if ($sumatra) {
+                $cmdLine = 'SPOOLER_COMMAND="' + $sumatra + '" -print-to "{printer}" "{file}"'
+            }
+        } elseif ($transport -eq 'printnode') {
+            # PrintNode config would need to be pre-set in env or prompted
+            $printerLine += "`nPRINTNODE_API_KEY=`nPRINTNODE_PRINTER_ID="
+        } elseif ($transport -eq 'email') {
+            $printerLine += "`nEMAIL_TO_PRINT_ADDRESS="
+        } else {
+            $printerLine = "PRINTER_IP=$($selected.Host):$($selected.Port)"
+        }
     }
 
     @"

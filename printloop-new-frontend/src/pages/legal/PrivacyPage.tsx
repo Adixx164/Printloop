@@ -12,13 +12,13 @@ export default function PrivacyPage() {
     <div className="max-w-3xl mx-auto px-4 py-12 sm:py-20 space-y-10">
       <header>
         <Link to="/" className="font-serif font-extrabold text-[22px] tracking-tight mb-8 inline-block">
-          PrintLoop<span className="text-persimmon">.</span>
+          PrintLoop<span className="text-indigo-600">.</span>
         </Link>
-        <div className="editorial-label text-persimmon mb-2">▸ LEGAL</div>
+        <div className="text-xs font-bold tracking-wider uppercase text-indigo-600 mb-2">▸ LEGAL</div>
         <h1 className="pl-serif font-extrabold text-4xl sm:text-5xl tracking-tight">
           Privacy Policy
         </h1>
-        <p className="text-sm text-ink/60 mt-2">Last updated: {lastUpdated}</p>
+        <p className="text-sm text-gray-900/60 mt-2">Last updated: {lastUpdated}</p>
       </header>
 
       <section className="prose prose-ink max-w-none space-y-6">
@@ -27,7 +27,7 @@ export default function PrivacyPage() {
           PrintLoop ("we", "us", "our") is the data controller for personal
           data processed through our self-service printing platform.
           Registered address: PrintLoop, Lagos, Nigeria. Contact:
-          <a href="mailto:privacy@printloop.ng" className="text-persimmon underline hover:text-persimmon/80">
+          <a href="mailto:privacy@printloop.ng" className="text-indigo-600 underline hover:text-indigo-600/80">
             privacy@printloop.ng
           </a>.
         </p>
@@ -55,35 +55,35 @@ export default function PrivacyPage() {
         </ul>
 
         <h2 className="pl-serif font-extrabold text-2xl tracking-tight">3. Lawful bases (GDPR Art. 6 / NDPR Sec. 2.2)</h2>
-        <table className="w-full text-sm border-collapse border-2 border-ink">
+        <table className="w-full text-sm border-collapse border-2 border-gray-900">
           <thead>
-            <tr className="border-b-2 border-ink text-left editorial-label text-persimmon">
+            <tr className="border-b-2 border-gray-900 text-left text-xs font-bold tracking-wider uppercase text-indigo-600">
               <th className="py-2 px-3">Purpose</th>
               <th className="py-2 px-3">Lawful basis</th>
             </tr>
           </thead>
           <tbody>
-            <tr className="border-b border-paper-deep">
+            <tr className="border-b border-gray-200">
               <td className="py-2 px-3">Provide printing service (upload → pay → collect)</td>
               <td className="py-2 px-3">Contract (Art. 6(1)(b))</td>
             </tr>
-            <tr className="border-b border-paper-deep">
+            <tr className="border-b border-gray-200">
               <td className="py-2 px-3">Process payments, issue receipts</td>
               <td className="py-2 px-3">Contract + Legal obligation (Art. 6(1)(b), (c))</td>
             </tr>
-            <tr className="border-b border-paper-deep">
+            <tr className="border-b border-gray-200">
               <td className="py-2 px-3">Send job-ready codes via SMS/email</td>
               <td className="py-2 px-3">Legitimate interest (Art. 6(1)(f))</td>
             </tr>
-            <tr className="border-b border-paper-deep">
+            <tr className="border-b border-gray-200">
               <td className="py-2 px-3">Fraud prevention, rate limiting</td>
               <td className="py-2 px-3">Legitimate interest (Art. 6(1)(f))</td>
             </tr>
-            <tr className="border-b border-paper-deep">
+            <tr className="border-b border-gray-200">
               <td className="py-2 px-3">Comply with tax, anti-money-laundering laws</td>
               <td className="py-2 px-3">Legal obligation (Art. 6(1)(c))</td>
             </tr>
-            <tr className="border-b border-paper-deep">
+            <tr className="border-b border-gray-200">
               <td className="py-2 px-3">Improve service, analytics</td>
               <td className="py-2 px-3">Consent (Art. 6(1)(a)) where required</td>
             </tr>
@@ -119,7 +119,7 @@ export default function PrivacyPage() {
 
         <h2 className="pl-serif font-extrabold text-2xl tracking-tight">7. Your rights (GDPR Art. 15–22 / NDPR Sec. 3.1)</h2>
         <p>You can exercise these rights at any time by emailing
-          <a href="mailto:privacy@printloop.ng" className="text-persimmon underline">privacy@printloop.ng</a>:</p>
+          <a href="mailto:privacy@printloop.ng" className="text-indigo-600 underline">privacy@printloop.ng</a>:</p>
         <ul className="list-disc list-inside space-y-2">
           <li><strong>Access:</strong> receive a copy of your data (JSON export via /api/saas/me/export or /api/customer/export).</li>
           <li><strong>Rectification:</strong> correct inaccurate data.</li>
@@ -161,16 +161,16 @@ export default function PrivacyPage() {
         <h2 className="pl-serif font-extrabold text-2xl tracking-tight">12. Contact & DPO</h2>
         <p>
           Data Protection Officer: <strong>Abdurrahman Bello</strong><br />
-          Email: <a href="mailto:privacy@printloop.ng" className="text-persimmon underline">privacy@printloop.ng</a><br />
+          Email: <a href="mailto:privacy@printloop.ng" className="text-indigo-600 underline">privacy@printloop.ng</a><br />
           Postal: PrintLoop, Lagos, Nigeria
         </p>
       </section>
 
-      <footer className="border-t-2 border-ink pt-8 text-center text-sm text-ink/60">
-        <Link to="/terms" className="text-persimmon underline hover:text-persimmon/80 mr-4">
+      <footer className="border-t-2 border-gray-900 pt-8 text-center text-sm text-gray-900/60">
+        <Link to="/terms" className="text-indigo-600 underline hover:text-indigo-600/80 mr-4">
           Terms of Service
         </Link>
-        <Link to="/contact" className="text-persimmon underline hover:text-persimmon/80">
+        <Link to="/contact" className="text-indigo-600 underline hover:text-indigo-600/80">
           Contact us
         </Link>
       </footer>

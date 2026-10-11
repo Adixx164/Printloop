@@ -31,7 +31,7 @@ export function Dialog({ open, onOpenChange, children }: DialogProps): React.Rea
   return createPortal(
     <Fragment>
       <div
-        className="fixed inset-0 bg-ink/75 backdrop-blur-sm z-50 animate-fadein"
+        className="fixed inset-0 bg-gray-900/75 backdrop-blur-sm z-50 animate-fadein"
         onClick={() => onOpenChange(false)}
         aria-hidden="true"
       />
@@ -48,7 +48,7 @@ export function Dialog({ open, onOpenChange, children }: DialogProps): React.Rea
 
 export function DialogContent({ className = '', children }: DialogContentProps) {
   return (
-    <div className={`bg-paper border-4 border-ink shadow-[8px_8px_0_#000] rounded animate-fadein ${className}`}>
+    <div className={`pl-card ${className}`}>
       {children}
     </div>
   );
@@ -63,5 +63,5 @@ export function DialogTitle({ children }: DialogTitleProps) {
 }
 
 export function DialogDescription({ children }: DialogDescriptionProps) {
-  return <div className="text-ink/60 pl-serif italic text-sm mt-1">{children}</div>;
+  return <div className="text-gray-900/60 pl-serif italic text-sm mt-1">{children}</div>;
 }

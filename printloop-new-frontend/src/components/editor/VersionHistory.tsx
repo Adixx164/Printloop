@@ -41,13 +41,13 @@ export function VersionHistory({
   };
 
   return (
-    <div className="border-2 border-ink bg-paper-light rounded-pl p-4 h-full overflow-y-auto">
-      <div className="sticky top-0 z-10 mb-3 border-b-2 border-ink bg-paper-light px-2 py-2 flex items-center justify-between">
+    <div className="border-2 border-gray-900 bg-gray-100 rounded-pl p-4 h-full overflow-y-auto">
+      <div className="sticky top-0 z-10 mb-3 border-b-2 border-gray-900 bg-gray-100 px-2 py-2 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <span className="w-2 h-2 rounded-full bg-ochre" />
-          <span className="editorial-label text-ochre">VERSION HISTORY</span>
+          <span className="w-2 h-2 rounded-full bg-amber-500" />
+          <span className="text-xs font-bold tracking-wider uppercase text-amber-500">VERSION HISTORY</span>
         </div>
-        <span className="text-[10px] font-bold tracking-editorial text-ink/50">
+        <span className="text-[10px] font-bold tracking-editorial text-gray-900/50">
           {versions.length} version{versions.length !== 1 ? 's' : ''}
         </span>
       </div>
@@ -61,22 +61,22 @@ export function VersionHistory({
             <div 
               key={version.id}
               className={`border-2 rounded-pl p-3 transition-all duration-200 ${
-                isCurrent ? 'border-ochre bg-ochre/5' : 'border-ink/10 bg-paper'
+                isCurrent ? 'border-amber-500 bg-amber-50' : 'border-gray-900/10 bg-gray-50'
               }`}
             >
               <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-2 flex-1 min-w-0">
-                  <span className={`w-2 h-2 rounded-full ${isCurrent ? 'bg-ochre' : 'bg-persimmon'}`} />
+                  <span className={`w-2 h-2 rounded-full ${isCurrent ? 'bg-amber-500' : 'bg-indigo-600'}`} />
                   <span className="font-bold text-sm flex-1 truncate">
                     Version {version.version}
-                    {version.label && <span className="ml-2 text-sm text-ink/50">«{version.label}»</span>}
+                    {version.label && <span className="ml-2 text-sm text-gray-900/50">«{version.label}»</span>}
                   </span>
                 </div>
                 <div className="flex items-center gap-1">
-                  <span className="text-[10px] font-bold text-ink/50">
+                  <span className="text-[10px] font-bold text-gray-900/50">
                     {version.createdAt ? new Date(version.createdAt).toLocaleString() : '—'}
                   </span>
-                  <span className="text-[10px] font-bold text-ink/50">
+                  <span className="text-[10px] font-bold text-gray-900/50">
                     ({version.size || 0} KB)
                   </span>
                 </div>
@@ -120,7 +120,7 @@ export function VersionHistory({
                       value={labelInput[version.version] || ''}
                       onChange={(e) => handleLabelInputChange(version.version, e.target.value)}
                       placeholder="Enter label (e.g., 'Before customer review', 'v1.0')"
-                      className="flex-1 border-2 border-ink rounded-md px-2 py-1 text-sm bg-paper focus:outline-none focus:border-persimmon"
+                      className="flex-1 border-2 border-gray-900 rounded-md px-2 py-1 text-sm bg-gray-50 focus:outline-none focus:border-indigo-600"
                     />
                     <Button 
                       variant="primary" 

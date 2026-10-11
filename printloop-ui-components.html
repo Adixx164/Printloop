@@ -1,0 +1,1039 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PrintLoop — UI Component Library</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  /* ── Design Tokens (from tailwind.config.js) ────────────────────── */
+  :root {
+    --ink: #17140F;
+    --paper: #F9FBFF;
+    --paper-light: #FFFFFF;
+    --paper-deep: #E3E8F0;
+    --paper-warm: #F1F5FC;
+    --persimmon: #0077C8;
+    --persimmon-ink: #005E9E;
+    --ochre: #C7944A;
+    --sage: #6B7A5C;
+    --fog: #6E6A61;
+    --register: #CE2B37;
+    --highlight: #FFD400;
+    --pass: #177245;
+    --hairline: #E3E8F0;
+    --shadow-soft: 4px 4px 0 #E3E9F4;
+    --shadow-soft-md: 6px 6px 0 #E3E9F4;
+    --shadow-soft-lg: 10px 10px 0 #E3E9F4;
+    --shadow-soft-xl: 12px 12px 0 #E3E9F4;
+    --ease-expressive: cubic-bezier(0.16, 1, 0.3, 1);
+    --ease-snap: cubic-bezier(0.4, 0, 0.2, 1);
+    --r-sm: 2px;
+    --r: 3px;
+    --r-lg: 4px;
+    --r-xl: 6px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: "IBM Plex Sans", system-ui, -apple-system, sans-serif;
+    background: var(--paper);
+    color: var(--ink);
+    line-height: 1.6;
+    padding: 40px;
+    max-width: 1400px;
+    margin: 0 auto;
+  }
+
+  h1, h2, h3, h4 {
+    font-family: "Archivo", "Helvetica Neue", Arial, sans-serif;
+    font-weight: 700;
+  }
+
+  /* ── Page header ─────────────────────────────────────────────────── */
+  .page-header {
+    margin-bottom: 60px;
+    padding-bottom: 30px;
+    border-bottom: 2px solid var(--ink);
+  }
+  .page-header h1 {
+    font-size: 42px;
+    letter-spacing: -0.02em;
+  }
+  .page-header h1 span { color: var(--persimmon); }
+  .page-header p {
+    color: var(--fog);
+    font-size: 16px;
+    margin-top: 8px;
+  }
+
+  /* ── Section ─────────────────────────────────────────────────────── */
+  .section {
+    margin-bottom: 60px;
+  }
+  .section-label {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.2em;
+    color: var(--fog);
+    margin-bottom: 16px;
+  }
+  .section-title {
+    font-size: 28px;
+    margin-bottom: 24px;
+  }
+
+  /* ── Component grid ──────────────────────────────────────────────── */
+  .component-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 20px;
+  }
+  .component-cell {
+    background: var(--paper-light);
+    border: 1px solid var(--hairline);
+    border-radius: var(--r);
+    padding: 24px 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    min-height: 100px;
+  }
+  .component-cell .label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--fog);
+  }
+
+  /* ── Buttons ─────────────────────────────────────────────────────── */
+  .pl-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    border: 1px solid var(--ink);
+    border-radius: var(--r-sm);
+    padding: 10px 16px;
+    font-weight: 600;
+    font-size: 14px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: background 150ms, color 150ms, box-shadow 150ms, transform 150ms;
+    user-select: none;
+    text-decoration: none;
+  }
+  .pl-btn:active { filter: brightness(0.95); }
+
+  .pl-btn-primary {
+    background: var(--persimmon);
+    color: var(--paper-light);
+  }
+  .pl-btn-primary:hover {
+    background: var(--persimmon-ink);
+    box-shadow: var(--shadow-soft);
+    transform: translate(-2px, -2px);
+  }
+
+  .pl-btn-dark {
+    background: var(--ink);
+    color: var(--paper-light);
+  }
+  .pl-btn-dark:hover {
+    filter: brightness(1.15);
+    box-shadow: var(--shadow-soft);
+    transform: translate(-2px, -2px);
+  }
+
+  .pl-btn-ghost {
+    background: transparent;
+    border-color: transparent;
+    color: var(--ink);
+    text-decoration: underline;
+    text-underline-offset: 4px;
+  }
+  .pl-btn-ghost:hover { background: var(--paper-warm); }
+
+  .pl-btn-sm { padding: 6px 12px; font-size: 12px; }
+  .pl-btn-lg { padding: 14px 24px; font-size: 16px; }
+
+  /* ── Inputs ──────────────────────────────────────────────────────── */
+  .pl-input {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid var(--ink);
+    border-radius: var(--r-sm);
+    background: var(--paper-light);
+    color: var(--ink);
+    font-size: 14px;
+    font-family: inherit;
+    transition: border-color 150ms, box-shadow 150ms;
+    outline: none;
+  }
+  .pl-input::placeholder { color: var(--fog); }
+  .pl-input:focus {
+    border-color: var(--persimmon);
+    box-shadow: 0 0 0 3px rgba(0, 119, 200, 0.18);
+  }
+  .pl-input.error {
+    border-color: var(--register);
+  }
+
+  .input-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .input-group label {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--fog);
+  }
+
+  /* ── Card ────────────────────────────────────────────────────────── */
+  .pl-card {
+    border: 1px solid var(--hairline);
+    border-radius: var(--r);
+    background: var(--paper-light);
+    padding: 20px;
+    transition: box-shadow 150ms;
+  }
+  .pl-card:hover { box-shadow: var(--shadow-soft); }
+
+  /* ── Chips ───────────────────────────────────────────────────────── */
+  .pl-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    border: 1px solid var(--ink);
+    border-radius: 999px;
+    padding: 6px 14px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 150ms, color 150ms;
+    user-select: none;
+    text-decoration: none;
+  }
+  .pl-chip:hover {
+    background: var(--ink);
+    color: var(--paper-light);
+  }
+  .pl-chip-active {
+    background: var(--persimmon);
+    color: var(--paper-light);
+    border-color: var(--persimmon);
+  }
+
+  /* ── Pills ───────────────────────────────────────────────────────── */
+  .pl-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+  }
+  .pl-pill-ready {
+    background: var(--persimmon);
+    color: var(--paper-light);
+  }
+  .pl-pill-done {
+    color: var(--fog);
+    border: 1px solid var(--fog);
+  }
+
+  /* ── Nav links ───────────────────────────────────────────────────── */
+  .pl-nav-link {
+    position: relative;
+    display: inline-block;
+    padding: 4px 0;
+    color: var(--ink);
+    font-weight: 500;
+    text-decoration: none;
+    transition: color 150ms;
+  }
+  .pl-nav-link::after {
+    content: "";
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 0;
+    height: 2px;
+    background: var(--persimmon);
+    transition: width 300ms var(--ease-snap);
+  }
+  .pl-nav-link:hover::after,
+  .pl-nav-link.active::after { width: 100%; }
+
+  /* ── Arrow ───────────────────────────────────────────────────────── */
+  .pl-arrow {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: var(--r-sm);
+    border: 1px solid var(--ink);
+    background: var(--paper-light);
+    color: var(--ink);
+    cursor: pointer;
+    transition: all 150ms;
+    text-decoration: none;
+  }
+  .pl-arrow:hover {
+    background: var(--ink);
+    color: var(--paper-light);
+    box-shadow: var(--shadow-soft);
+  }
+
+  /* ── Drawer item ─────────────────────────────────────────────────── */
+  .pl-drawer-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    border-radius: var(--r-sm);
+    color: var(--ink);
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 150ms;
+    text-decoration: none;
+  }
+  .pl-drawer-item:hover { background: var(--paper-warm); }
+  .pl-drawer-item.active {
+    background: var(--persimmon);
+    color: var(--paper-light);
+  }
+
+  /* ── Typography ──────────────────────────────────────────────────── */
+  .pl-serif { font-family: "Archivo", "Helvetica Neue", Arial, sans-serif; }
+  .pl-mono { font-family: "Archivo", "Helvetica Neue", Arial, sans-serif; }
+
+  /* ── Ornament ────────────────────────────────────────────────────── */
+  .pl-ornament {
+    display: inline-block;
+    width: 64px;
+    height: 1px;
+    background: var(--ink);
+    margin: 24px 0;
+  }
+
+  /* ── 3D flip card ────────────────────────────────────────────────── */
+  .pl-3d { perspective: 1000px; }
+  .pl-3d-inner {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    transition: transform 0.8s var(--ease-expressive);
+    transform-style: preserve-3d;
+  }
+  .pl-3d:hover .pl-3d-inner { transform: rotateY(180deg); }
+  .pl-face {
+    position: absolute;
+    inset: 0;
+    backface-visibility: hidden;
+    border-radius: var(--r-lg);
+  }
+  .pl-face-back { transform: rotateY(180deg); }
+
+  /* ── Reveal ──────────────────────────────────────────────────────── */
+  .pl-reveal {
+    opacity: 0;
+    transform: translateY(16px);
+    transition: opacity 600ms var(--ease-expressive), transform 600ms var(--ease-expressive);
+  }
+  .pl-reveal.is-visible {
+    opacity: 1;
+    transform: none;
+  }
+
+  /* ── Slider ──────────────────────────────────────────────────────── */
+  .pl-slider {
+    width: 100%;
+    accent-color: var(--persimmon);
+  }
+
+  /* ── Color swatches ──────────────────────────────────────────────── */
+  .swatch-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 12px;
+  }
+  .swatch {
+    border: 1px solid var(--hairline);
+    border-radius: var(--r);
+    overflow: hidden;
+  }
+  .swatch-color {
+    height: 60px;
+  }
+  .swatch-info {
+    padding: 8px 12px;
+    font-size: 11px;
+    font-weight: 600;
+  }
+  .swatch-info .name { color: var(--ink); }
+  .swatch-info .hex { color: var(--fog); font-family: "Archivo", monospace; }
+
+  /* ── Status badges ───────────────────────────────────────────────── */
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 12px;
+    border-radius: var(--r-sm);
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+  .badge-info { background: #E8F0FE; color: var(--persimmon); }
+  .badge-warning { background: #FFF3E0; color: var(--ochre); }
+  .badge-success { background: #E8F5E9; color: var(--pass); }
+  .badge-error { background: #FFEBEE; color: var(--register); }
+
+  /* ── Pulsing dot ─────────────────────────────────────────────────── */
+  .pulse-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--persimmon);
+    animation: pulse-ring 1.8s ease-in-out infinite;
+  }
+  @keyframes pulse-ring {
+    0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(0,119,200,0.5); }
+    50% { transform: scale(1.4); box-shadow: 0 0 0 12px rgba(0,119,200,0); }
+  }
+
+  /* ── Marquee ─────────────────────────────────────────────────────── */
+  .marquee {
+    overflow: hidden;
+    white-space: nowrap;
+    border-top: 1px solid var(--ink);
+    border-bottom: 1px solid var(--ink);
+    padding: 12px 0;
+  }
+  .marquee-track {
+    display: inline-block;
+    animation: marquee 20s linear infinite;
+  }
+  .marquee-track span {
+    display: inline-block;
+    padding: 0 24px;
+    font-size: 14px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+  }
+  @keyframes marquee {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
+  }
+
+  /* ── Utility classes ─────────────────────────────────────────────── */
+  .flex { display: flex; }
+  .flex-col { flex-direction: column; }
+  .items-center { align-items: center; }
+  .justify-center { justify-content: center; }
+  .justify-between { justify-content: space-between; }
+  .gap-2 { gap: 8px; }
+  .gap-3 { gap: 12px; }
+  .gap-4 { gap: 16px; }
+  .gap-6 { gap: 24px; }
+  .w-full { width: 100%; }
+  .text-sm { font-size: 14px; }
+  .text-xs { font-size: 12px; }
+  .font-bold { font-weight: 700; }
+  .text-fog { color: var(--fog); }
+  .text-persimmon { color: var(--persimmon); }
+  .mt-2 { margin-top: 8px; }
+  .mt-4 { margin-top: 16px; }
+  .mt-6 { margin-top: 24px; }
+  .mb-2 { margin-bottom: 8px; }
+  .mb-4 { margin-bottom: 16px; }
+  .mb-6 { margin-bottom: 24px; }
+  .p-4 { padding: 16px; }
+  .p-6 { padding: 24px; }
+
+  /* ── Divider ─────────────────────────────────────────────────────── */
+  .editorial-rule {
+    border: none;
+    border-top: 2px solid var(--ink);
+    margin: 40px 0;
+  }
+
+  /* ── Responsive ──────────────────────────────────────────────────── */
+  @media (max-width: 768px) {
+    body { padding: 20px; }
+    .page-header h1 { font-size: 28px; }
+    .section-title { font-size: 22px; }
+    .component-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+
+  /* ── Reduced motion ──────────────────────────────────────────────── */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<!-- PAGE HEADER -->
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<header class="page-header">
+  <h1>PrintLoop <span>UI</span> Component Library</h1>
+  <p>Design system reference — mirrors the exact tokens from <code>tailwind.config.js</code> and <code>index.css</code></p>
+</header>
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<!-- COLOR PALETTE -->
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<section class="section">
+  <div class="section-label">Design Tokens</div>
+  <h2 class="section-title">Color Palette</h2>
+  <div class="swatch-grid">
+    <div class="swatch">
+      <div class="swatch-color" style="background: #17140F;"></div>
+      <div class="swatch-info">
+        <div class="name">Ink / Toner</div>
+        <div class="hex">#17140F</div>
+      </div>
+    </div>
+    <div class="swatch">
+      <div class="swatch-color" style="background: #F9FBFF;"></div>
+      <div class="swatch-info">
+        <div class="name">Paper / Sheet</div>
+        <div class="hex">#F9FBFF</div>
+      </div>
+    </div>
+    <div class="swatch">
+      <div class="swatch-color" style="background: #FFFFFF;"></div>
+      <div class="swatch-info">
+        <div class="name">Paper Light</div>
+        <div class="hex">#FFFFFF</div>
+      </div>
+    </div>
+    <div class="swatch">
+      <div class="swatch-color" style="background: #0077C8;"></div>
+      <div class="swatch-info">
+        <div class="name">Persimmon / Process</div>
+        <div class="hex">#0077C8</div>
+      </div>
+    </div>
+    <div class="swatch">
+      <div class="swatch-color" style="background: #005E9E;"></div>
+      <div class="swatch-info">
+        <div class="name">Process Ink</div>
+        <div class="hex">#005E9E</div>
+      </div>
+    </div>
+    <div class="swatch">
+      <div class="swatch-color" style="background: #C7944A;"></div>
+      <div class="swatch-info">
+        <div class="name">Ochre</div>
+        <div class="hex">#C7944A</div>
+      </div>
+    </div>
+    <div class="swatch">
+      <div class="swatch-color" style="background: #6B7A5C;"></div>
+      <div class="swatch-info">
+        <div class="name">Sage</div>
+        <div class="hex">#6B7A5C</div>
+      </div>
+    </div>
+    <div class="swatch">
+      <div class="swatch-color" style="background: #6E6A61;"></div>
+      <div class="swatch-info">
+        <div class="name">Fog</div>
+        <div class="hex">#6E6A61</div>
+      </div>
+    </div>
+    <div class="swatch">
+      <div class="swatch-color" style="background: #CE2B37;"></div>
+      <div class="swatch-info">
+        <div class="name">Register</div>
+        <div class="hex">#CE2B37</div>
+      </div>
+    </div>
+    <div class="swatch">
+      <div class="swatch-color" style="background: #FFD400;"></div>
+      <div class="swatch-info">
+        <div class="name">Highlight</div>
+        <div class="hex">#FFD400</div>
+      </div>
+    </div>
+    <div class="swatch">
+      <div class="swatch-color" style="background: #177245;"></div>
+      <div class="swatch-info">
+        <div class="name">Pass</div>
+        <div class="hex">#177245</div>
+      </div>
+    </div>
+    <div class="swatch">
+      <div class="swatch-color" style="background: #E3E8F0;"></div>
+      <div class="swatch-info">
+        <div class="name">Hairline</div>
+        <div class="hex">#E3E8F0</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<hr class="editorial-rule">
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<!-- TYPOGRAPHY -->
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<section class="section">
+  <div class="section-label">Typography</div>
+  <h2 class="section-title">Type Scale</h2>
+
+  <div class="pl-card">
+    <h1 style="font-size: 48px; letter-spacing: -0.02em;">Display / Archivo Bold</h1>
+    <p class="text-fog mt-2">Used for hero headlines, section titles, and emphasis.</p>
+  </div>
+
+  <div class="pl-card mt-4">
+    <h2 style="font-size: 32px;">Heading 2 / Archivo Semibold</h2>
+    <p class="text-fog mt-2">Section headers and card titles.</p>
+  </div>
+
+  <div class="pl-card mt-4">
+    <h3 style="font-size: 24px;">Heading 3 / Archivo Semibold</h3>
+    <p class="text-fog mt-2">Sub-section headers and component titles.</p>
+  </div>
+
+  <div class="pl-card mt-4">
+    <p style="font-size: 16px;">Body / IBM Plex Sans — Primary reading text. Used for descriptions, form labels, and general content. The quick brown fox jumps over the lazy dog.</p>
+  </div>
+
+  <div class="pl-card mt-4">
+    <p class="pl-mono" style="font-size: 14px;">Mono / Archivo — Used for codes, numbers, prices, and technical data. ₦1,500.00 | #FF5733 | 1234567890</p>
+  </div>
+
+  <div class="pl-card mt-4">
+    <p style="font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.2em; color: var(--fog);">Editorial Label — Uppercase tracking for metadata and section labels</p>
+  </div>
+</section>
+
+<hr class="editorial-rule">
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<!-- BUTTONS -->
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<section class="section">
+  <div class="section-label">Buttons</div>
+  <h2 class="section-title">Button Variants</h2>
+
+  <div class="component-grid">
+    <div class="component-cell">
+      <a class="pl-btn pl-btn-primary" href="#">Primary</a>
+      <span class="label">pl-btn-primary</span>
+    </div>
+    <div class="component-cell">
+      <a class="pl-btn pl-btn-dark" href="#">Dark</a>
+      <span class="label">pl-btn-dark</span>
+    </div>
+    <div class="component-cell">
+      <a class="pl-btn pl-btn-ghost" href="#">Ghost</a>
+      <span class="label">pl-btn-ghost</span>
+    </div>
+    <div class="component-cell">
+      <a class="pl-btn pl-btn-primary pl-btn-sm" href="#">Small</a>
+      <span class="label">pl-btn-sm</span>
+    </div>
+    <div class="component-cell">
+      <a class="pl-btn pl-btn-primary pl-btn-lg" href="#">Large</a>
+      <span class="label">pl-btn-lg</span>
+    </div>
+    <div class="component-cell">
+      <a class="pl-btn pl-btn-primary" href="#" style="opacity: 0.5; pointer-events: none;">Disabled</a>
+      <span class="label">Disabled</span>
+    </div>
+  </div>
+</section>
+
+<hr class="editorial-rule">
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<!-- INPUTS -->
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<section class="section">
+  <div class="section-label">Form Elements</div>
+  <h2 class="section-title">Inputs</h2>
+
+  <div class="component-grid" style="grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));">
+    <div class="input-group">
+      <label for="input-default">Default Input</label>
+      <input id="input-default" class="pl-input" type="text" placeholder="Enter your name...">
+    </div>
+    <div class="input-group">
+      <label for="input-email">Email Input</label>
+      <input id="input-email" class="pl-input" type="email" placeholder="you@example.com">
+    </div>
+    <div class="input-group">
+      <label for="input-error">Error State</label>
+      <input id="input-error" class="pl-input error" type="text" placeholder="Invalid input" style="border-color: var(--register);">
+      <span style="font-size: 12px; color: var(--register);">This field has an error</span>
+    </div>
+    <div class="input-group">
+      <label for="input-readonly">Read Only</label>
+      <input id="input-readonly" class="pl-input" type="text" value="Cannot edit" readonly>
+    </div>
+    <div class="input-group">
+      <label for="input-textarea">Textarea</label>
+      <textarea class="pl-input" rows="3" placeholder="Write something..."></textarea>
+    </div>
+    <div class="input-group">
+      <label for="input-select">Select</label>
+      <select id="input-select" class="pl-input">
+        <option>Option 1</option>
+        <option>Option 2</option>
+        <option>Option 3</option>
+      </select>
+    </div>
+  </div>
+</section>
+
+<hr class="editorial-rule">
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<!-- CARDS -->
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<section class="section">
+  <div class="section-label">Surfaces</div>
+  <h2 class="section-title">Cards</h2>
+
+  <div class="component-grid" style="grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));">
+    <div class="pl-card">
+      <h3 style="font-size: 18px; margin-bottom: 8px;">Basic Card</h3>
+      <p class="text-fog text-sm">Hover to see the hard-offset shadow effect. Cards use hairline borders.</p>
+    </div>
+    <div class="pl-card">
+      <span class="badge badge-info mb-2">Info</span>
+      <h3 style="font-size: 18px; margin-bottom: 8px;">With Badge</h3>
+      <p class="text-fog text-sm">Cards can include badges, chips, and other elements.</p>
+    </div>
+    <div class="pl-card">
+      <div class="flex items-center gap-2 mb-2">
+        <span class="pl-pill pl-pill-ready">Ready</span>
+        <span class="pulse-dot"></span>
+      </div>
+      <h3 style="font-size: 18px; margin-bottom: 8px;">With Status</h3>
+      <p class="text-fog text-sm">Status pills and pulse indicators for live updates.</p>
+    </div>
+  </div>
+</section>
+
+<hr class="editorial-rule">
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<!-- CHIPS & PILLS -->
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<section class="section">
+  <div class="section-label">Tags & Filters</div>
+  <h2 class="section-title">Chips & Pills</h2>
+
+  <div class="pl-card">
+    <h3 class="mb-4">Chips (clickable tags)</h3>
+    <div class="flex gap-2 flex-wrap">
+      <span class="pl-chip">All</span>
+      <span class="pl-chip pl-chip-active">Active</span>
+      <span class="pl-chip">Pending</span>
+      <span class="pl-chip">Completed</span>
+      <span class="pl-chip">Cancelled</span>
+    </div>
+  </div>
+
+  <div class="pl-card mt-4">
+    <h3 class="mb-4">Pills (status indicators)</h3>
+    <div class="flex gap-3 flex-wrap">
+      <span class="pl-pill pl-pill-ready">Ready</span>
+      <span class="pl-pill pl-pill-done">Done</span>
+      <span class="badge badge-info">Info</span>
+      <span class="badge badge-warning">Warning</span>
+      <span class="badge badge-success">Success</span>
+      <span class="badge badge-error">Error</span>
+    </div>
+  </div>
+</section>
+
+<hr class="editorial-rule">
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<!-- NAVIGATION -->
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<section class="section">
+  <div class="section-label">Navigation</div>
+  <h2 class="section-title">Nav Links & Arrows</h2>
+
+  <div class="pl-card">
+    <h3 class="mb-4">Nav Links</h3>
+    <nav class="flex gap-6">
+      <a class="pl-nav-link active" href="#">Home</a>
+      <a class="pl-nav-link" href="#">Find Shops</a>
+      <a class="pl-nav-link" href="#">New Print</a>
+      <a class="pl-nav-link" href="#">Orders</a>
+      <a class="pl-nav-link" href="#">Settings</a>
+    </nav>
+  </div>
+
+  <div class="pl-card mt-4">
+    <h3 class="mb-4">Arrow Buttons</h3>
+    <div class="flex gap-3">
+      <a class="pl-arrow" href="#">&#8592;</a>
+      <a class="pl-arrow" href="#">&#8594;</a>
+      <a class="pl-arrow" href="#">&#8593;</a>
+      <a class="pl-arrow" href="#">&#8595;</a>
+    </div>
+  </div>
+</section>
+
+<hr class="editorial-rule">
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<!-- DRAWER -->
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<section class="section">
+  <div class="section-label">Sidebar</div>
+  <h2 class="section-title">Drawer Items</h2>
+
+  <div class="pl-card" style="max-width: 320px;">
+    <div class="pl-drawer-item active">
+      <span>&#8962;</span>
+      <span>Dashboard</span>
+    </div>
+    <div class="pl-drawer-item">
+      <span>&#128196;</span>
+      <span>Print Jobs</span>
+    </div>
+    <div class="pl-drawer-item">
+      <span>&#128202;</span>
+      <span>Reports</span>
+    </div>
+    <div class="pl-drawer-item">
+      <span>&#9881;</span>
+      <span>Settings</span>
+    </div>
+    <div class="pl-drawer-item">
+      <span>&#8594;</span>
+      <span>Logout</span>
+    </div>
+  </div>
+</section>
+
+<hr class="editorial-rule">
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<!-- 3D FLIP CARD -->
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<section class="section">
+  <div class="section-label">Interactive</div>
+  <h2 class="section-title">3D Flip Card</h2>
+  <p class="text-fog mb-4">Hover to flip. Uses preserve-3d and backface-visibility.</p>
+
+  <div class="pl-3d" style="width: 280px; height: 160px;">
+    <div class="pl-3d-inner">
+      <div class="pl-face pl-card flex flex-col items-center justify-center" style="background: var(--paper-light); border: 1px solid var(--hairline);">
+        <span style="font-size: 32px;">&#128438;</span>
+        <span class="font-bold mt-2">Print Job</span>
+        <span class="text-fog text-sm">Hover to flip</span>
+      </div>
+      <div class="pl-face pl-face-back flex flex-col items-center justify-center" style="background: var(--persimmon); color: var(--paper-light);">
+        <span style="font-size: 32px;">&#10003;</span>
+        <span class="font-bold mt-2">Ready!</span>
+        <span style="opacity: 0.8; font-size: 13px;">Job #12345</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<hr class="editorial-rule">
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<!-- SLIDER -->
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<section class="section">
+  <div class="section-label">Range Input</div>
+  <h2 class="section-title">Slider</h2>
+
+  <div class="pl-card" style="max-width: 400px;">
+    <label style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: var(--fog);">Quantity</label>
+    <input type="range" class="pl-slider mt-2" min="1" max="100" value="50">
+    <div class="flex justify-between mt-2">
+      <span class="text-xs text-fog">1</span>
+      <span class="text-xs text-fog">100</span>
+    </div>
+  </div>
+</section>
+
+<hr class="editorial-rule">
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<!-- MARQUEE -->
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<section class="section">
+  <div class="section-label">Motion</div>
+  <h2 class="section-title">Marquee</h2>
+
+  <div class="marquee">
+    <div class="marquee-track">
+      <span>PrintLoop</span>
+      <span>&#9670;</span>
+      <span>On-Demand Printing</span>
+      <span>&#9670;</span>
+      <span>Nigerian Universities</span>
+      <span>&#9670;</span>
+      <span>Fast Turnaround</span>
+      <span>&#9670;</span>
+      <span>Transparent Pricing</span>
+      <span>&#9670;</span>
+      <span>PrintLoop</span>
+      <span>&#9670;</span>
+      <span>On-Demand Printing</span>
+      <span>&#9670;</span>
+      <span>Nigerian Universities</span>
+      <span>&#9670;</span>
+      <span>Fast Turnaround</span>
+      <span>&#9670;</span>
+      <span>Transparent Pricing</span>
+      <span>&#9670;</span>
+    </div>
+  </div>
+</section>
+
+<hr class="editorial-rule">
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<!-- REVEAL ANIMATION -->
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<section class="section">
+  <div class="section-label">Scroll Effects</div>
+  <h2 class="section-title">Reveal Animation</h2>
+  <p class="text-fog mb-4">Scroll down to see the reveal effect. Uses IntersectionObserver pattern.</p>
+
+  <div class="pl-reveal pl-card" style="max-width: 400px;">
+    <h3 style="font-size: 18px;">Reveal Card</h3>
+    <p class="text-fog text-sm">This card fades in and slides up when it enters the viewport.</p>
+  </div>
+
+  <div class="pl-reveal pl-card mt-4" style="max-width: 400px; transition-delay: 200ms;">
+    <h3 style="font-size: 18px;">Delayed Reveal</h3>
+    <p class="text-fog text-sm">This one has a 200ms delay for a staggered effect.</p>
+  </div>
+</section>
+
+<hr class="editorial-rule">
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<!-- EXAMPLE: SHOP CARD -->
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<section class="section">
+  <div class="section-label">Composite</div>
+  <h2 class="section-title">Example: Print Shop Card</h2>
+  <p class="text-fog mb-4">How the components come together in a real card.</p>
+
+  <div class="pl-card" style="max-width: 380px;">
+    <div class="flex items-center justify-between mb-4">
+      <div>
+        <h3 style="font-size: 20px;">UniLag Print Shop</h3>
+        <p class="text-fog text-sm">University of Lagos</p>
+      </div>
+      <span class="pl-pill pl-pill-ready">Open</span>
+    </div>
+
+    <div class="flex gap-2 flex-wrap mb-4">
+      <span class="pl-chip">A4 Printing</span>
+      <span class="pl-chip">Business Cards</span>
+      <span class="pl-chip">Flyers</span>
+      <span class="pl-chip">Banners</span>
+    </div>
+
+    <div class="flex items-center justify-between">
+      <div>
+        <span class="text-xs text-fog">Starting at</span>
+        <div class="pl-mono font-bold text-lg text-persimmon">&#8358;150</div>
+      </div>
+      <a class="pl-btn pl-btn-primary pl-btn-sm" href="#">Order Now</a>
+    </div>
+  </div>
+</section>
+
+<hr class="editorial-rule">
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<!-- EXAMPLE: ORDER STATUS -->
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<section class="section">
+  <div class="section-label">Composite</div>
+  <h2 class="section-title">Example: Order Status Card</h2>
+
+  <div class="pl-card" style="max-width: 380px;">
+    <div class="flex items-center gap-3 mb-4">
+      <div class="pulse-dot"></div>
+      <div>
+        <span class="font-bold">#PL-2024-001</span>
+        <span class="text-fog text-sm">2 pages, A4, B&W</span>
+      </div>
+      <span class="badge badge-info" style="margin-left: auto;">Printing</span>
+    </div>
+
+    <div class="flex items-center gap-2 mb-4">
+      <div style="flex: 1; height: 4px; background: var(--hairline); border-radius: 2px;">
+        <div style="width: 60%; height: 100%; background: var(--persimmon); border-radius: 2px;"></div>
+      </div>
+      <span class="text-xs text-fog">60%</span>
+    </div>
+
+    <div class="flex gap-2">
+      <a class="pl-btn pl-btn-primary pl-btn-sm" href="#">Track Order</a>
+      <a class="pl-btn pl-btn-dark pl-btn-sm" href="#">View Details</a>
+    </div>
+  </div>
+</section>
+
+<hr class="editorial-rule">
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<!-- FOOTER -->
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<footer style="text-align: center; padding: 40px 0; color: var(--fog); font-size: 13px;">
+  <div class="pl-ornament" style="margin: 0 auto 16px;"></div>
+  <p>PrintLoop UI Component Library</p>
+  <p class="mt-2">Built from <code>tailwind.config.js</code> + <code>index.css</code></p>
+</footer>
+
+<script>
+  // Reveal on scroll
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('is-visible');
+      }
+    });
+  }, { threshold: 0.1 });
+
+  document.querySelectorAll('.pl-reveal').forEach(el => observer.observe(el));
+</script>
+
+</body>
+</html>

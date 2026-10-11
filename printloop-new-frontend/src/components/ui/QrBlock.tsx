@@ -89,11 +89,11 @@ export default function QrBlock({ value, caption, label, size = 150, fileName = 
 
   return (
     <div className="inline-flex flex-col items-center">
-      <div ref={wrapRef} className="bg-paper border-2 border-ink p-3">
+      <div ref={wrapRef} className="bg-gray-50 border-2 border-gray-900 p-3">
         <QRCodeSVG value={value} size={size} includeMargin level="M" />
       </div>
       {caption && <div className="pl-mono text-2xl font-bold mt-3 tracking-wider">{caption}</div>}
-      {label && <div className="editorial-label text-ink/60 mt-1">{label}</div>}
+      {label && <div className="text-xs font-bold tracking-wider uppercase text-gray-900/60 mt-1">{label}</div>}
       <div className="flex gap-2 mt-3">
         <button onClick={download} className="pl-btn-ghost text-[11px] px-3 py-1.5 inline-flex items-center gap-1.5">
           <Download size={13} /> SAVE PNG

@@ -214,7 +214,7 @@ export default function DashboardPage() {
       cell: (j) => (
         <div>
           <div className="font-semibold text-[13px] truncate">{j.title || j.fileName}</div>
-          {j.meta && <div className="text-[11px] text-fog mt-0.5">{j.meta}</div>}
+          {j.meta && <div className="text-[11px] text-gray-500 mt-0.5">{j.meta}</div>}
         </div>
       ),
     },
@@ -242,21 +242,21 @@ export default function DashboardPage() {
   if (selectedShopSlug) {
     if (selectedShopLoading) {
       selectedShopPanel = (
-        <div className="border-4 border-ink bg-paper shadow-[6px_6px_0_#000] p-6 text-center rounded">
-          <p className="text-gray-500 font-semibold pl-serif italic">Loading shop details...</p>
-        </div>
+<div className="border-4 border-ink bg-paper-warm shadow-soft p-6 text-center rounded">
+            <p className="text-ink/60 font-semibold pl-serif italic">Loading shop details...</p>
+          </div>
       );
     } else if (selectedShopData) {
       const { shop, pricing, reviews = [] } = selectedShopData;
       const brandColor = shop.brand.primaryColor || "#225275";
       
       selectedShopPanel = (
-        <div className="border-4 border-ink bg-paper shadow-[6px_6px_0_#000] p-4 flex flex-col gap-3 relative animate-fadein rounded">
+        <div className="border-4 border-ink bg-paper-warm shadow-soft p-4 flex flex-col gap-3 relative animate-fadein rounded-sm">
           {/* Close button */}
           <button
             type="button"
             onClick={() => setSelectedShopSlug(null)}
-            className="absolute top-3 right-3 text-ink bg-paper border-2 border-ink p-1 font-bold hover:bg-persimmon hover:text-paper leading-none transition-colors w-7 h-7 flex items-center justify-center rounded"
+            className="absolute top-3 right-3 text-gray-900 bg-gray-50 border-2 border-gray-900 p-1 font-bold hover:bg-indigo-600 hover:text-gray-50 leading-none transition-colors w-7 h-7 flex items-center justify-center rounded"
             aria-label="Close"
           >
             ✕
@@ -278,19 +278,19 @@ export default function DashboardPage() {
           {/* Shop distance / status badges */}
           <div className="flex flex-wrap gap-2 text-xs">
             {shop.distanceKm != null && (
-              <span className="bg-paper-light border border-ink/20 px-2 py-0.5 rounded font-bold">
+              <span className="bg-gray-100 border border-gray-900/20 px-2 py-0.5 rounded font-bold">
                 {shop.distanceKm.toFixed(1)} km away
               </span>
             )}
             <span
-              className={`px-2 py-0.5 rounded font-bold border border-ink/20 ${
+              className={`px-2 py-0.5 rounded font-bold border border-gray-900/20 ${
                 shop.agentOnline ? "bg-green-50 text-green-700" : "bg-red-50 text-red-700"
               }`}
             >
               {shop.agentOnline ? "Online" : "Offline"}
             </span>
             {shop.queueLength > 0 && (
-              <span className="bg-amber-50 text-amber-700 border border-ink/20 px-2 py-0.5 rounded font-bold">
+              <span className="bg-amber-50 text-amber-700 border border-gray-900/20 px-2 py-0.5 rounded font-bold">
                 Queue: {shop.queueLength} ({shop.estimatedWaitMin}m wait)
               </span>
             )}
@@ -298,17 +298,17 @@ export default function DashboardPage() {
 
           {/* Rating */}
           {shop.ratingCount > 0 ? (
-            <div className="flex items-center gap-1 text-xs text-ochre font-bold">
+            <div className="flex items-center gap-1 text-xs text-amber-500 font-bold">
               <span>★ {shop.ratingAverage.toFixed(1)} / 5.0</span>
-              <span className="text-ink/60 font-normal">({shop.ratingCount} {shop.ratingCount === 1 ? 'review' : 'reviews'})</span>
+              <span className="text-gray-900/60 font-normal">({shop.ratingCount} {shop.ratingCount === 1 ? 'review' : 'reviews'})</span>
             </div>
           ) : (
-            <p className="text-xs text-ink/60 italic">No reviews yet</p>
+            <p className="text-xs text-gray-500 italic">No reviews yet</p>
           )}
 
           {/* CTA Print Actions Grid */}
-          <div className="mt-1 flex flex-col gap-1.5 bg-paper-light border-2 border-ink p-3 rounded">
-            <div className="text-[10px] tracking-editorial font-extrabold text-ink/75 uppercase">Select Print Option</div>
+          <div className="mt-1 flex flex-col gap-1.5 bg-gray-100 border-2 border-gray-900 p-3 rounded">
+            <div className="text-[10px] tracking-editorial font-extrabold text-indigo-600 uppercase">Select Print Option</div>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
               <button
                 onClick={() => {
@@ -333,7 +333,7 @@ export default function DashboardPage() {
                   navigate(`/groups?tenantSlug=${encodeURIComponent(shop.slug)}`);
                 }}
                 disabled={!shop.agentOnline}
-                className="pl-btn-ghost bg-paper text-ink py-2 justify-center text-center font-extrabold text-xs uppercase disabled:opacity-40 disabled:cursor-not-allowed"
+                className="pl-btn-ghost bg-gray-50 text-gray-900 py-2 justify-center text-center font-extrabold text-xs uppercase disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 GROUP PRINT
               </button>
@@ -341,7 +341,7 @@ export default function DashboardPage() {
           </div>
 
           {/* Tabs bar */}
-          <div className="flex border-b border-ink/20 text-xs font-bold mt-2">
+          <div className="flex border-b border-gray-900/20 text-xs font-bold mt-2">
             {(["prices", "reviews", "photos"] as const).map((tab) => (
               <button
                 key={tab}
@@ -349,8 +349,8 @@ export default function DashboardPage() {
                 onClick={() => setDetailTab(tab)}
                 className={`py-2 px-4 border-t border-l border-r border-transparent -mb-px capitalize ${
                   detailTab === tab
-                    ? "border-ink/20 bg-paper-light text-ink border-b-paper-light"
-                    : "text-ink/50 hover:text-ink"
+                    ? "border-gray-900/20 bg-gray-100 text-gray-900 border-b-gray-100"
+                    : "text-gray-500 hover:text-gray-900"
                 }`}
               >
                 {tab}
@@ -359,17 +359,17 @@ export default function DashboardPage() {
           </div>
 
           {/* Tabs content box */}
-          <div className="bg-paper-light p-3 border border-ink/10 rounded">
+          <div className="bg-gray-100 p-3 border border-gray-900/10 rounded">
             {detailTab === "prices" && (
               <div>
-                <h4 className="font-bold text-xs mb-1.5 uppercase tracking-wider text-ink/65">Pricing Sheet</h4>
+                <h4 className="font-bold text-xs uppercase tracking-wider text-gray-500/65 mb-1">Pricing Sheet</h4>
                 {pricing.length === 0 ? (
-                  <p className="text-xs text-ink/60 italic">No prices listed by this shop.</p>
+                  <p className="text-xs text-gray-500 italic">No prices listed by this shop.</p>
                 ) : (
-                  <div className="overflow-x-auto max-h-[160px] border border-ink/15 rounded bg-paper">
+                  <div className="overflow-x-auto max-h-[160px] border border-gray-900/15 rounded bg-white">
                     <table className="w-full text-[11px] border-collapse text-left">
                       <thead>
-                        <tr className="bg-ink text-paper text-[10px] uppercase font-bold">
+                        <tr className="bg-gray-900 text-gray-50 text-[10px] uppercase font-bold">
                           <th className="p-1.5">Size</th>
                           <th className="p-1.5">Color</th>
                           <th className="p-1.5">100dpi</th>
@@ -379,8 +379,8 @@ export default function DashboardPage() {
                       </thead>
                       <tbody>
                         {pricing.map((row: any, i: number) => (
-                          <tr key={i} className="border-b last:border-0 border-ink/10">
-                            <td className="p-1.5 font-bold">{row.paperSize}</td>
+                          <tr key={i} className="border-b last:border-0 border-gray-900/10">
+                            <td className="p-1.5 font-bold text-gray-900">{row.paperSize}</td>
                             <td className="p-1.5 capitalize">{row.colorType === "color" ? "Colour" : "B&W"}</td>
                             <td className="p-1.5">₦{row.price100Simplex}</td>
                             <td className="p-1.5">₦{row.price300Simplex}</td>
@@ -396,22 +396,22 @@ export default function DashboardPage() {
 
             {detailTab === "reviews" && (
               <div className="max-h-[180px] overflow-y-auto space-y-2">
-                <h4 className="font-bold text-xs uppercase tracking-wider text-ink/65 mb-1">Reviews</h4>
+                <h4 className="font-bold text-xs uppercase tracking-wider text-gray-900/65 mb-1">Reviews</h4>
                 {reviews.length === 0 ? (
-                  <p className="text-xs text-ink/60 italic">No customer reviews yet.</p>
+                  <p className="text-xs text-gray-500 italic">No customer reviews yet.</p>
                 ) : (
                   reviews.map((r: any) => (
-                    <div key={r.id} className="bg-paper p-2 border border-ink/10 rounded text-xs">
+                    <div key={r.id} className="bg-white p-2 border border-gray-900/10 rounded text-xs">
                       <div className="flex justify-between items-start">
                         <span className="font-semibold text-[11px]">{r.user.firstName} {r.user.lastName}</span>
-                        <span className="text-[10px] text-ink/50">{new Date(r.createdAt).toLocaleDateString()}</span>
+                        <span className="text-[10px] text-gray-500">{new Date(r.createdAt).toLocaleDateString()}</span>
                       </div>
                       <div className="text-amber-500 text-[10px] my-0.5">
                         {Array.from({ length: 5 }).map((_, i) => (
                           <span key={i}>{i < r.rating ? "★" : "☆"}</span>
                         ))}
                       </div>
-                      {r.comment && <p className="text-ink/80 leading-snug mt-1 text-[11px]">{r.comment}</p>}
+                      {r.comment && <p className="text-gray-50/80 leading-snug mt-1 text-[11px]">{r.comment}</p>}
                     </div>
                   ))
                 )}
@@ -420,9 +420,9 @@ export default function DashboardPage() {
 
             {detailTab === "photos" && (
               <div>
-                <h4 className="font-bold text-xs uppercase tracking-wider text-ink/65 mb-1.5">Shop Photos</h4>
+                <h4 className="font-bold text-xs uppercase tracking-wider text-gray-500/65 mb-1.5">Shop Photos</h4>
                 {shop.photos.length === 0 ? (
-                  <p className="text-xs text-ink/60 italic">No shop photos uploaded.</p>
+                  <p className="text-xs text-gray-500 italic">No shop photos uploaded.</p>
                 ) : (
                   <div className="flex gap-2 overflow-x-auto py-1 scrollbar-thin">
                     {shop.photos.map((url: string, idx: number) => (
@@ -430,7 +430,7 @@ export default function DashboardPage() {
                         key={idx}
                         src={url}
                         alt={`${shop.name} brand ${idx + 1}`}
-                        className="w-40 h-24 object-cover rounded border border-ink/10 flex-shrink-0"
+                        className="w-40 h-24 object-cover rounded border border-gray-900/10 flex-shrink-0"
                       />
                     ))}
                   </div>
@@ -446,7 +446,7 @@ export default function DashboardPage() {
   return (
     <div>
       {jobsError && (
-        <div className="border-2 border-persimmon bg-persimmon/10 text-ink p-3 rounded mb-4 text-sm font-semibold">
+        <div className="border-2 border-process bg-process/10 text-ink p-3 rounded-sm mb-4 text-sm font-semibold">
           Could not reach the backend API. Make sure the backend is running on port 4000.
         </div>
       )}
@@ -456,10 +456,10 @@ export default function DashboardPage() {
         
         {/* Left column: Leaflet map discovery */}
         <div className="flex flex-col gap-4">
-          <div className="border-4 border-ink bg-paper p-4 shadow-[6px_6px_0_#000] rounded">
+          <div className="border-4 border-ink bg-paper-warm p-4 shadow-soft rounded-sm">
             <header className="mb-3">
               <h2 className="text-xl sm:text-2xl font-bold pl-serif">Print shops near you</h2>
-              <p className="text-gray-600 text-xs mt-0.5">
+              <p className="text-ink/60 text-xs mt-0.5">
                 Browse nearby active stations, check reviews/prices, and submit print jobs instantly.
               </p>
             </header>
@@ -482,7 +482,7 @@ export default function DashboardPage() {
                   placeholder="Search by shop name…"
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
-                  className="flex-1 min-w-[150px] border-2 border-ink rounded px-3 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-ink"
+                  className="flex-1 min-w-[150px] border-2 border-ink rounded-sm px-3 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-process"
                 />
                 <FilterChip
                   active={filterColor}
@@ -502,14 +502,14 @@ export default function DashboardPage() {
                 >
                   Online now
                 </FilterChip>
-                <span className="text-[11px] text-gray-500 font-bold ml-auto shrink-0">
+                <span className="text-[11px] text-ink/50 font-bold ml-auto shrink-0">
                   {shops.length} shop{shops.length === 1 ? "" : "s"}
                 </span>
               </div>
             </div>
 
             {/* Map Container */}
-            <div className="rounded border-4 border-ink overflow-hidden h-[40vh] sm:h-[45vh] relative z-10">
+            <div className="rounded border-4 border-gray-900 overflow-hidden h-[40vh] sm:h-[45vh] relative z-10">
               <MapContainer
                 center={mapCenter}
                 zoom={origin ? 13 : 11}
@@ -544,7 +544,7 @@ export default function DashboardPage() {
           {selectedShopPanel ? (
             selectedShopPanel
           ) : (
-            <div className="border-4 border-ink bg-paper shadow-[6px_6px_0_#000] p-4 flex flex-col gap-3 rounded">
+            <div className="border-4 border-ink bg-paper-warm shadow-soft p-4 flex flex-col gap-3 rounded-sm">
               <h3 className="font-bold text-xs pl-serif uppercase tracking-wider text-ink/65">Nearby Shops</h3>
               
               {shopsLoading && (
@@ -565,7 +565,7 @@ export default function DashboardPage() {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[300px] overflow-y-auto pr-1">
                 {shops.map((shop) => {
-                  const brandColor = shop.brand.primaryColor || "#225275";
+                  const brandColor = shop.brand.primaryColor || "var(--process)";
                   const isSelectable = shop.agentOnline && shop.status === "active";
                   return (
                     <button
@@ -575,7 +575,7 @@ export default function DashboardPage() {
                         setSelectedShopSlug(shop.slug);
                         setDetailTab("prices");
                       }}
-                      className={`text-left block rounded-lg border-2 border-ink p-3 hover:shadow-md transition bg-white ${
+                      className={`text-left block rounded-lg border-2 border-ink p-3 hover:shadow-soft transition bg-paper-light ${
                         !isSelectable ? "opacity-60 cursor-not-allowed" : ""
                       }`}
                     >
@@ -585,7 +585,7 @@ export default function DashboardPage() {
                             {shop.brand.wordmark || shop.name}
                           </h4>
                           {shop.address && (
-                            <p className="text-[11px] text-gray-500 mt-0.5 truncate max-w-[180px]">
+                            <p className="text-[11px] text-ink/50 mt-0.5 truncate max-w-[180px]">
                               {shop.address}
                             </p>
                           )}
@@ -598,25 +598,25 @@ export default function DashboardPage() {
 
                       <div className="flex flex-wrap gap-1 mt-2 text-[10px]">
                         {shop.distanceKm != null && (
-                          <span className="px-1.5 py-0.5 rounded bg-gray-100 font-semibold text-gray-700">
+                          <span className="px-1.5 py-0.5 rounded bg-paper-warm font-semibold text-ink">
                             {shop.distanceKm.toFixed(1)} km
                           </span>
                         )}
                         {shop.cheapestPerPage != null && (
-                          <span className="px-1.5 py-0.5 rounded bg-gray-100 font-semibold text-gray-700">
+                          <span className="px-1.5 py-0.5 rounded bg-paper-warm font-semibold text-ink">
                             ₦{shop.cheapestPerPage}/pg
                           </span>
                         )}
                         {shop.ratingCount > 0 && (
-                          <span className="px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 font-bold">
+                          <span className="px-1.5 py-0.5 rounded bg-ochre/10 text-ochre font-bold">
                             ★ {shop.ratingAverage.toFixed(1)}
                           </span>
                         )}
                         <span
                           className={`px-1.5 py-0.5 rounded font-bold ${
                             shop.agentOnline
-                              ? "bg-green-100 text-green-800"
-                              : "bg-red-100 text-red-800"
+                              ? "bg-pass/10 text-pass"
+                              : "bg-register/10 text-register"
                           }`}
                         >
                           {shop.agentOnline ? "Online" : "Offline"}
@@ -634,11 +634,11 @@ export default function DashboardPage() {
         <div className="flex flex-col gap-4">
           
           {/* Active print code card */}
-          <div className="bg-ink text-paper p-4 sm:p-5 border-4 border-ink rounded transition-all md:hover:-translate-x-1 md:hover:-translate-y-1 md:hover:[box-shadow:6px_6px_0_#D14B2C] cursor-pointer relative">
+          <div className="bg-ink text-paper-light p-4 sm:p-5 border-4 border-ink rounded-sm transition-all md:hover:-translate-x-1 md:hover:-translate-y-1 md:hover:shadow-soft cursor-pointer relative">
             <div className="flex justify-between items-center mb-2 gap-2">
               <span className="editorial-label">ACTIVE PRINT CODE</span>
-              <span className="bg-persimmon text-paper px-2.5 py-1 text-[10px] tracking-editorial font-bold inline-flex items-center gap-1.5 flex-shrink-0">
-                <span className="w-1.5 h-1.5 bg-paper animate-blink" />
+              <span className="bg-process text-paper-light px-2.5 py-1 text-[10px] tracking-editorial font-bold inline-flex items-center gap-1.5 flex-shrink-0">
+                <span className="w-1.5 h-1.5 bg-paper-light animate-blink" />
                 {activeJob ? "READY" : jobsLoading ? "LOADING" : "NONE"}
               </span>
             </div>
@@ -659,12 +659,12 @@ export default function DashboardPage() {
               </span>
             </div>
             <div className="h-1.5 bg-paper/15 mt-3 overflow-hidden">
-              <div className="h-full bg-persimmon" style={{ width: activeJob ? "62%" : "0%" }} />
+              <div className="h-full bg-process" style={{ width: activeJob ? "62%" : "0%" }} />
             </div>
           </div>
 
           {/* Stats Row */}
-          <div className="grid grid-cols-2 border-4 border-ink rounded overflow-hidden">
+          <div className="grid grid-cols-2 border-4 border-ink rounded-sm overflow-hidden">
             {[
               { label: "PAGES", num: totalPages, sub: `${jobs.length} jobs` },
               {
@@ -677,14 +677,14 @@ export default function DashboardPage() {
             ].map((s, i) => (
               <div
                 key={s.label}
-                className={`p-3 cursor-pointer transition-colors bg-white hover:bg-ink hover:text-paper group border-b border-r border-ink/25
+                className={`p-3 cursor-pointer transition-colors bg-paper-light hover:bg-ink hover:text-paper-light group border-b border-r border-ink/25
                   ${i >= 2 ? "border-b-0" : ""}
                   ${i % 2 === 1 ? "border-r-0" : ""}
                 `}
               >
                 <div className="text-[9px] tracking-editorial font-bold mb-1 opacity-80">{s.label}</div>
-                <div className="pl-mono text-xl font-bold group-hover:text-persimmon">{s.num}</div>
-                <div className="text-[10px] text-fog group-hover:text-paper/80 font-medium mt-0.5">
+                <div className="pl-mono text-xl font-bold group-hover:text-process">{s.num}</div>
+                <div className="text-[10px] text-ink/50 group-hover:text-ink/80 font-medium mt-0.5">
                   {s.sub}
                 </div>
               </div>
@@ -704,12 +704,12 @@ export default function DashboardPage() {
       </div>
 
       {/* ── Bottom Section: Recent Jobs Table ─────────────────────────────────────── */}
-      <div className="border-4 border-ink p-4 sm:p-5 shadow-[6px_6px_0_#000] bg-paper rounded mt-6">
+      <div className="border-4 border-ink p-4 sm:p-5 shadow-soft bg-paper-warm rounded-sm mt-6">
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-baseline gap-2 mb-3">
           <h2 className="pl-serif text-xl sm:text-2xl font-bold tracking-tight">
             Recent jobs <em className="italic text-ochre font-medium text-base sm:text-lg">— from backend</em>
           </h2>
-          <div className="flex border-2 border-ink overflow-x-auto rounded bg-white">
+          <div className="flex border-2 border-ink overflow-x-auto rounded-sm bg-paper-light">
             <span className="pl-chip-active px-3 py-1 text-[11px] font-bold tracking-wider border-r border-ink whitespace-nowrap">
               ALL · {jobs.length}
             </span>
@@ -757,8 +757,8 @@ function FilterChip({
       onClick={onClick}
       className={`text-[10px] sm:text-xs rounded-full px-2.5 py-1 border-2 font-bold transition-all ${
         active
-          ? "bg-[#225275] text-white border-ink"
-          : "bg-white text-gray-700 border-ink/40 hover:border-ink/65"
+          ? "bg-process text-paper border-ink"
+          : "bg-paper-light text-ink border-ink/40 hover:border-ink/65"
       }`}
     >
       {children}
@@ -778,7 +778,7 @@ function LocationChip(props: {
   const { geo } = props;
   if (geo.kind === "asking") {
     return (
-      <p className="text-[11px] text-gray-500 font-bold px-2 py-1 bg-gray-50 border border-dashed border-ink/20 rounded">
+      <p className="text-[11px] text-gray-500 font-bold px-2 py-1 bg-gray-50 border border-dashed border-gray-900/20 rounded">
         Asking browser for location…
       </p>
     );
@@ -786,13 +786,13 @@ function LocationChip(props: {
   if (geo.kind === "granted") {
     return (
       <div className="flex items-center gap-2 text-xs">
-        <span className="px-2 py-1 rounded bg-gray-100 border border-ink/25 font-bold text-gray-700">
+        <span className="px-2 py-1 rounded bg-gray-100 border border-gray-900/25 font-bold text-gray-700">
           Near {geo.lat.toFixed(3)}, {geo.lng.toFixed(3)}
         </span>
         <button
           type="button"
           onClick={props.onReset}
-          className="underline text-gray-500 hover:text-ink font-bold"
+          className="underline text-gray-500 hover:text-gray-900 font-bold"
         >
           Change
         </button>
@@ -802,9 +802,9 @@ function LocationChip(props: {
   return (
     <form
       onSubmit={props.submitManual}
-      className="flex flex-wrap items-end gap-2 text-xs bg-white border-2 border-ink rounded p-2"
+      className="flex flex-wrap items-end gap-2 text-xs bg-paper-light border-2 border-ink rounded-sm p-2"
     >
-      <span className="text-gray-600 font-semibold self-center text-[11px]">
+      <span className="text-ink/60 font-semibold self-center text-[11px]">
         {geo.kind === "denied"
           ? `Location denied (${geo.reason.slice(0, 15)}). Coords:`
           : "Location unavailable. Coords:"}
@@ -815,7 +815,7 @@ function LocationChip(props: {
         value={props.manualLat}
         onChange={(e) => props.setManualLat(e.target.value)}
         placeholder="lat"
-        className="border-2 border-ink rounded px-2 py-1 w-20 text-xs"
+        className="border-2 border-ink rounded-sm px-2 py-1 w-20 text-xs"
       />
       <input
         type="number"
@@ -823,11 +823,11 @@ function LocationChip(props: {
         value={props.manualLng}
         onChange={(e) => props.setManualLng(e.target.value)}
         placeholder="lng"
-        className="border-2 border-ink rounded px-2 py-1 w-20 text-xs"
+        className="border-2 border-ink rounded-sm px-2 py-1 w-20 text-xs"
       />
       <button
         type="submit"
-        className="bg-[#225275] text-white px-3 py-1.5 rounded font-bold text-xs"
+        className="bg-process text-paper-light px-3 py-1.5 rounded-sm font-bold text-xs"
       >
         Use
       </button>

@@ -63,18 +63,18 @@ export default function SaasLoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-paper flex flex-col">
-      <div className="border-b-2 border-ink bg-paper px-4 sm:px-6 lg:px-8 py-3 sm:py-4 flex items-center justify-between">
+    <div className="min-h-screen bg-gray-50 flex flex-col">
+      <div className="border-b-2 border-gray-900 bg-gray-50 px-4 sm:px-6 lg:px-8 py-3 sm:py-4 flex items-center justify-between">
         <Link to="/" className="font-serif font-extrabold text-[22px] tracking-tight">
-          PrintLoop<span className="text-persimmon">.</span>
+          PrintLoop<span className="text-indigo-600">.</span>
         </Link>
-        <span className="editorial-label text-persimmon">SHOP CONSOLE</span>
+        <span className="editorial-label text-indigo-600">SHOP CONSOLE</span>
       </div>
 
       <main className="flex-1 flex items-center justify-center px-4 py-12">
         <div className="w-full max-w-md">
           {welcome && (
-            <div className="border-2 border-ochre/60 bg-ochre/10 p-4 mb-5 text-sm pl-serif">
+            <div className="border-2 border-amber-500 bg-amber-100 text-gray-900 p-4 mb-5 text-sm pl-serif">
               {slug ? (
                 <>
                   <span className="font-bold">{slug}.printloop.app</span> is live. Sign in to
@@ -86,10 +86,10 @@ export default function SaasLoginPage() {
             </div>
           )}
 
-          <div className="border-4 border-ink bg-paper-light p-6 sm:p-8">
-            <div className="editorial-label text-persimmon mb-2">▸ PRINT SHOP SIGN IN</div>
+          <div className="border-4 border-gray-900 bg-gray-100 p-6 sm:p-8">
+            <div className="editorial-label text-indigo-600 mb-2">▸ PRINT SHOP SIGN IN</div>
             <h1 className="pl-serif text-3xl font-extrabold tracking-tight mb-6">
-              Run your shop <em className="italic text-persimmon">from here.</em>
+              Run your shop <em className="italic text-indigo-600">from here.</em>
             </h1>
 
             <form onSubmit={submit} className="space-y-4">
@@ -132,10 +132,10 @@ export default function SaasLoginPage() {
             </form>
 
             <div className="flex items-center justify-between mt-5 text-xs">
-              <Link to="/auth/login" className="font-bold text-ink/55 hover:text-persimmon">
+              <Link to="/auth/login" className="font-bold text-gray-50/55 hover:text-indigo-600">
                 ← CUSTOMER SIGN IN
               </Link>
-              <Link to="/saas/signup" className="font-bold text-ink/55 hover:text-persimmon">
+              <Link to="/saas/signup" className="font-bold text-indigo-600 hover:text-indigo-600">
                 START A SHOP →
               </Link>
             </div>

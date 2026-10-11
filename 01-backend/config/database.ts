@@ -261,6 +261,9 @@ const dataSourceOptions: DataSourceOptions = usePostgres
 
 export const AppDataSource = new DataSource(dataSourceOptions);
 
+// Export trpcDataSource for tRPC procedures (alias to AppDataSource)
+export const trpcDataSource = AppDataSource;
+
 console.log(
   `[database] driver=${usePostgres ? 'postgres' : 'sqlite'}` +
     (usePostgres ? ` (DATABASE_URL set)` : ` file=${dbFile}`),

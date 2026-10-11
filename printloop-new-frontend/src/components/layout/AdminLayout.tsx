@@ -7,7 +7,7 @@ import { Outlet } from "react-router-dom";
  */
 export function AdminLayout() {
   return (
-    <div className="min-h-screen bg-ink">
+    <div className="min-h-screen bg-gray-900">
       <Outlet />
     </div>
   );

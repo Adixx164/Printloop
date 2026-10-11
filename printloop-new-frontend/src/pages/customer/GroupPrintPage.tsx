@@ -59,21 +59,21 @@ function SessionCard({ session, hostId }: { session: any; hostId: string }) {
   };
 
   return (
-    <div className="border-2 border-ink bg-paper-light animate-fadein">
-      <div className="bg-ink text-paper px-5 py-3 flex justify-between gap-3 items-center flex-wrap">
+    <div className="border-2 border-gray-900 bg-gray-100 animate-fadein">
+      <div className="bg-gray-900 text-gray-50 px-5 py-3 flex justify-between gap-3 items-center flex-wrap">
         <div>
-          <div className="editorial-label text-persimmon mb-1">{isOpen ? "OPEN" : "CLOSED"}</div>
+          <div className="editorial-label text-indigo-600 mb-1">{isOpen ? "OPEN" : "CLOSED"}</div>
           <h2 className="pl-serif text-xl sm:text-2xl font-bold">{session.groupName}</h2>
         </div>
         <div className="flex gap-2">
           <button onClick={() => copy(joinUrl, "Share link")} className="pl-btn-primary py-2 px-3 text-[11px]">
             <Share2 size={15} /> COPY LINK
           </button>
-          <a href={joinUrl} target="_blank" rel="noreferrer" className="pl-btn-ghost bg-paper text-ink py-2 px-3 text-[11px]">
+          <a href={joinUrl} target="_blank" rel="noreferrer" className="pl-btn-ghost bg-gray-50 text-gray-900 py-2 px-3 text-[11px]">
             <ExternalLink size={15} /> OPEN
           </a>
           {isOpen && (
-            <button onClick={close} disabled={isClosing} className="pl-btn-ghost bg-paper text-ink py-2 px-3 text-[11px]">
+            <button onClick={close} disabled={isClosing} className="pl-btn-ghost bg-gray-50 text-gray-900 py-2 px-3 text-[11px]">
               <Lock size={15} /> CLOSE
             </button>
           )}
@@ -82,43 +82,43 @@ function SessionCard({ session, hostId }: { session: any; hostId: string }) {
 
       <div className="grid grid-cols-1 xl:grid-cols-[1fr_210px] gap-4 p-5">
         <div>
-          <div className="grid grid-cols-2 sm:grid-cols-4 border-2 border-ink mb-4">
+          <div className="grid grid-cols-2 sm:grid-cols-4 border-2 border-gray-900 mb-4">
             {[
               ["PARTICIPANTS", participants.length],
               ["PAID", summary.paid ?? 0],
               ["PAGES", summary.totalPages ?? 0],
               ["DEADLINE", new Date(session.deadline).toLocaleString()],
             ].map(([label, value], i) => (
-              <div key={String(label)} className={`p-3 ${i < 3 ? "border-r border-ink" : ""}`}>
+              <div key={String(label)} className={`p-3 ${i < 3 ? "border-r border-gray-900" : ""}`}>
                 <div className="editorial-label opacity-60">{label}</div>
                 <div className="pl-mono font-bold text-sm">{String(value)}</div>
               </div>
             ))}
           </div>
 
-          <div className="border-2 border-ink">
-            <div className="bg-ink text-paper grid grid-cols-[1fr_120px_90px] px-3 py-2 text-[10px] tracking-editorial font-bold">
+          <div className="border-2 border-gray-900">
+            <div className="bg-gray-900 text-gray-50 grid grid-cols-[1fr_120px_90px] px-3 py-2 text-[10px] tracking-editorial font-bold">
               <div>PARTICIPANT</div><div>STATUS</div><div>PAID</div>
             </div>
             {participants.map((p) => (
-              <div key={p.id} className="grid grid-cols-[1fr_120px_90px] px-3 py-3 border-b border-ink/10 last:border-0 items-center">
+              <div key={p.id} className="grid grid-cols-[1fr_120px_90px] px-3 py-3 border-b border-gray-900/10 last:border-0 items-center">
                 <div>
                   <div className="font-semibold text-sm">{p.name}</div>
-                  <div className="text-xs text-fog">{p.email || p.phoneNumber || "—"}</div>
+                  <div className="text-xs text-gray-500">{p.email || p.phoneNumber || "—"}</div>
                 </div>
                 <div className="text-xs font-bold uppercase">{String(p.status).toLowerCase()}</div>
-                <div className="text-xs font-bold uppercase text-sage">{p.status === "PAID" ? "yes" : "—"}</div>
+                <div className="text-xs font-bold uppercase text-emerald-600">{p.status === "PAID" ? "yes" : "—"}</div>
               </div>
             ))}
             {!participants.length && (
-              <div className="p-6 text-center text-ink/50 pl-serif italic text-sm">
+              <div className="p-6 text-center text-gray-900/50 pl-serif italic text-sm">
                 No one has joined yet — share the link.
               </div>
             )}
           </div>
         </div>
 
-        <aside className="border-2 border-ink bg-paper p-4 text-center h-fit flex flex-col items-center">
+        <aside className="border-2 border-gray-900 bg-gray-50 p-4 text-center h-fit flex flex-col items-center">
           {session.batchCode ? (
             <>
               <QrBlock
@@ -128,7 +128,7 @@ function SessionCard({ session, hostId }: { session: any; hostId: string }) {
                 size={150}
                 fileName={`printloop-group-${session.batchCode}`}
               />
-              <div className="text-xs text-ink/60 mt-2">Scan or type at any kiosk.</div>
+              <div className="text-xs text-gray-900/60 mt-2">Scan or type at any kiosk.</div>
             </>
           ) : (
             <>
@@ -138,7 +138,7 @@ function SessionCard({ session, hostId }: { session: any; hostId: string }) {
                 size={150}
                 fileName={`printloop-join-${session.shareId}`}
               />
-              <div className="text-xs text-ink/55 mt-2 pl-serif italic">
+              <div className="text-xs text-gray-900/55 mt-2 pl-serif italic">
                 Close the group to generate the kiosk batch token.
               </div>
             </>
@@ -214,17 +214,17 @@ export default function GroupPrintPage() {
 
   return (
     <div className="animate-fadein">
-      <div className="editorial-label text-persimmon mb-1">GROUP PRINTING</div>
+      <div className="editorial-label text-indigo-600 mb-1">GROUP PRINTING</div>
       <h1 className="pl-serif text-3xl sm:text-4xl font-bold tracking-tight mb-1">
-        Name it, set a deadline, <em className="italic text-persimmon font-semibold">share the link</em>.
+        Name it, set a deadline, <em className="italic text-indigo-600 font-semibold">share the link</em>.
       </h1>
-      <p className="pl-serif italic text-ink/60 mb-7">
+      <p className="pl-serif italic text-gray-900/60 mb-7">
         Anyone with the link uploads their own document, configures it, and pays — then you print the batch with one token.
       </p>
 
       <div className="grid grid-cols-1 lg:grid-cols-[380px_1fr] gap-4">
-        <aside className="border-2 border-ink p-4 sm:p-6 bg-paper-light h-fit">
-          <div className="editorial-label text-persimmon mb-3">CREATE A SESSION</div>
+        <aside className="border-2 border-gray-900 p-4 sm:p-6 bg-gray-100 h-fit">
+          <div className="editorial-label text-indigo-600 mb-3">CREATE A SESSION</div>
 
           <div className="editorial-label mb-2">SESSION NAME</div>
           <input
@@ -241,7 +241,7 @@ export default function GroupPrintPage() {
             onChange={(e) => setForm({ ...form, deadline: e.target.value })}
             className="pl-input pl-mono mb-1"
           />
-          <div className="text-xs text-ink/55 pl-serif italic mb-4">
+          <div className="text-xs text-gray-900/55 pl-serif italic mb-4">
             Uploads close automatically at this time (max 7 days out).
           </div>
 
@@ -294,7 +294,7 @@ export default function GroupPrintPage() {
             <input type="checkbox" checked={form.enforce} onChange={(e) => setForm({ ...form, enforce: e.target.checked })} />
             Enforce these settings on every upload
           </label>
-          <div className="text-[11px] text-ink/55 pl-serif italic mt-1.5 leading-snug">
+          <div className="text-[11px] text-gray-900/55 pl-serif italic mt-1.5 leading-snug">
             Enforce locks paper, colour, sides, and quality. Each participant
             still picks their own copies + page range.
           </div>
@@ -309,7 +309,7 @@ export default function GroupPrintPage() {
             <SessionCard key={s.id} session={s} hostId={hostId} />
           ))}
           {!isLoading && !sessions.length && (
-            <div className="border-2 border-ink p-10 text-center text-ink/50 pl-serif italic">
+            <div className="border-2 border-gray-900 p-10 text-center text-gray-900/50 pl-serif italic">
               No sessions yet. Create one to get a shareable link.
             </div>
           )}

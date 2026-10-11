@@ -38,10 +38,10 @@ function formatDate(value?: string) {
 }
 
 function statusClass(status: Job["status"]) {
-  if (status === "ready") return "bg-paper text-persimmon";
-  if (status === "done") return "text-sage border border-sage";
-  if (status === "refunded") return "text-ochre border border-ochre";
-  return "text-fog border border-fog";
+  if (status === "ready") return "bg-gray-50 text-indigo-600";
+  if (status === "done") return "text-emerald-600 border border-emerald-600";
+  if (status === "refunded") return "text-amber-500 border border-amber-500";
+  return "text-gray-500 border border-fog";
 }
 
 export default function PrintJobsPage() {
@@ -149,30 +149,30 @@ export default function PrintJobsPage() {
 
   return (
     <div className="animate-fadein">
-      <div className="editorial-label text-persimmon mb-1">JOB LEDGER</div>
+      <div className="editorial-label text-indigo-600 mb-1">JOB LEDGER</div>
       <h1 className="pl-serif text-3xl sm:text-4xl font-bold tracking-tight mb-1">
-        Every print, <em className="italic text-persimmon font-semibold">accounted for</em>.
+        Every print, <em className="italic text-indigo-600 font-semibold">accounted for</em>.
       </h1>
-      <p className="pl-serif italic text-ink/60 mb-6 sm:mb-7 text-sm sm:text-base">
+      <p className="pl-serif italic text-gray-900/60 mb-6 sm:mb-7 text-sm sm:text-base">
         Tap any code to copy it. Use the QR at a kiosk for faster release.
       </p>
 
       {isError && (
-        <div className="border-2 border-persimmon bg-persimmon/10 text-ink p-3 rounded mb-4 text-sm font-semibold">
+        <div className="border-2 border-indigo-600 bg-indigo-50 text-gray-900 p-3 rounded mb-4 text-sm font-semibold">
           The backend did not respond. Start the backend and refresh this page.
         </div>
       )}
 
       {/* Filter tabs — horizontal scroll on phone so they all fit. */}
       <div className="mb-4 -mx-1 px-1 overflow-x-auto">
-        <div className="flex border-2 border-ink w-fit">
+        <div className="flex border-2 border-gray-900 w-fit">
           {tabs.map((tab, index) => (
             <button
               key={tab.k}
               onClick={() => setFilter(tab.k)}
               className={`px-3 py-1.5 text-[11px] font-bold tracking-wider transition-colors whitespace-nowrap ${
-                filter === tab.k ? "bg-persimmon text-paper" : "hover:bg-ink hover:text-paper"
-              } ${index < tabs.length - 1 ? "border-r border-ink" : ""}`}
+                filter === tab.k ? "bg-indigo-600 text-gray-50" : "hover:bg-gray-900 hover:text-gray-50"
+              } ${index < tabs.length - 1 ? "border-r border-gray-900" : ""}`}
             >
               {tab.l}
             </button>
@@ -181,8 +181,8 @@ export default function PrintJobsPage() {
       </div>
 
       {/* ── Desktop table ─────────────────────────────────────────── */}
-      <div className="hidden md:block border-2 border-ink">
-        <div className="bg-ink text-paper grid grid-cols-[30px_1fr_110px_85px_70px_80px_150px] gap-3 px-3 py-2 text-[10px] tracking-editorial font-bold">
+      <div className="hidden md:block border-2 border-gray-900">
+        <div className="bg-gray-900 text-gray-50 grid grid-cols-[30px_1fr_110px_85px_70px_80px_150px] gap-3 px-3 py-2 text-[10px] tracking-editorial font-bold">
           <div>#</div>
           <div>JOB</div>
           <div>CODE</div>
@@ -199,13 +199,13 @@ export default function PrintJobsPage() {
             <div
               key={job.id}
               className={`${
-                job.status === "ready" ? "bg-persimmon text-paper" : "hover:bg-paper-light"
-              } transition-colors border-b border-ink/10 last:border-0`}
+                job.status === "ready" ? "bg-indigo-600 text-gray-50" : "hover:bg-gray-100"
+              } transition-colors border-b border-gray-900/10 last:border-0`}
             >
               <div className="grid grid-cols-[30px_1fr_110px_85px_70px_80px_150px] gap-3 px-3 py-3 cursor-pointer items-center">
                 <div
                   className={`pl-serif italic font-bold text-base ${
-                    job.status === "ready" ? "text-paper" : "text-ochre"
+                    job.status === "ready" ? "text-gray-50" : "text-amber-500"
                   }`}
                 >
                   {String(index + 1).padStart(2, "0")}
@@ -214,7 +214,7 @@ export default function PrintJobsPage() {
                   <div className="font-semibold text-[13px]">{job.title || job.fileName}</div>
                   <div
                     className={`text-[11px] mt-0.5 ${
-                      job.status === "ready" ? "text-paper/70" : "text-fog"
+                      job.status === "ready" ? "text-gray-50/70" : "text-gray-500"
                     }`}
                   >
                     {job.meta}
@@ -229,8 +229,8 @@ export default function PrintJobsPage() {
                   onClick={() => copyCode(job.code)}
                   className={`pl-mono text-[12px] font-bold inline-flex items-center gap-2 border-2 px-2 py-1 rounded transition-all ${
                     job.status === "ready"
-                      ? "border-paper text-paper hover:bg-paper hover:text-persimmon"
-                      : "border-ink hover:bg-ink hover:text-paper"
+                      ? "border-paper text-gray-50 hover:bg-gray-50 hover:text-indigo-600"
+                      : "border-gray-900 hover:bg-gray-900 hover:text-gray-50"
                   }`}
                   title="Copy print code"
                 >
@@ -238,7 +238,7 @@ export default function PrintJobsPage() {
                   <Copy size={13} />
                 </button>
                 <div
-                  className={`text-xs font-semibold ${job.status === "ready" ? "" : "text-fog"}`}
+                  className={`text-xs font-semibold ${job.status === "ready" ? "" : "text-gray-500"}`}
                 >
                   {formatDate(job.createdAt)}
                 </div>
@@ -255,7 +255,7 @@ export default function PrintJobsPage() {
                 {job.status === "ready" ? (
                   <button
                     onClick={() => setOpenQr(qrIsOpen ? null : job.id)}
-                    className="inline-flex items-center justify-center border-2 rounded-md h-9 w-9 border-paper text-paper hover:bg-paper hover:text-persimmon transition-all"
+                    className="inline-flex items-center justify-center border-2 rounded-md h-9 w-9 border-paper text-gray-50 hover:bg-gray-50 hover:text-indigo-600 transition-all"
                     title="Show QR code"
                   >
                     <QrCode size={17} />
@@ -265,7 +265,7 @@ export default function PrintJobsPage() {
                     <button
                       onClick={() => handleDispute(job.id)}
                       disabled={isDisputing}
-                      className="inline-flex items-center justify-center border-2 border-persimmon text-persimmon hover:bg-persimmon hover:text-paper rounded-md h-9 px-2 text-[10px] font-bold transition-all disabled:opacity-50"
+                      className="inline-flex items-center justify-center border-2 border-indigo-600 text-indigo-600 hover:bg-indigo-600 hover:text-gray-50 rounded-md h-9 px-2 text-[10px] font-bold transition-all disabled:opacity-50"
                       title="Dispute print job"
                     >
                       DISPUTE
@@ -273,7 +273,7 @@ export default function PrintJobsPage() {
                     {job.tenantSlug && (
                       <button
                         onClick={() => handleOpenReview(job)}
-                        className="inline-flex items-center justify-center border-2 border-ink bg-ink text-paper hover:bg-persimmon hover:text-paper rounded-md h-9 px-2 text-[10px] font-bold transition-all"
+                        className="inline-flex items-center justify-center border-2 border-gray-900 bg-gray-900 text-gray-50 hover:bg-indigo-600 hover:text-gray-50 rounded-md h-9 px-2 text-[10px] font-bold transition-all"
                         title="Leave a Review"
                       >
                         REVIEW
@@ -284,23 +284,23 @@ export default function PrintJobsPage() {
                   <button
                     onClick={() => handleDispute(job.id)}
                     disabled={isDisputing}
-                    className="inline-flex items-center justify-center border-2 border-persimmon text-persimmon hover:bg-persimmon hover:text-paper rounded-md h-9 px-2 text-[10px] font-bold transition-all disabled:opacity-50"
+                    className="inline-flex items-center justify-center border-2 border-indigo-600 text-indigo-600 hover:bg-indigo-600 hover:text-gray-50 rounded-md h-9 px-2 text-[10px] font-bold transition-all disabled:opacity-50"
                     title="Dispute print job"
                   >
                     DISPUTE
                   </button>
                 ) : (
-                  <span className="text-fog text-xs">—</span>
+                  <span className="text-gray-500 text-xs">—</span>
                 )}
               </div>
               {qrIsOpen && (
                 <div className="px-3 pb-4 animate-fadein">
-                  <div className="bg-paper text-ink border-2 border-ink p-4 inline-flex items-center gap-4">
+                  <div className="bg-gray-50 text-gray-900 border-2 border-gray-900 p-4 inline-flex items-center gap-4">
                     <QRCodeSVG value={qrValue} size={112} level="M" includeMargin />
                     <div className="text-left">
-                      <div className="editorial-label text-persimmon mb-1">KIOSK QR TOKEN</div>
+                      <div className="editorial-label text-indigo-600 mb-1">KIOSK QR TOKEN</div>
                       <div className="pl-mono font-bold text-sm">{job.code}</div>
-                      <div className="text-xs text-ink/60 mt-1">
+                      <div className="text-xs text-gray-900/60 mt-1">
                         Valid until{" "}
                         {job.expiresAt ? new Date(job.expiresAt).toLocaleString() : "24 hours after payment"}.
                       </div>
@@ -312,7 +312,7 @@ export default function PrintJobsPage() {
           );
         })}
         {!isLoading && filtered.length === 0 && (
-          <div className="p-10 text-center text-ink/50 pl-serif italic">No jobs in this view.</div>
+          <div className="p-10 text-center text-gray-900/50 pl-serif italic">No jobs in this view.</div>
         )}
       </div>
 
@@ -325,8 +325,8 @@ export default function PrintJobsPage() {
           return (
             <li
               key={job.id}
-              className={`border-2 border-ink rounded-lg overflow-hidden ${
-                isReady ? "bg-persimmon text-paper" : "bg-paper-light"
+              className={`border-2 border-gray-900 rounded-lg overflow-hidden ${
+                isReady ? "bg-indigo-600 text-gray-50" : "bg-gray-100"
               }`}
             >
               <div className="p-4">
@@ -336,7 +336,7 @@ export default function PrintJobsPage() {
                     <div className="font-bold text-base truncate">{job.title || job.fileName}</div>
                     {job.meta && (
                       <div
-                        className={`text-[11px] mt-0.5 ${isReady ? "text-paper/70" : "text-fog"}`}
+                        className={`text-[11px] mt-0.5 ${isReady ? "text-gray-50/70" : "text-gray-500"}`}
                       >
                         {job.meta}
                       </div>
@@ -356,8 +356,8 @@ export default function PrintJobsPage() {
                   onClick={() => copyCode(job.code)}
                   className={`w-full pl-mono text-xl font-bold inline-flex items-center justify-between gap-2 border-2 px-3 py-2.5 rounded transition-all mb-3 ${
                     isReady
-                      ? "border-paper text-paper active:bg-paper active:text-persimmon"
-                      : "border-ink active:bg-ink active:text-paper"
+                      ? "border-paper text-gray-50 active:bg-gray-50 active:text-indigo-600"
+                      : "border-gray-900 active:bg-gray-900 active:text-gray-50"
                   }`}
                 >
                   {job.code}
@@ -366,7 +366,7 @@ export default function PrintJobsPage() {
 
                 {/* Date + cost */}
                 <div className="flex items-center justify-between text-xs mb-3">
-                  <span className={isReady ? "" : "text-fog"}>
+                  <span className={isReady ? "" : "text-gray-500"}>
                     <span className="font-bold">When:</span> {formatDate(job.createdAt)}
                   </span>
                   <span className="pl-mono font-bold text-sm">₦{job.cost.toLocaleString()}</span>
@@ -376,7 +376,7 @@ export default function PrintJobsPage() {
                 {isReady && (
                   <button
                     onClick={() => setOpenQr(qrIsOpen ? null : job.id)}
-                    className="w-full inline-flex items-center justify-center gap-2 border-2 px-3 py-2.5 rounded text-[11px] font-bold tracking-editorial transition-all border-paper text-paper active:bg-paper active:text-persimmon"
+                    className="w-full inline-flex items-center justify-center gap-2 border-2 px-3 py-2.5 rounded text-[11px] font-bold tracking-editorial transition-all border-paper text-gray-50 active:bg-gray-50 active:text-indigo-600"
                   >
                     <QrCode size={15} />
                     {qrIsOpen ? "HIDE QR" : "SHOW QR FOR KIOSK"}
@@ -388,7 +388,7 @@ export default function PrintJobsPage() {
                   <button
                     onClick={() => handleDispute(job.id)}
                     disabled={isDisputing}
-                    className="w-full inline-flex items-center justify-center gap-2 border-2 border-persimmon text-persimmon active:bg-persimmon active:text-paper px-3 py-2.5 rounded text-[11px] font-bold tracking-editorial transition-all disabled:opacity-50"
+                    className="w-full inline-flex items-center justify-center gap-2 border-2 border-indigo-600 text-indigo-600 active:bg-indigo-600 active:text-gray-50 px-3 py-2.5 rounded text-[11px] font-bold tracking-editorial transition-all disabled:opacity-50"
                   >
                     <AlertTriangle size={15} />
                     DISPUTE PRINT JOB
@@ -399,7 +399,7 @@ export default function PrintJobsPage() {
                 {job.status === "done" && job.tenantSlug && (
                   <button
                     onClick={() => handleOpenReview(job)}
-                    className="w-full mt-2 inline-flex items-center justify-center gap-2 border-2 border-ink bg-ink text-paper active:bg-persimmon active:text-paper px-3 py-2.5 rounded text-[11px] font-bold tracking-editorial transition-all"
+                    className="w-full mt-2 inline-flex items-center justify-center gap-2 border-2 border-gray-900 bg-gray-900 text-gray-50 active:bg-indigo-600 active:text-gray-50 px-3 py-2.5 rounded text-[11px] font-bold tracking-editorial transition-all"
                   >
                     LEAVE SHOP REVIEW
                   </button>
@@ -413,12 +413,12 @@ export default function PrintJobsPage() {
               </div>
 
               {qrIsOpen && (
-                <div className="bg-paper text-ink border-t-2 border-ink p-4 flex flex-col items-center gap-3 animate-fadein">
+                <div className="bg-gray-50 text-gray-900 border-t-2 border-gray-900 p-4 flex flex-col items-center gap-3 animate-fadein">
                   <QRCodeSVG value={qrValue} size={160} level="M" includeMargin />
                   <div className="text-center">
-                    <div className="editorial-label text-persimmon mb-1">KIOSK QR TOKEN</div>
+                    <div className="editorial-label text-indigo-600 mb-1">KIOSK QR TOKEN</div>
                     <div className="pl-mono font-bold text-sm">{job.code}</div>
-                    <div className="text-xs text-ink/60 mt-1">
+                    <div className="text-xs text-gray-900/60 mt-1">
                       Valid until{" "}
                       {job.expiresAt ? new Date(job.expiresAt).toLocaleString() : "24 hours after payment"}.
                     </div>
@@ -429,7 +429,7 @@ export default function PrintJobsPage() {
           );
         })}
         {!isLoading && filtered.length === 0 && (
-          <li className="border-2 border-dashed border-ink/30 rounded-lg p-8 text-center text-sm text-fog">
+          <li className="border-2 border-dashed border-gray-900/30 rounded-lg p-8 text-center text-sm text-gray-500">
             No jobs in this view.
           </li>
         )}
@@ -437,34 +437,34 @@ export default function PrintJobsPage() {
 
       {/* Review Modal */}
       {reviewingJob && (
-        <div className="fixed inset-0 bg-ink/75 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-gray-900/75 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <form
             onSubmit={handleReviewSubmit}
-            className="bg-paper border-4 border-ink shadow-[8px_8px_0_#000] p-6 max-w-md w-full rounded flex flex-col gap-4 animate-fadein relative"
+            className="bg-gray-50 border-4 border-gray-900 shadow-[8px_8px_0_#000] p-6 max-w-md w-full rounded flex flex-col gap-4 animate-fadein relative"
           >
             {/* Close button */}
             <button
               type="button"
               onClick={handleCloseReview}
-              className="absolute top-3 right-3 text-ink bg-paper border-2 border-ink p-1 font-bold hover:bg-persimmon hover:text-paper leading-none transition-colors w-7 h-7 flex items-center justify-center rounded"
+              className="absolute top-3 right-3 text-gray-900 bg-gray-50 border-2 border-gray-900 p-1 font-bold hover:bg-indigo-600 hover:text-gray-50 leading-none transition-colors w-7 h-7 flex items-center justify-center rounded"
               aria-label="Close"
             >
               ✕
             </button>
 
             <div>
-              <div className="editorial-label text-persimmon mb-0.5">LEAVE A REVIEW</div>
+              <div className="editorial-label text-indigo-600 mb-0.5">LEAVE A REVIEW</div>
               <h2 className="pl-serif text-2xl font-bold tracking-tight leading-tight">
                 {reviewingJob.tenantName || "Rate Print Shop"}
               </h2>
-              <p className="text-xs text-ink/60 mt-1 italic">
+              <p className="text-xs text-gray-900/60 mt-1 italic">
                 Share your print experience for job code <span className="font-mono font-bold">{reviewingJob.code}</span>.
               </p>
             </div>
 
             {/* Stars */}
             <div className="flex flex-col gap-1">
-              <label className="text-[10px] tracking-editorial font-extrabold text-ink/75 uppercase text-center">
+              <label className="text-[10px] tracking-editorial font-extrabold text-gray-900/75 uppercase text-center">
                 Rating
               </label>
               <div className="flex gap-1.5 justify-center my-1">
@@ -473,8 +473,8 @@ export default function PrintJobsPage() {
                     key={star}
                     type="button"
                     onClick={() => setRating(star)}
-                    className={`w-10 h-10 text-lg font-bold border-2 border-ink flex items-center justify-center transition-colors rounded ${
-                      star <= rating ? "bg-ochre text-ink" : "bg-paper text-ink/40 hover:bg-ochre/25"
+                    className={`w-10 h-10 text-lg font-bold border-2 border-gray-900 flex items-center justify-center transition-colors rounded ${
+                      star <= rating ? "bg-amber-500 text-gray-900" : "bg-gray-50 text-gray-900/40 hover:bg-amber-100"
                     }`}
                   >
                     ★
@@ -485,7 +485,7 @@ export default function PrintJobsPage() {
 
             {/* Comment */}
             <div className="flex flex-col gap-1">
-              <label className="text-[10px] tracking-editorial font-extrabold text-ink/75 uppercase">
+              <label className="text-[10px] tracking-editorial font-extrabold text-gray-900/75 uppercase">
                 Comment (optional)
               </label>
               <textarea
@@ -493,26 +493,26 @@ export default function PrintJobsPage() {
                 onChange={(e) => setComment(e.target.value)}
                 placeholder="What went well? How was the service?"
                 rows={3}
-                className="border-2 border-ink p-2 text-sm bg-white font-medium focus:outline-none focus:ring-2 focus:ring-persimmon/55"
+                className="border-2 border-gray-900 p-2 text-sm bg-white font-medium focus:outline-none focus:ring-2 focus:ring-persimmon/55"
               />
             </div>
 
             {/* Photo upload */}
             <div className="flex flex-col gap-1">
-              <label className="text-[10px] tracking-editorial font-extrabold text-ink/75 uppercase">
+              <label className="text-[10px] tracking-editorial font-extrabold text-gray-900/75 uppercase">
                 Attach Photo (optional)
               </label>
-              <div className="border-2 border-dashed border-ink/40 p-4 bg-white text-center relative flex flex-col items-center justify-center min-h-[96px]">
+              <div className="border-2 border-dashed border-gray-900/40 p-4 bg-white text-center relative flex flex-col items-center justify-center min-h-[96px]">
                 {uploadedPhotoUrl ? (
                   <div className="flex flex-col items-center gap-2">
-                    <img src={uploadedPhotoUrl} alt="Preview" className="max-h-24 object-cover border-2 border-ink" />
+                    <img src={uploadedPhotoUrl} alt="Preview" className="max-h-24 object-cover border-2 border-gray-900" />
                     <button
                       type="button"
                       onClick={() => {
                         setSelectedPhoto(null);
                         setUploadedPhotoUrl(null);
                       }}
-                      className="text-[10px] text-persimmon font-bold hover:underline"
+                      className="text-[10px] text-indigo-600 font-bold hover:underline"
                     >
                       Remove Photo
                     </button>
@@ -538,7 +538,7 @@ export default function PrintJobsPage() {
               <button
                 type="button"
                 onClick={handleCloseReview}
-                className="px-4 py-2 border-2 border-ink bg-paper text-ink font-bold text-xs uppercase hover:bg-gray-100 rounded"
+                className="px-4 py-2 border-2 border-gray-900 bg-gray-50 text-gray-900 font-bold text-xs uppercase hover:bg-gray-100 rounded"
               >
                 Cancel
               </button>

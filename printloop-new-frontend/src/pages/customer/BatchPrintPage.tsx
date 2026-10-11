@@ -272,15 +272,15 @@ export default function BatchPrintPage() {
       d.cfg.pages === "range" && d.rangeable ? parsePageRange(d.cfg.pageRange, d.pageCount) : null;
     return (
       <div className="animate-fadein">
-        <div className="editorial-label text-persimmon mb-1">CUSTOMIZE DOCUMENT</div>
+        <div className="editorial-label text-indigo-600 mb-1">CUSTOMIZE DOCUMENT</div>
         <h1 className="pl-serif text-3xl font-bold tracking-tight mb-1 truncate">{d.file.name}</h1>
-        <p className="pl-serif italic text-ink/60 mb-6">
+        <p className="pl-serif italic text-gray-900/60 mb-6">
           Document {editing + 1} of {docs.length} · changes apply to this file only.
         </p>
         <div className="grid grid-cols-1 lg:grid-cols-[380px_1fr] gap-4">
-          <section className="border-2 border-ink p-6 bg-paper-light h-fit">
-            <div className="border-2 border-ink bg-paper p-3 mb-5 flex justify-between items-center">
-              <span className="editorial-label text-ink/60">PAGES</span>
+          <section className="border-2 border-gray-900 p-6 bg-gray-100 h-fit">
+            <div className="border-2 border-gray-900 bg-gray-50 p-3 mb-5 flex justify-between items-center">
+              <span className="editorial-label text-gray-900/60">PAGES</span>
               {d.rangeable
                 ? <span className="pl-mono text-xl font-bold">{d.pageCount || "…"}</span>
                 : <input type="number" min={1} value={d.pageCount || 1}
@@ -331,7 +331,7 @@ export default function BatchPrintPage() {
               <input value={d.cfg.pageRange} onChange={(e) => patchDoc(editing, { pageRange: e.target.value })}
                 className="pl-input mb-2" placeholder="e.g. 2-3, 10-20" />
             )}
-            <div className="bg-ink text-paper p-4 flex justify-between items-center mt-5">
+            <div className="bg-gray-900 text-gray-50 p-4 flex justify-between items-center mt-5">
               <span className="pl-serif italic">This file</span>
               <span className="pl-mono text-2xl font-bold">₦{costOf(d, pricingRows).toLocaleString()}</span>
             </div>
@@ -342,7 +342,7 @@ export default function BatchPrintPage() {
               </Button>
             </div>
           </section>
-          <div className="border-2 border-ink">
+          <div className="border-2 border-gray-900">
             <PrintPreview file={d.file} pages={sel} color={d.cfg.color} copies={d.cfg.copies}
               orientation={d.cfg.orientation}
               onMeta={(m) => setMeta(editing, m.pageCount, m.rangeable)} />
@@ -356,15 +356,15 @@ export default function BatchPrintPage() {
   if (receipt) {
     return (
       <div className="animate-fadein">
-        <div className="editorial-label text-persimmon mb-1">BATCH READY</div>
+        <div className="editorial-label text-indigo-600 mb-1">BATCH READY</div>
         <h1 className="pl-serif text-3xl sm:text-4xl font-bold tracking-tight mb-1">
-          One code, <em className="italic text-persimmon font-semibold">{docs.length} documents</em>.
+          One code, <em className="italic text-indigo-600 font-semibold">{docs.length} documents</em>.
         </h1>
-        <p className="pl-serif italic text-ink/60 mb-6 sm:mb-7 text-sm sm:text-base">
+        <p className="pl-serif italic text-gray-900/60 mb-6 sm:mb-7 text-sm sm:text-base">
           A single 24-hour code releases the whole set at the kiosk — printed in order
           {collate ? ", collated" : ""}.
         </p>
-        <div className="border-2 border-ink bg-paper-light p-7 flex flex-col md:flex-row gap-7 items-center">
+        <div className="border-2 border-gray-900 bg-gray-100 p-7 flex flex-col md:flex-row gap-7 items-center">
           <QrBlock
             value={receipt.qrPayload || `printloop://release/${receipt.code}`}
             caption={receipt.code}
@@ -373,16 +373,16 @@ export default function BatchPrintPage() {
             fileName={`printloop-batch-${receipt.code}`}
           />
           <div className="flex-1 w-full">
-            <div className="flex justify-between border-b border-ink/15 py-2 text-sm">
+            <div className="flex justify-between border-b border-gray-900/15 py-2 text-sm">
               <span>Documents</span><b>{docs.length}</b>
             </div>
-            <div className="flex justify-between border-b border-ink/15 py-2 text-sm">
+            <div className="flex justify-between border-b border-gray-900/15 py-2 text-sm">
               <span>Collated</span><b>{collate ? "Yes" : "No"}</b>
             </div>
-            <div className="flex justify-between border-b border-ink/15 py-2 text-sm">
+            <div className="flex justify-between border-b border-gray-900/15 py-2 text-sm">
               <span>Paid</span><b>₦{Number(receipt.cost).toLocaleString()}</b>
             </div>
-            <div className="mt-3 max-h-40 overflow-y-auto text-xs text-ink/70 space-y-1">
+            <div className="mt-3 max-h-40 overflow-y-auto text-xs text-gray-900/70 space-y-1">
               {docs.map((d, i) => (
                 <div key={i} className="truncate">
                   {String(i + 1).padStart(2, "0")} · {d.file.name} —{" "}
@@ -402,19 +402,19 @@ export default function BatchPrintPage() {
   // ── Batch list ───────────────────────────────────────────
   return (
     <div className="animate-fadein">
-      <div className="editorial-label text-persimmon mb-1">PERSONAL BATCH PRINTING</div>
+      <div className="editorial-label text-indigo-600 mb-1">PERSONAL BATCH PRINTING</div>
       <h1 className="pl-serif text-3xl sm:text-4xl font-bold tracking-tight mb-1">
-        Many files, each <em className="italic text-persimmon font-semibold">your way</em>.
+        Many files, each <em className="italic text-indigo-600 font-semibold">your way</em>.
       </h1>
-      <p className="pl-serif italic text-ink/60 mb-6 sm:mb-7 text-sm sm:text-base">
+      <p className="pl-serif italic text-gray-900/60 mb-6 sm:mb-7 text-sm sm:text-base">
         Set a default, then fine-tune any document individually. Files left untouched use the default.
       </p>
 
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-4">
-        <section className="border-2 border-ink p-4 sm:p-7">
-          <label htmlFor="bf" className="block border-2 border-dashed border-ink/40 p-8 text-center cursor-pointer hover:bg-paper-light transition-colors">
+        <section className="border-2 border-gray-900 p-4 sm:p-7">
+          <label htmlFor="bf" className="block border-2 border-dashed border-gray-900/40 p-8 text-center cursor-pointer hover:bg-gray-100 transition-colors">
             <div className="pl-serif text-xl font-bold">Attach documents</div>
-            <div className="pl-serif italic text-ink/60 text-sm mt-1">
+            <div className="pl-serif italic text-gray-900/60 text-sm mt-1">
               {officeEnabled ? "PDF · images · Word · PowerPoint · Excel" : "PDF · JPG · PNG"} — add as many as you like
             </div>
             <input id="bf" hidden multiple type="file"
@@ -422,39 +422,39 @@ export default function BatchPrintPage() {
               onChange={(e) => addFiles(e.target.files)} />
           </label>
 
-          <div className="mt-6 border-2 border-ink">
-            <div className="bg-ink text-paper grid grid-cols-[34px_1fr_auto_92px_32px] gap-2 px-3 py-2 text-[10px] tracking-editorial font-bold items-center">
+          <div className="mt-6 border-2 border-gray-900">
+            <div className="bg-gray-900 text-gray-50 grid grid-cols-[34px_1fr_auto_92px_32px] gap-2 px-3 py-2 text-[10px] tracking-editorial font-bold items-center">
               <div>#</div><div>FILE</div><div>SETTINGS</div><div className="text-right">COST</div><div></div>
             </div>
             {docs.map((d, i) => (
-              <div key={`${d.file.name}-${i}`} className="grid grid-cols-[34px_1fr_auto_92px_32px] gap-2 px-3 py-3 border-b border-ink/10 last:border-0 items-center">
-                <div className="pl-serif italic text-ochre font-bold">{String(i + 1).padStart(2, "0")}</div>
+              <div key={`${d.file.name}-${i}`} className="grid grid-cols-[34px_1fr_auto_92px_32px] gap-2 px-3 py-3 border-b border-gray-900/10 last:border-0 items-center">
+                <div className="pl-serif italic text-amber-500 font-bold">{String(i + 1).padStart(2, "0")}</div>
                 <div className="min-w-0">
                   <div className="font-semibold text-sm truncate">{d.file.name}</div>
                   <div className="text-[11px] mt-0.5 flex items-center gap-2">
                     {d.custom
-                      ? <span className="text-persimmon font-bold">● Customized</span>
-                      : <span className="text-fog">Using default</span>}
-                    <span className="text-fog">·</span>
+                      ? <span className="text-indigo-600 font-bold">● Customized</span>
+                      : <span className="text-gray-500">Using default</span>}
+                    <span className="text-gray-500">·</span>
                     {d.office ? (
-                      <span className="inline-flex items-center gap-1 text-ochre pl-mono">
+                      <span className="inline-flex items-center gap-1 text-amber-500 pl-mono">
                         ~
                         <input
                           type="number"
                           min={1}
                           value={d.pageCount}
                           onChange={(e) => setDocPages(i, Math.max(1, Number(e.target.value)))}
-                          className="w-10 bg-transparent border-b border-ochre/50 text-ochre text-center outline-none"
+                          className="w-10 bg-transparent border-b border-amber-500/50 text-amber-500 text-center outline-none"
                           title="Approximate pages — confirmed after we convert your document"
                         />
                         pp est.
                       </span>
                     ) : (
-                      <span className="text-fog pl-mono">{printedPages(d)}pp</span>
+                      <span className="text-gray-500 pl-mono">{printedPages(d)}pp</span>
                     )}
                   </div>
                 </div>
-                <div className="text-[11px] text-ink/70 hidden sm:block">
+                <div className="text-[11px] text-gray-900/70 hidden sm:block">
                   {d.cfg.color === "color" ? "Colour" : "B&W"} · {d.cfg.sided === "double" ? "Duplex" : "Single"} · {d.cfg.paper}{" "}
                   {d.cfg.orientation === "landscape" ? "↺" : ""} ·{" "}
                   {d.cfg.pages === "range" && d.cfg.pageRange ? `p.${d.cfg.pageRange}` : "all"} · x{d.cfg.copies}
@@ -466,70 +466,70 @@ export default function BatchPrintPage() {
                 <button
                   onClick={() => removeDoc(i)}
                   title={`Remove ${d.file.name}`}
-                  className="text-ink/40 hover:text-persimmon transition-colors p-1"
+                  className="text-gray-900/40 hover:text-indigo-600 transition-colors p-1"
                   aria-label={`Remove ${d.file.name}`}
                 >
                   <X size={16} />
                 </button>
               </div>
             ))}
-            {!docs.length && <div className="p-8 text-center text-ink/50 pl-serif italic">No files attached yet.</div>}
+            {!docs.length && <div className="p-8 text-center text-gray-900/50 pl-serif italic">No files attached yet.</div>}
           </div>
 
           {hasOffice && (
-            <div className="border-2 border-ochre/60 bg-ochre/10 p-3 mt-3 text-xs pl-serif">
+            <div className="border-2 border-amber-500/60 bg-amber-50 p-3 mt-3 text-xs pl-serif">
               Office files are converted to PDF on upload — page counts &amp; prices shown for them
               are <span className="font-bold">estimates</span>, confirmed on your receipt.
             </div>
           )}
 
           {/* Default settings */}
-          <div className="mt-6 border-2 border-ink bg-paper-light p-5">
-            <div className="editorial-label text-persimmon mb-3">DEFAULT SETTINGS — applied to non-customized files</div>
+          <div className="mt-6 border-2 border-gray-900 bg-gray-100 p-5">
+            <div className="editorial-label text-indigo-600 mb-3">DEFAULT SETTINGS — applied to non-customized files</div>
             <div className="flex flex-wrap gap-2">
               <Chip on={def.color === "bw"} onClick={() => updateDefault({ color: "bw" })}>B&amp;W</Chip>
               {hasColorCapability && (
                 <Chip on={def.color === "color"} onClick={() => updateDefault({ color: "color" })}>Colour</Chip>
               )}
-              <span className="w-px bg-ink/15 mx-1" />
+              <span className="w-px bg-gray-900/15 mx-1" />
               <Chip on={def.sided === "single"} onClick={() => updateDefault({ sided: "single" })}>Single</Chip>
               <Chip on={def.sided === "double"} onClick={() => updateDefault({ sided: "double" })}>Duplex</Chip>
-              <span className="w-px bg-ink/15 mx-1" />
+              <span className="w-px bg-gray-900/15 mx-1" />
               {paperOptions.map((p) => (
                 <Chip key={p} on={def.paper.toUpperCase() === p.toUpperCase()} onClick={() => updateDefault({ paper: p as any })}>{p}</Chip>
               ))}
-              <span className="w-px bg-ink/15 mx-1" />
+              <span className="w-px bg-gray-900/15 mx-1" />
               <Chip on={def.orientation === "portrait"} onClick={() => updateDefault({ orientation: "portrait" })}>Portrait</Chip>
               <Chip on={def.orientation === "landscape"} onClick={() => updateDefault({ orientation: "landscape" })}>Landscape</Chip>
             </div>
           </div>
         </section>
 
-        <aside className="border-2 border-ink p-4 sm:p-7 bg-paper-light h-fit">
-          <div className="editorial-label text-persimmon mb-2">BATCH SUMMARY</div>
+        <aside className="border-2 border-gray-900 p-4 sm:p-7 bg-gray-100 h-fit">
+          <div className="editorial-label text-indigo-600 mb-2">BATCH SUMMARY</div>
           <div className="pl-serif text-4xl font-bold mb-1">₦{total.toLocaleString()}</div>
-          <div className="text-sm text-ink/60 mb-5">
+          <div className="text-sm text-gray-900/60 mb-5">
             {docs.length} file{docs.length === 1 ? "" : "s"} · {docs.filter((d) => d.custom).length} customized · one code for all
           </div>
 
           <div className="editorial-label mb-2">PAYMENT METHOD</div>
-          <div className="border-2 border-ink rounded-md p-3 flex items-start gap-3 bg-paper mb-5">
+          <div className="border-2 border-gray-900 rounded-md p-3 flex items-start gap-3 bg-gray-50 mb-5">
             <CreditCard size={17} className="mt-0.5 shrink-0" />
             <div>
               <div className="text-xs font-bold tracking-wider uppercase">Paystack</div>
-              <div className="text-[10px] text-ink/55 mt-1">Card · transfer · USSD · bank — secure checkout in a new tab</div>
+              <div className="text-[10px] text-gray-900/55 mt-1">Card · transfer · USSD · bank — secure checkout in a new tab</div>
             </div>
           </div>
 
-          <label className="flex items-center justify-between border-2 border-ink bg-paper p-3 mb-4 cursor-pointer">
+          <label className="flex items-center justify-between border-2 border-gray-900 bg-gray-50 p-3 mb-4 cursor-pointer">
             <span className="text-sm font-bold">Collate copies</span>
-            <input type="checkbox" checked={collate} onChange={(e) => setCollate(e.target.checked)} className="w-4 h-4 accent-persimmon" />
+            <input type="checkbox" checked={collate} onChange={(e) => setCollate(e.target.checked)} className="w-4 h-4 accent-indigo-600" />
           </label>
 
           <div className="space-y-2 text-sm">
-            <div className="flex justify-between border-b border-ink/15 py-2"><span>Release code</span><b>1 for all</b></div>
-            <div className="flex justify-between border-b border-ink/15 py-2"><span>Print order</span><b>Upload order{collate ? " · collated" : ""}</b></div>
-            <div className="flex justify-between border-b border-ink/15 py-2"><span>Token expiry</span><b>24 hours</b></div>
+            <div className="flex justify-between border-b border-gray-900/15 py-2"><span>Release code</span><b>1 for all</b></div>
+            <div className="flex justify-between border-b border-gray-900/15 py-2"><span>Print order</span><b>Upload order{collate ? " · collated" : ""}</b></div>
+            <div className="flex justify-between border-b border-gray-900/15 py-2"><span>Token expiry</span><b>24 hours</b></div>
           </div>
           <Button variant="primary" arrow className="w-full mt-6" loading={isLoading || isIniting} disabled={!docs.length} onClick={pay}>
             <Check size={16} /> {awaitingPayment ? "CHECKOUT OPEN…" : "PAY & GET CODE"}

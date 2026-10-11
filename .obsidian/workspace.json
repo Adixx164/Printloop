@@ -4,21 +4,17 @@
     "type": "split",
     "children": [
       {
-        "id": "d4309bab1f5fa710",
+        "id": "60d7476dbaa96798",
         "type": "tabs",
         "children": [
           {
-            "id": "d811627df962cf0f",
+            "id": "4463aad2f4fd70aa",
             "type": "leaf",
             "state": {
-              "type": "markdown",
-              "state": {
-                "file": "CODEBASE-DICTIONARY.md",
-                "mode": "source",
-                "source": false
-              },
+              "type": "empty",
+              "state": {},
               "icon": "lucide-file",
-              "title": "CODEBASE-DICTIONARY"
+              "title": "New tab"
             }
           }
         ]
@@ -188,6 +184,53 @@
       "bases:Create new base": false
     }
   },
-  "active": "d811627df962cf0f",
-  "lastOpenFiles": []
+  "active": "4463aad2f4fd70aa",
+  "lastOpenFiles": [
+    "render-worker/dist/utils/redis-util.d.ts",
+    "render-worker/dist/utils/redis-util.d.ts.map",
+    "render-worker/dist/utils/redis-util.js",
+    "render-worker/dist/utils/redis-util.js.map",
+    "archive/waitlist-deploy/img/plate-workshop.jpg",
+    "archive/waitlist-deploy/img/plate-studio.jpg",
+    "archive/waitlist-deploy/index.html",
+    "archive/waitlist-deploy/img",
+    "archive/waitlist-deploy",
+    "archive/kiosk-app/node_modules/node-gyp/test/fixtures/nodedir/include/node/config.gypi",
+    "archive/kiosk-app/node_modules/lazystream/node_modules/readable-stream/lib/internal/streams/stream.js",
+    "archive/kiosk-app/node_modules/lazystream/node_modules/readable-stream/lib/internal/streams/stream-browser.js",
+    "archive/kiosk-app/node_modules/lazystream/node_modules/readable-stream/lib/internal/streams/destroy.js",
+    "archive/kiosk-app/node_modules/lazystream/node_modules/readable-stream/doc/wg-meetings/2015-01-30.md",
+    "archive/kiosk-app/node_modules/archiver-utils/node_modules/readable-stream/doc/wg-meetings/2015-01-30.md",
+    "archive/kiosk-app/node_modules/app-builder-lib/templates/icons/proton-native/linux/256x256.png",
+    "archive/kiosk-app/node_modules/app-builder-lib/templates/icons/proton-native/linux/64x64.png",
+    "archive/kiosk-app/node_modules/app-builder-lib/templates/icons/proton-native/linux/48x48.png",
+    "archive/kiosk-app/node_modules/app-builder-lib/templates/icons/proton-native/linux/512x512.png",
+    "archive/kiosk-app/node_modules/app-builder-lib/templates/icons/proton-native/linux/32x32.png",
+    "archive/kiosk-app/node_modules/app-builder-lib/templates/icons/proton-native/linux/16x16.png",
+    "archive/kiosk-app/node_modules/app-builder-lib/templates/icons/proton-native/linux/128x128.png",
+    "archive/kiosk-app/node_modules/app-builder-lib/templates/icons/proton-native/linux/1024x1024.png",
+    "archive/kiosk-app/node_modules/socks/docs/examples/typescript/connectExample.md",
+    "archive/kiosk-app/node_modules/socks/docs/examples/typescript/bindExample.md",
+    "archive/kiosk-app/node_modules/socks/docs/examples/javascript/connectExample.md",
+    "archive/kiosk-app/node_modules/socks/docs/examples/typescript/associateExample.md",
+    "archive/kiosk-app/node_modules/socks/docs/examples/javascript/bindExample.md",
+    "archive/kiosk-app/node_modules/socks/docs/examples/javascript/associateExample.md",
+    "archive/kiosk-app/node_modules/@npmcli/fs/node_modules/semver/README.md",
+    "archive/kiosk-app/node_modules/@malept/flatpak-bundler/node_modules/universalify/README.md",
+    "archive/kiosk-app/node_modules/@malept/flatpak-bundler/node_modules/jsonfile/README.md",
+    "archive/kiosk-app/node_modules/@malept/flatpak-bundler/node_modules/fs-extra/README.md",
+    "archive/kiosk-app/node_modules/@malept/flatpak-bundler/node_modules/fs-extra/CHANGELOG.md",
+    "archive/kiosk-app/node_modules/@isaacs/cliui/node_modules/strip-ansi/readme.md",
+    "archive/kiosk-app/node_modules/@isaacs/cliui/node_modules/wrap-ansi/readme.md",
+    "archive/kiosk-app/node_modules/@isaacs/cliui/node_modules/string-width/readme.md",
+    "archive/kiosk-app/node_modules/@isaacs/cliui/node_modules/ansi-styles/readme.md",
+    "archive/kiosk-app/node_modules/@isaacs/cliui/node_modules/emoji-regex/README.md",
+    "archive/kiosk-app/node_modules/@isaacs/cliui/node_modules/ansi-regex/readme.md",
+    "archive/kiosk-app/node_modules/@electron/universal/node_modules/jsonfile/README.md",
+    "archive/kiosk-app/node_modules/@electron/universal/node_modules/universalify/README.md",
+    "archive/kiosk-app/node_modules/@electron/universal/node_modules/fs-extra/README.md",
+    "archive/kiosk-app/node_modules/@electron/universal/node_modules/minimatch/README.md",
+    "archive/kiosk-app/node_modules/@electron/universal/node_modules/brace-expansion/README.md",
+    "archive/kiosk-app/node_modules/@electron/universal/node_modules/balanced-match/README.md"
+  ]
 }

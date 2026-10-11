@@ -8,8 +8,8 @@ interface CollaborationCursorsProps {
 }
 
 const ROLE_COLORS: Record<EditorRole, string> = {
-  shop: '#D14B2C', // persimmon
-  customer: '#6B7A5C', // sage
+  shop: 'var(--process)',
+  customer: 'var(--pass)',
 };
 
 const ROLE_LABELS: Record<EditorRole, string> = {
@@ -95,7 +95,7 @@ function UserCursor({ user }: UserCursorProps) {
               width: '12px',
               height: '12px',
               backgroundColor: color,
-              border: '2px solid #F8F4ED',
+              border: '2px solid var(--paper)',
               borderRadius: '50% 50% 50% 0',
               transform: 'rotate(-45deg)',
             }}
@@ -107,13 +107,13 @@ function UserCursor({ user }: UserCursorProps) {
             top: '22px',
             left: '-4px',
             backgroundColor: color,
-            color: '#F8F4ED',
+            color: 'var(--paper)',
             padding: '2px 6px',
             borderRadius: '4px',
             fontSize: '10px',
             fontWeight: 'bold',
             whiteSpace: 'nowrap',
-            fontFamily: 'Inter, system-ui, sans-serif',
+            fontFamily: 'var(--font-data)',
           }}
         >
           {user.userName} ({ROLE_LABELS[user.role]})
@@ -133,37 +133,37 @@ function PresenceBadge({ user, color }: { user: AwarenessState; color: string })
       style={{ display: user.presence === 'idle' ? 'none' : 'flex' }}
     >
       <div 
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '6px',
-          backgroundColor: '#1A1410',
-          color: '#F8F4ED',
-          padding: '6px 10px',
-          borderRadius: '6px',
-          fontSize: '11px',
-          fontWeight: '600',
-          fontFamily: 'Inter, system-ui, sans-serif',
-          boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-          border: `2px solid ${color}`,
-        }}
-      >
-        <div 
-          style={{
-            width: '8px',
-            height: '8px',
-            borderRadius: '50%',
-            backgroundColor: color,
-            animation: user.presence === 'editing' ? 'pulse 1.5s infinite' : 'none',
+style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            backgroundColor: 'var(--ink)',
+            color: 'var(--paper)',
+            padding: '6px 10px',
+            borderRadius: '6px',
+fontSize: '11px',
+            fontWeight: '600',
+            fontFamily: 'var(--font-data)',
+            boxShadow: 'var(--shadow-soft)',
+            border: `2px solid ${color}`,
           }}
-        />
-        <span>{user.userName}</span>
-        <span style={{ color: '#888888', fontWeight: 'normal' }}>
-          {user.presence === 'editing' ? 'editing' : 'viewing'}
-        </span>
-        <span style={{ color, fontWeight: 'bold' }}>
-          {ROLE_LABELS[user.role]}
-        </span>
+        >
+          <div 
+            style={{
+              width: '8px',
+              height: '8px',
+              borderRadius: '50%',
+              backgroundColor: color,
+              animation: user.presence === 'editing' ? 'pulse 1.5s infinite' : 'none',
+            }}
+          />
+          <span>{user.userName}</span>
+          <span style={{ color: 'var(--muted)', fontWeight: 'normal' }}>
+            {user.presence === 'editing' ? 'editing' : 'viewing'}
+          </span>
+          <span style={{ color, fontWeight: 'bold' }}>
+            {ROLE_LABELS[user.role]}
+          </span>
       </div>
     </div>
   );

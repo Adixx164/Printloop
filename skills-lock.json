@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "skills": {
+    "design-system-builder": {
+      "source": "signerlabs/design-system-builder-skills",
+      "sourceType": "github",
+      "skillPath": "design-system-builder/SKILL.md",
+      "computedHash": "73d0074c680632cba2f9d1ac4683883fdc4cc4d3658ba88e56ebce6777d0be88"
+    }
+  }
+}

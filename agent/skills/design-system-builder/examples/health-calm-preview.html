@@ -1,0 +1,949 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Serene Flow – Health & Wellness Design System</title>
+    <link href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital@0;1&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --color-primary: #8B7355;
+            --color-secondary: #A8C686;
+            --color-accent: #F5A962;
+            --color-bg: #FDF8F4;
+            --color-surface: #FFFFFF;
+            --color-surface-elevated: #FFFAF5;
+            --color-border: #E8DDD0;
+            --color-text-primary: #3D3228;
+            --color-text-secondary: #8C7E72;
+            --color-success: #7CB87C;
+            --color-warning: #E8B84B;
+            --color-error: #D45B5B;
+            --color-dark-bg: #2C2420;
+            --color-dark-surface: #3D3530;
+            --shadow-soft: 0 4px 16px rgba(139, 115, 85, 0.08);
+            --shadow-warm: 0 8px 24px rgba(139, 115, 85, 0.12);
+            --transition: 0.3s ease;
+            --font-serif: 'Libre Baskerville', serif;
+            --font-sans: 'DM Sans', sans-serif;
+        }
+
+        body {
+            background-color: var(--color-bg);
+            color: var(--color-text-primary);
+            font-family: var(--font-sans);
+            line-height: 1.6;
+            transition: background-color var(--transition), color var(--transition);
+        }
+
+        body.dark-mode {
+            background-color: var(--color-dark-bg);
+            color: #E8DDD0;
+        }
+
+        body.dark-mode .card,
+        body.dark-mode .component-card {
+            background-color: var(--color-dark-surface);
+            border-color: rgba(232, 221, 208, 0.1);
+        }
+
+        body.dark-mode .swatch {
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+        }
+
+        body.dark-mode input,
+        body.dark-mode textarea {
+            background-color: var(--color-dark-surface);
+            border-color: rgba(232, 221, 208, 0.2);
+            color: #E8DDD0;
+        }
+
+        body.dark-mode .meditation-card,
+        body.dark-mode .session-item {
+            background-color: var(--color-dark-surface);
+            border-color: rgba(232, 221, 208, 0.1);
+        }
+
+        body.dark-mode .text-secondary {
+            color: rgba(232, 221, 208, 0.7);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 2rem;
+        }
+
+        /* Hero Header */
+        .hero {
+            position: relative;
+            padding: 6rem 2rem;
+            text-align: center;
+            overflow: hidden;
+            background: linear-gradient(135deg, #FDF8F4 0%, #FCF3E8 50%, #F5E8DD 100%);
+        }
+
+        .hero-blob {
+            position: absolute;
+            width: 400px;
+            height: 400px;
+            background: radial-gradient(circle at 30% 30%, rgba(245, 169, 98, 0.15) 0%, transparent 70%);
+            border-radius: 45% 55% 52% 48% / 48% 45% 55% 52%;
+            top: -100px;
+            right: -100px;
+            animation: blob-float 8s ease-in-out infinite;
+        }
+
+        @keyframes blob-float {
+            0%, 100% { transform: translate(0, 0) rotate(0deg); }
+            33% { transform: translate(30px, -50px) rotate(120deg); }
+            66% { transform: translate(-20px, 30px) rotate(240deg); }
+        }
+
+        .hero-content {
+            position: relative;
+            z-index: 2;
+        }
+
+        .hero h1 {
+            font-family: var(--font-serif);
+            font-size: 3.5rem;
+            font-weight: 700;
+            color: var(--color-primary);
+            margin-bottom: 1rem;
+            letter-spacing: -0.5px;
+        }
+
+        .hero p {
+            font-size: 1.25rem;
+            color: var(--color-text-secondary);
+            max-width: 600px;
+            margin: 0 auto;
+            font-weight: 300;
+        }
+
+        /* Section Headers */
+        .section {
+            padding: 4rem 0;
+            border-top: 1px solid var(--color-border);
+        }
+
+        .section h2 {
+            font-family: var(--font-serif);
+            font-size: 2.5rem;
+            color: var(--color-primary);
+            margin-bottom: 3rem;
+            text-align: center;
+        }
+
+        /* Color Palette */
+        .palette-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 2rem;
+            margin-bottom: 3rem;
+        }
+
+        .swatch {
+            border-radius: 24px;
+            overflow: hidden;
+            box-shadow: var(--shadow-warm);
+            transition: transform var(--transition);
+            background: var(--color-surface);
+            border: 1px solid var(--color-border);
+        }
+
+        .swatch:hover {
+            transform: translateY(-4px);
+        }
+
+        .swatch-color {
+            height: 120px;
+            width: 100%;
+        }
+
+        .swatch-info {
+            padding: 1.5rem;
+        }
+
+        .swatch-name {
+            font-family: var(--font-serif);
+            font-size: 1.1rem;
+            color: var(--color-text-primary);
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+        }
+
+        .swatch-hex {
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            color: var(--color-text-secondary);
+        }
+
+        /* Typography */
+        .typography-grid {
+            display: grid;
+            gap: 2.5rem;
+        }
+
+        .type-sample {
+            padding: 2rem;
+            background: var(--color-surface);
+            border: 1px solid var(--color-border);
+            border-radius: 20px;
+            box-shadow: var(--shadow-soft);
+        }
+
+        .type-label {
+            font-size: 0.85rem;
+            color: var(--color-text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 1rem;
+        }
+
+        .type-serif {
+            font-family: var(--font-serif);
+            color: var(--color-primary);
+        }
+
+        .type-h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            line-height: 1.2;
+            margin-bottom: 0.5rem;
+        }
+
+        .type-h2 {
+            font-size: 2rem;
+            font-weight: 700;
+            line-height: 1.2;
+            margin-bottom: 0.5rem;
+        }
+
+        .type-h3 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .type-body {
+            font-family: var(--font-sans);
+            font-size: 1rem;
+            color: var(--color-text-primary);
+        }
+
+        .type-caption {
+            font-size: 0.875rem;
+            color: var(--color-text-secondary);
+        }
+
+        /* Components Section */
+        .components-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin-bottom: 3rem;
+        }
+
+        .component-card {
+            background: var(--color-surface);
+            border: 1px solid var(--color-border);
+            border-radius: 20px;
+            padding: 2rem;
+            box-shadow: var(--shadow-soft);
+        }
+
+        .component-title {
+            font-family: var(--font-serif);
+            font-size: 1.2rem;
+            color: var(--color-primary);
+            margin-bottom: 1.5rem;
+        }
+
+        /* Buttons */
+        .button-group {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .btn {
+            padding: 0.875rem 1.75rem;
+            border: none;
+            border-radius: 16px;
+            font-family: var(--font-sans);
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all var(--transition);
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .btn-primary {
+            background-color: var(--color-primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: #7A6449;
+            box-shadow: 0 6px 20px rgba(139, 115, 85, 0.3);
+        }
+
+        .btn-secondary {
+            background-color: transparent;
+            color: var(--color-primary);
+            border: 2px solid var(--color-primary);
+        }
+
+        .btn-secondary:hover {
+            background-color: rgba(139, 115, 85, 0.05);
+        }
+
+        .btn-soft {
+            background-color: rgba(168, 198, 134, 0.15);
+            color: var(--color-secondary);
+        }
+
+        .btn-soft:hover {
+            background-color: rgba(168, 198, 134, 0.25);
+        }
+
+        /* Meditation Card */
+        .meditation-card {
+            background: var(--color-surface);
+            border-radius: 24px;
+            overflow: hidden;
+            box-shadow: var(--shadow-soft);
+            border: 1px solid var(--color-border);
+            transition: all var(--transition);
+        }
+
+        .meditation-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-warm);
+        }
+
+        .meditation-image {
+            height: 160px;
+            background: linear-gradient(135deg, rgba(245, 169, 98, 0.2) 0%, rgba(168, 198, 134, 0.2) 100%);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .meditation-image::after {
+            content: '';
+            position: absolute;
+            width: 80px;
+            height: 80px;
+            background: radial-gradient(circle, rgba(245, 169, 98, 0.3) 0%, transparent 70%);
+            border-radius: 50%;
+            top: 40px;
+            right: 30px;
+            animation: pulse 3s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.1); opacity: 0.7; }
+        }
+
+        .meditation-body {
+            padding: 1.5rem;
+        }
+
+        .meditation-title {
+            font-family: var(--font-serif);
+            font-size: 1.25rem;
+            color: var(--color-primary);
+            margin-bottom: 0.5rem;
+        }
+
+        .meditation-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .meditation-duration {
+            font-size: 0.875rem;
+            color: var(--color-text-secondary);
+        }
+
+        .meditation-tag {
+            display: inline-block;
+            background-color: rgba(168, 198, 134, 0.2);
+            color: var(--color-secondary);
+            padding: 0.35rem 0.85rem;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+
+        /* Mood Selector */
+        .mood-selector {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .mood-circle {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background-color: var(--color-surface-elevated);
+            border: 2px solid var(--color-border);
+            cursor: pointer;
+            transition: all var(--transition);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+        }
+
+        .mood-circle:hover,
+        .mood-circle.active {
+            border-color: var(--color-primary);
+            box-shadow: 0 4px 12px rgba(139, 115, 85, 0.2);
+            transform: scale(1.05);
+        }
+
+        /* Input */
+        input,
+        textarea {
+            width: 100%;
+            padding: 0.875rem 1rem;
+            border: 2px solid var(--color-border);
+            border-radius: 14px;
+            font-family: var(--font-sans);
+            font-size: 1rem;
+            background-color: var(--color-surface-elevated);
+            color: var(--color-text-primary);
+            transition: all var(--transition);
+        }
+
+        input:focus,
+        textarea:focus {
+            outline: none;
+            border-color: var(--color-accent);
+            box-shadow: 0 0 0 3px rgba(245, 169, 98, 0.1);
+        }
+
+        /* Progress Bar */
+        .progress-section {
+            margin-top: 2rem;
+        }
+
+        .progress-label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.75rem;
+            font-size: 0.9rem;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 10px;
+            background-color: var(--color-border);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            width: 40%;
+            background: linear-gradient(90deg, var(--color-primary) 0%, var(--color-secondary) 100%);
+            border-radius: 10px;
+            transition: width var(--transition);
+        }
+
+        /* Mini App Demo */
+        .app-mockup {
+            background: var(--color-surface);
+            border: 1px solid var(--color-border);
+            border-radius: 24px;
+            padding: 2rem;
+            box-shadow: var(--shadow-warm);
+        }
+
+        .app-greeting {
+            margin-bottom: 2rem;
+        }
+
+        .app-greeting h3 {
+            font-family: var(--font-serif);
+            font-size: 1.75rem;
+            color: var(--color-primary);
+            margin-bottom: 0.25rem;
+        }
+
+        .app-greeting p {
+            color: var(--color-text-secondary);
+            font-size: 0.95rem;
+        }
+
+        .app-section {
+            margin-bottom: 2rem;
+        }
+
+        .app-section-label {
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--color-text-secondary);
+            margin-bottom: 1rem;
+            font-weight: 600;
+        }
+
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-box {
+            background-color: var(--color-surface-elevated);
+            border: 1px solid var(--color-border);
+            border-radius: 16px;
+            padding: 1.25rem;
+            text-align: center;
+        }
+
+        .stat-number {
+            font-family: var(--font-serif);
+            font-size: 1.75rem;
+            color: var(--color-primary);
+            font-weight: 700;
+            margin-bottom: 0.25rem;
+        }
+
+        .stat-label {
+            font-size: 0.8rem;
+            color: var(--color-text-secondary);
+        }
+
+        .session-item {
+            display: flex;
+            align-items: center;
+            padding: 1rem 0;
+            border-bottom: 1px solid var(--color-border);
+            background: transparent;
+        }
+
+        .session-item:last-child {
+            border-bottom: none;
+        }
+
+        .session-avatar {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, rgba(245, 169, 98, 0.2) 0%, rgba(168, 198, 134, 0.2) 100%);
+            margin-right: 1rem;
+            flex-shrink: 0;
+        }
+
+        .session-info {
+            flex: 1;
+        }
+
+        .session-title {
+            font-weight: 600;
+            color: var(--color-text-primary);
+            margin-bottom: 0.2rem;
+        }
+
+        .session-meta {
+            font-size: 0.85rem;
+            color: var(--color-text-secondary);
+        }
+
+        .session-duration {
+            color: var(--color-accent);
+            font-weight: 600;
+        }
+
+        /* Footer */
+        footer {
+            padding: 2rem 0;
+            border-top: 1px solid var(--color-border);
+            margin-top: 4rem;
+            text-align: center;
+            color: var(--color-text-secondary);
+        }
+
+        .footer-content {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 2rem;
+        }
+
+        .toggle-container {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .toggle-switch {
+            width: 50px;
+            height: 28px;
+            background-color: var(--color-border);
+            border-radius: 14px;
+            cursor: pointer;
+            position: relative;
+            transition: background-color var(--transition);
+        }
+
+        .toggle-switch.active {
+            background-color: var(--color-secondary);
+        }
+
+        .toggle-knob {
+            width: 24px;
+            height: 24px;
+            background-color: white;
+            border-radius: 50%;
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            transition: left var(--transition);
+        }
+
+        .toggle-switch.active .toggle-knob {
+            left: 24px;
+        }
+
+        .moon-icon {
+            font-size: 1.2rem;
+        }
+    </style>
+</head>
+<body>
+    <!-- Hero Header -->
+    <section class="hero">
+        <div class="hero-blob"></div>
+        <div class="hero-content">
+            <h1>Serene Flow</h1>
+            <p>A warm, calming design system for health and wellness apps</p>
+        </div>
+    </section>
+
+    <div class="container">
+        <!-- Color Palette Section -->
+        <section class="section">
+            <h2>Color Palette</h2>
+            <div class="palette-grid">
+                <div class="swatch">
+                    <div class="swatch-color" style="background-color: #8B7355;"></div>
+                    <div class="swatch-info">
+                        <div class="swatch-name">Primary</div>
+                        <div class="swatch-hex">#8B7355</div>
+                    </div>
+                </div>
+
+                <div class="swatch">
+                    <div class="swatch-color" style="background-color: #A8C686;"></div>
+                    <div class="swatch-info">
+                        <div class="swatch-name">Secondary</div>
+                        <div class="swatch-hex">#A8C686</div>
+                    </div>
+                </div>
+
+                <div class="swatch">
+                    <div class="swatch-color" style="background-color: #F5A962;"></div>
+                    <div class="swatch-info">
+                        <div class="swatch-name">Accent</div>
+                        <div class="swatch-hex">#F5A962</div>
+                    </div>
+                </div>
+
+                <div class="swatch">
+                    <div class="swatch-color" style="background-color: #FDF8F4;"></div>
+                    <div class="swatch-info">
+                        <div class="swatch-name">Background</div>
+                        <div class="swatch-hex">#FDF8F4</div>
+                    </div>
+                </div>
+
+                <div class="swatch">
+                    <div class="swatch-color" style="background-color: #FFFFFF;"></div>
+                    <div class="swatch-info">
+                        <div class="swatch-name">Surface</div>
+                        <div class="swatch-hex">#FFFFFF</div>
+                    </div>
+                </div>
+
+                <div class="swatch">
+                    <div class="swatch-color" style="background-color: #FFFAF5;"></div>
+                    <div class="swatch-info">
+                        <div class="swatch-name">Surface Elevated</div>
+                        <div class="swatch-hex">#FFFAF5</div>
+                    </div>
+                </div>
+
+                <div class="swatch">
+                    <div class="swatch-color" style="background-color: #E8DDD0;"></div>
+                    <div class="swatch-info">
+                        <div class="swatch-name">Border</div>
+                        <div class="swatch-hex">#E8DDD0</div>
+                    </div>
+                </div>
+
+                <div class="swatch">
+                    <div class="swatch-color" style="background-color: #3D3228;"></div>
+                    <div class="swatch-info">
+                        <div class="swatch-name">Text Primary</div>
+                        <div class="swatch-hex">#3D3228</div>
+                    </div>
+                </div>
+
+                <div class="swatch">
+                    <div class="swatch-color" style="background-color: #8C7E72;"></div>
+                    <div class="swatch-info">
+                        <div class="swatch-name">Text Secondary</div>
+                        <div class="swatch-hex">#8C7E72</div>
+                    </div>
+                </div>
+
+                <div class="swatch">
+                    <div class="swatch-color" style="background-color: #7CB87C;"></div>
+                    <div class="swatch-info">
+                        <div class="swatch-name">Success</div>
+                        <div class="swatch-hex">#7CB87C</div>
+                    </div>
+                </div>
+
+                <div class="swatch">
+                    <div class="swatch-color" style="background-color: #E8B84B;"></div>
+                    <div class="swatch-info">
+                        <div class="swatch-name">Warning</div>
+                        <div class="swatch-hex">#E8B84B</div>
+                    </div>
+                </div>
+
+                <div class="swatch">
+                    <div class="swatch-color" style="background-color: #D45B5B;"></div>
+                    <div class="swatch-info">
+                        <div class="swatch-name">Error</div>
+                        <div class="swatch-hex">#D45B5B</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Typography Section -->
+        <section class="section">
+            <h2>Typography</h2>
+            <div class="typography-grid">
+                <div class="type-sample">
+                    <div class="type-label">Display Large – Libre Baskerville</div>
+                    <div class="type-serif type-h1">Find your inner peace</div>
+                    <p class="type-caption">Used for page titles and hero sections</p>
+                </div>
+
+                <div class="type-sample">
+                    <div class="type-label">Display Medium – Libre Baskerville</div>
+                    <div class="type-serif type-h2">Breathe and relax</div>
+                    <p class="type-caption">Used for section headers</p>
+                </div>
+
+                <div class="type-sample">
+                    <div class="type-label">Heading – Libre Baskerville</div>
+                    <div class="type-serif type-h3">Your meditation journey</div>
+                    <p class="type-caption">Used for card titles and subsections</p>
+                </div>
+
+                <div class="type-sample">
+                    <div class="type-label">Body – DM Sans</div>
+                    <p class="type-body">Meditation is a practice of mindfulness and presence. It helps calm your mind, reduce stress, and cultivate inner peace. Regular practice can improve your overall wellbeing.</p>
+                    <p class="type-caption">Standard body text for content</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Components Section -->
+        <section class="section">
+            <h2>Components</h2>
+
+            <!-- Buttons -->
+            <div class="component-card">
+                <div class="component-title">Buttons</div>
+                <div class="button-group">
+                    <button class="btn btn-primary">Start Meditation</button>
+                    <button class="btn btn-secondary">Learn More</button>
+                    <button class="btn btn-soft">Explore Sessions</button>
+                </div>
+            </div>
+
+            <!-- Meditation Card -->
+            <div style="margin-top: 2rem;">
+                <div class="meditation-card" style="max-width: 400px;">
+                    <div class="meditation-image"></div>
+                    <div class="meditation-body">
+                        <div class="meditation-title">Morning Calm</div>
+                        <div class="meditation-meta">
+                            <span class="meditation-duration">10 min</span>
+                            <span class="meditation-tag">Breathing</span>
+                        </div>
+                        <p style="font-size: 0.9rem; color: var(--color-text-secondary); margin-bottom: 1rem;">Start your day with peaceful breathing exercises</p>
+                        <button class="btn btn-primary" style="width: 100%;">Begin Session</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Daily Check-in Card -->
+            <div class="component-card" style="margin-top: 2rem; max-width: 400px;">
+                <div class="component-title">Daily Check-in</div>
+                <p style="color: var(--color-text-secondary); margin-bottom: 1.5rem;">How are you feeling today?</p>
+                <div class="mood-selector">
+                    <div class="mood-circle" onclick="this.classList.toggle('active')" style="font-size: 1.8rem;">😔</div>
+                    <div class="mood-circle" onclick="this.classList.toggle('active')" style="font-size: 1.8rem;">😐</div>
+                    <div class="mood-circle active" onclick="this.classList.toggle('active')" style="font-size: 1.8rem;">😊</div>
+                    <div class="mood-circle" onclick="this.classList.toggle('active')" style="font-size: 1.8rem;">😄</div>
+                    <div class="mood-circle" onclick="this.classList.toggle('active')" style="font-size: 1.8rem;">🤩</div>
+                </div>
+                <button class="btn btn-primary" style="width: 100%;">Save Check-in</button>
+            </div>
+
+            <!-- Input Field -->
+            <div class="component-card" style="margin-top: 2rem; max-width: 400px;">
+                <div class="component-title">Input Field</div>
+                <input type="text" placeholder="Enter your thoughts or goals...">
+            </div>
+
+            <!-- Progress Bar -->
+            <div class="component-card" style="margin-top: 2rem; max-width: 400px;">
+                <div class="component-title">Progress Tracking</div>
+                <div class="progress-section">
+                    <div class="progress-label">
+                        <span>Day 12 of 30</span>
+                        <span>40%</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill"></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Mini App Demo -->
+        <section class="section">
+            <h2>Mini App Demo</h2>
+            <div class="app-mockup">
+                <div class="app-greeting">
+                    <h3>Good morning, Felix</h3>
+                    <p id="current-date">Thursday, March 20, 2025</p>
+                </div>
+
+                <div class="app-section">
+                    <div class="app-section-label">Today's Recommendation</div>
+                    <div class="meditation-card">
+                        <div class="meditation-image"></div>
+                        <div class="meditation-body">
+                            <div class="meditation-title">Evening Wind Down</div>
+                            <div class="meditation-meta">
+                                <span class="meditation-duration">15 min</span>
+                                <span class="meditation-tag">Relaxation</span>
+                            </div>
+                            <p style="font-size: 0.9rem; color: var(--color-text-secondary); margin-bottom: 1rem;">Perfect for ending your day peacefully</p>
+                            <button class="btn btn-primary" style="width: 100%;">Start Now</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="stats-row">
+                    <div class="stat-box">
+                        <div class="stat-number">12</div>
+                        <div class="stat-label">Day Streak</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-number">45</div>
+                        <div class="stat-label">Min This Week</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-number">3</div>
+                        <div class="stat-label">Sessions</div>
+                    </div>
+                </div>
+
+                <div class="app-section">
+                    <div class="app-section-label">Recent Sessions</div>
+                    <div class="session-item">
+                        <div class="session-avatar"></div>
+                        <div class="session-info">
+                            <div class="session-title">Morning Calm</div>
+                            <div class="session-meta">Today at 7:30 AM</div>
+                        </div>
+                        <div class="session-duration">10 min</div>
+                    </div>
+                    <div class="session-item">
+                        <div class="session-avatar"></div>
+                        <div class="session-info">
+                            <div class="session-title">Body Scan Meditation</div>
+                            <div class="session-meta">Yesterday at 9:15 PM</div>
+                        </div>
+                        <div class="session-duration">12 min</div>
+                    </div>
+                    <div class="session-item">
+                        <div class="session-avatar"></div>
+                        <div class="session-info">
+                            <div class="session-title">Mindful Breathing</div>
+                            <div class="session-meta">2 days ago at 8:00 PM</div>
+                        </div>
+                        <div class="session-duration">5 min</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- Footer -->
+    <footer>
+        <div class="footer-content">
+            <div>Generated by Design System Builder Skill</div>
+            <div class="toggle-container">
+                <span class="moon-icon">🌙</span>
+                <div class="toggle-switch" id="dark-toggle" onclick="toggleDarkMode(this)">
+                    <div class="toggle-knob"></div>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Set current date
+        document.getElementById('current-date').textContent = new Date().toLocaleDateString('en-US', {
+            weekday: 'long',
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+        });
+
+        // Dark mode toggle
+        function toggleDarkMode(element) {
+            document.body.classList.toggle('dark-mode');
+            element.classList.toggle('active');
+            localStorage.setItem('dark-mode', document.body.classList.contains('dark-mode'));
+        }
+
+        // Check for saved dark mode preference
+        if (localStorage.getItem('dark-mode') === 'true') {
+            document.body.classList.add('dark-mode');
+            document.getElementById('dark-toggle').classList.add('active');
+        }
+    </script>
+</body>
+</html>

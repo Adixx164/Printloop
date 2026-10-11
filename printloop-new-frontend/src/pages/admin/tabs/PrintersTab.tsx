@@ -11,10 +11,10 @@ import {
 } from "@/store/services/adminApi";
 
 const STATUS_COLOURS: Record<string, string> = {
-  ACTIVE: "bg-sage text-paper",
-  OFFLINE: "bg-persimmon text-paper",
-  MAINTENANCE: "bg-ochre text-paper",
-  DISABLED: "bg-ink/30 text-paper",
+  ACTIVE: "bg-emerald-600 text-gray-50",
+  OFFLINE: "bg-indigo-600 text-gray-50",
+  MAINTENANCE: "bg-amber-500 text-gray-50",
+  DISABLED: "bg-gray-900/30 text-gray-50",
 };
 
 const STATUS_CYCLE = ["ACTIVE", "MAINTENANCE", "OFFLINE"];
@@ -23,7 +23,7 @@ function StatusBadge({ status }: { status: string }) {
   return (
     <span
       className={`pl-pill text-[10px] font-bold uppercase ${
-        STATUS_COLOURS[status] ?? "bg-ink/10 text-ink"
+        STATUS_COLOURS[status] ?? "bg-gray-900/10 text-gray-900"
       }`}
     >
       <span
@@ -169,16 +169,16 @@ export default function PrintersTab({ canManage }: { canManage: boolean }) {
     <div className="max-w-6xl space-y-6">
       <div className="flex justify-between items-end gap-4 flex-wrap">
         <div>
-          <div className="editorial-label text-persimmon mb-1">ADMIN CONSOLE</div>
-          <h1 className="pl-serif text-4xl font-bold text-ink mb-1">Printers & Kiosks</h1>
-          <p className="pl-serif italic text-ink/60">
+          <div className="editorial-label text-indigo-600 mb-1">ADMIN CONSOLE</div>
+          <h1 className="pl-serif text-4xl font-bold text-gray-900 mb-1">Printers & Kiosks</h1>
+          <p className="pl-serif italic text-gray-50/60">
             Manage the physical printer fleet and monitor status.
           </p>
         </div>
         {canManage && (
           <button
             onClick={() => setShowAdd(!showAdd)}
-            className="pl-btn bg-sage text-paper border-sage hover:bg-ink hover:border-ink"
+            className="pl-btn bg-emerald-600 text-gray-50 border-emerald-600 hover:bg-gray-900 hover:border-gray-900"
           >
             {showAdd ? "CANCEL" : "+ ADD KIOSK"}
           </button>
@@ -186,24 +186,24 @@ export default function PrintersTab({ canManage }: { canManage: boolean }) {
       </div>
 
       {revealed && (
-        <div className="border-2 border-ochre bg-ochre/10 p-5">
+        <div className="border-2 border-amber-500 bg-amber-500/10 p-5">
           <div className="flex justify-between items-start gap-4 flex-wrap">
             <div>
-              <div className="editorial-label text-ochre mb-1">
+              <div className="editorial-label text-amber-500 mb-1">
                 KIOSK API KEY — {revealed.name}
               </div>
-              <p className="pl-serif italic text-ink/70 text-sm mb-3">
+              <p className="pl-serif italic text-gray-50/70 text-sm mb-3">
                 Copy this now and paste it into that kiosk's setup screen. For security it
                 is <strong>shown only once</strong> — if you lose it, use “Regen Key”.
               </p>
-              <code className="block bg-ink text-paper px-4 py-2.5 pl-mono text-sm break-all select-all">
+              <code className="block bg-gray-900 text-gray-50 px-4 py-2.5 pl-mono text-sm break-all select-all">
                 {revealed.key}
               </code>
             </div>
             <div className="flex gap-2">
               <button
                 onClick={() => copyKey(revealed.key)}
-                className="pl-btn bg-ink text-paper border-ink"
+                className="pl-btn bg-gray-900 text-gray-50 border-gray-900"
               >
                 COPY KEY
               </button>
@@ -219,8 +219,8 @@ export default function PrintersTab({ canManage }: { canManage: boolean }) {
       )}
 
       {showAdd && (
-        <form onSubmit={handleAdd} className="border-2 border-sage p-5 bg-sage/5 space-y-3">
-          <div className="editorial-label text-sage mb-2">REGISTER NEW KIOSK</div>
+        <form onSubmit={handleAdd} className="border-2 border-emerald-600 p-5 bg-emerald-600/5 space-y-3">
+          <div className="editorial-label text-emerald-600 mb-2">REGISTER NEW KIOSK</div>
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="editorial-label text-[11px] block mb-1">STATION NAME *</label>
@@ -278,7 +278,7 @@ export default function PrintersTab({ canManage }: { canManage: boolean }) {
             </div>
             <div className="col-span-2">
               <label className="editorial-label text-[11px] block mb-1">
-                MAPS URL <span className="text-fog normal-case italic">— pasteable Google Maps / Apple Maps share link; shown on the customer Stations page as “Directions →”</span>
+                MAPS URL <span className="text-gray-500 normal-case italic">— pasteable Google Maps / Apple Maps share link; shown on the customer Stations page as “Directions →”</span>
               </label>
               <input
                 className="pl-input"
@@ -295,9 +295,9 @@ export default function PrintersTab({ canManage }: { canManage: boolean }) {
                 onChange={(e) => setForm((f) => ({ ...f, isPublic: e.target.checked }))}
                 className="accent-sage w-4 h-4"
               />
-              <label htmlFor="kiosk-is-public" className="text-xs text-ink cursor-pointer">
+              <label htmlFor="kiosk-is-public" className="text-xs text-gray-900 cursor-pointer">
                 <strong>Show on the customer Stations page.</strong>{" "}
-                <span className="text-fog">
+                <span className="text-gray-500">
                   Uncheck if you're still commissioning this kiosk.
                 </span>
               </label>
@@ -306,7 +306,7 @@ export default function PrintersTab({ canManage }: { canManage: boolean }) {
           <button
             type="submit"
             disabled={creating}
-            className="pl-btn bg-sage text-paper border-sage"
+            className="pl-btn bg-emerald-600 text-gray-50 border-emerald-600"
           >
             {creating ? "ADDING..." : "ADD KIOSK →"}
           </button>
@@ -330,7 +330,7 @@ export default function PrintersTab({ canManage }: { canManage: boolean }) {
         </button>
       </div>
 
-      <div className="grid grid-cols-3 border-2 border-ink">
+      <div className="grid grid-cols-3 border-2 border-gray-900">
         {[
           { label: "TOTAL KIOSKS", value: kiosks.length },
           { label: "ACTIVE", value: kiosks.filter((k) => k.status === "ACTIVE").length },
@@ -339,8 +339,8 @@ export default function PrintersTab({ canManage }: { canManage: boolean }) {
             value: kiosks.filter((k) => k.status !== "ACTIVE").length,
           },
         ].map((s, i) => (
-          <div key={s.label} className={`p-4 ${i > 0 ? "border-l-2 border-ink" : ""}`}>
-            <div className="editorial-label text-ink/50 mb-1">{s.label}</div>
+          <div key={s.label} className={`p-4 ${i > 0 ? "border-l-2 border-gray-900" : ""}`}>
+            <div className="editorial-label text-gray-50/50 mb-1">{s.label}</div>
             <div className="pl-mono text-2xl font-bold">{s.value}</div>
           </div>
         ))}
@@ -349,14 +349,14 @@ export default function PrintersTab({ canManage }: { canManage: boolean }) {
       {isLoading ? (
         <div className="text-center italic opacity-50 py-12">Loading kiosks…</div>
       ) : (
-        <div className="border-2 border-ink overflow-hidden">
-          <div className="bg-ink text-paper px-5 py-3">
+        <div className="border-2 border-gray-900 overflow-hidden">
+          <div className="bg-gray-900 text-gray-50 px-5 py-3">
             <div className="editorial-label">KIOSK FLEET — {kiosks.length} STATIONS</div>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
               <thead>
-                <tr className="border-b border-ink/20 bg-ink/5 text-ink/70">
+                <tr className="border-b border-gray-900/20 bg-gray-900/5 text-gray-50/70">
                   <th className="p-3 font-semibold">Station</th>
                   <th className="p-3 font-semibold">Status</th>
                   <th className="p-3 font-semibold">Campus</th>
@@ -370,7 +370,7 @@ export default function PrintersTab({ canManage }: { canManage: boolean }) {
               <tbody>
                 {kiosks.length === 0 && (
                   <tr>
-                    <td colSpan={8} className="p-6 text-center text-fog italic">
+                    <td colSpan={8} className="p-6 text-center text-gray-500 italic">
                       No kiosks found.
                     </td>
                   </tr>
@@ -380,13 +380,13 @@ export default function PrintersTab({ canManage }: { canManage: boolean }) {
                   return (
                   <tr
                     key={k.id}
-                    className="border-b border-ink/10 last:border-0 hover:bg-ink/5 transition-colors align-top"
+                    className="border-b border-gray-900/10 last:border-0 hover:bg-gray-900/5 transition-colors align-top"
                   >
                     <td className="p-3">
-                      <div className="font-bold text-ink">{k.name}</div>
-                      <div className="text-xs text-fog">{k.location || "—"}</div>
+                      <div className="font-bold text-gray-900">{k.name}</div>
+                      <div className="text-xs text-gray-500">{k.location || "—"}</div>
                       {!k.isPublic && (
-                        <span className="pl-pill text-[10px] bg-ink/10 text-ink mt-1 inline-block">
+                        <span className="pl-pill text-[10px] bg-gray-900/10 text-gray-900 mt-1 inline-block">
                           HIDDEN
                         </span>
                       )}
@@ -394,25 +394,25 @@ export default function PrintersTab({ canManage }: { canManage: boolean }) {
                     <td className="p-3">
                       <StatusBadge status={k.status} />
                       {ping && (
-                        <div className={`mt-1 text-[10px] font-bold ${ping.ok ? "text-sage" : "text-persimmon"}`}>
+                        <div className={`mt-1 text-[10px] font-bold ${ping.ok ? "text-emerald-600" : "text-indigo-600"}`}>
                           {ping.ok ? "● REACHABLE" : "● UNREACHABLE"}
                         </div>
                       )}
                     </td>
-                    <td className="p-3 text-xs text-fog">{k.campus || "—"}</td>
+                    <td className="p-3 text-xs text-gray-500">{k.campus || "—"}</td>
                     <td className="p-3 text-xs whitespace-nowrap">
-                      <div className="pl-mono text-ink">{k.ipAddress || "—"}</div>
+                      <div className="pl-mono text-gray-900">{k.ipAddress || "—"}</div>
                       {k.mapsUrl ? (
                         <a
                           href={k.mapsUrl}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-[10px] text-sage hover:underline"
+                          className="text-[10px] text-emerald-600 hover:underline"
                         >
                           MAP LINK ↗
                         </a>
                       ) : (
-                        <span className="text-[10px] text-fog italic">No map link</span>
+                        <span className="text-[10px] text-gray-500 italic">No map link</span>
                       )}
                     </td>
                     <td className="p-3 pl-mono font-bold text-right">
@@ -421,7 +421,7 @@ export default function PrintersTab({ canManage }: { canManage: boolean }) {
                     <td className="p-3 pl-mono font-bold text-right">
                       {k.totalPagesPrinted ?? "—"}
                     </td>
-                    <td className="p-3 text-xs text-fog whitespace-nowrap">
+                    <td className="p-3 text-xs text-gray-500 whitespace-nowrap">
                       {k.lastSeenAt ? new Date(k.lastSeenAt).toLocaleString() : "—"}
                     </td>
                     {canManage && (
@@ -430,32 +430,32 @@ export default function PrintersTab({ canManage }: { canManage: boolean }) {
                           <button
                             onClick={() => handleTestConnection(k.id, k.name)}
                             disabled={testing}
-                            className="text-xs text-sage font-bold hover:underline disabled:opacity-50"
+                            className="text-xs text-emerald-600 font-bold hover:underline disabled:opacity-50"
                           >
                             {testing ? "TESTING…" : "TEST"}
                           </button>
                           <button
                             onClick={() => handleTogglePublic(k.id, k.name, !k.isPublic)}
-                            className="text-xs text-ink font-bold hover:underline"
+                            className="text-xs text-gray-900 font-bold hover:underline"
                             title={k.isPublic ? "Hide from customer Stations page" : "Show on customer Stations page"}
                           >
                             {k.isPublic ? "HIDE" : "SHOW"}
                           </button>
                           <button
                             onClick={() => handleStatusChange(k.id, k.status)}
-                            className="text-xs text-sage font-bold hover:underline"
+                            className="text-xs text-emerald-600 font-bold hover:underline"
                           >
                             CYCLE
                           </button>
                           <button
                             onClick={() => handleRegenerate(k.id, k.name)}
-                            className="text-xs text-ochre font-bold hover:underline"
+                            className="text-xs text-amber-500 font-bold hover:underline"
                           >
                             REGEN KEY
                           </button>
                           <button
                             onClick={() => handleDelete(k.id, k.name)}
-                            className="text-xs text-persimmon font-bold hover:underline"
+                            className="text-xs text-indigo-600 font-bold hover:underline"
                           >
                             DISABLE
                           </button>

@@ -7,12 +7,12 @@ import {
 } from "@/store/services/adminApi";
 
 const STATUS_STYLES: Record<string, string> = {
-  ready: "bg-sage/15 text-sage border border-sage/30",
-  printing: "bg-ochre/15 text-ochre border border-ochre/30",
-  done: "bg-ink/10 text-ink border border-ink/20",
-  failed: "bg-persimmon/15 text-persimmon border border-persimmon/30",
-  expired: "bg-fog/20 text-fog border border-fog/30",
-  refunded: "bg-ochre/10 text-ochre border border-ochre/20",
+  ready: "bg-emerald-600/15 text-emerald-600 border border-emerald-600/30",
+  printing: "bg-amber-500/15 text-amber-500 border border-amber-500/30",
+  done: "bg-gray-900/10 text-gray-900 border border-gray-900/20",
+  failed: "bg-indigo-600/15 text-indigo-600 border border-indigo-600/30",
+  expired: "bg-gray-500/20 text-gray-500 border border-gray-500/30",
+  refunded: "bg-amber-500/10 text-amber-500 border border-amber-500/20",
 };
 
 const ALL_STATUSES = ["ready", "printing", "done", "failed", "expired", "refunded"];
@@ -75,9 +75,9 @@ export default function JobsTab({ canManage }: { canManage: boolean }) {
   return (
     <div className="max-w-6xl space-y-6">
       <div>
-        <div className="editorial-label text-persimmon mb-1">ADMIN CONSOLE</div>
-        <h1 className="pl-serif text-4xl font-bold text-ink mb-1">Print Jobs</h1>
-        <p className="pl-serif italic text-ink/60">
+        <div className="editorial-label text-indigo-600 mb-1">ADMIN CONSOLE</div>
+        <h1 className="pl-serif text-4xl font-bold text-gray-900 mb-1">Print Jobs</h1>
+        <p className="pl-serif italic text-gray-50/60">
           Search, inspect, and manage all print jobs across the system.
         </p>
       </div>
@@ -89,7 +89,7 @@ export default function JobsTab({ canManage }: { canManage: boolean }) {
             setPage(1);
           }}
           className={`text-xs font-bold px-3 py-1.5 border-2 transition-colors ${
-            !filterStatus ? "bg-ink text-paper border-ink" : "border-ink/20 text-ink hover:border-ink"
+            !filterStatus ? "bg-gray-900 text-gray-50 border-gray-900" : "border-gray-900/20 text-gray-900 hover:border-gray-900"
           }`}
         >
           ALL
@@ -103,8 +103,8 @@ export default function JobsTab({ canManage }: { canManage: boolean }) {
             }}
             className={`text-xs font-bold px-3 py-1.5 border-2 transition-colors uppercase ${
               filterStatus === s
-                ? "bg-ink text-paper border-ink"
-                : "border-ink/20 text-ink hover:border-ink"
+                ? "bg-gray-900 text-gray-50 border-gray-900"
+                : "border-gray-900/20 text-gray-900 hover:border-gray-900"
             }`}
           >
             {s}
@@ -119,7 +119,7 @@ export default function JobsTab({ canManage }: { canManage: boolean }) {
           placeholder="Search by file name, code, user email…"
           className="pl-input flex-1 min-w-48"
         />
-        <button type="submit" className="pl-btn bg-ink text-paper border-ink text-xs px-4">
+        <button type="submit" className="pl-btn bg-gray-900 text-gray-50 border-gray-900 text-xs px-4">
           SEARCH
         </button>
         {search && (
@@ -137,21 +137,21 @@ export default function JobsTab({ canManage }: { canManage: boolean }) {
         )}
       </form>
 
-      <div className="border-2 border-ink overflow-hidden">
-        <div className="bg-ink text-paper px-5 py-3 flex justify-between items-center">
+      <div className="border-2 border-gray-900 overflow-hidden">
+        <div className="bg-gray-900 text-gray-50 px-5 py-3 flex justify-between items-center">
           <div className="editorial-label">
             {isLoading || isFetching ? "LOADING JOBS…" : `JOBS — ${total} TOTAL`}
           </div>
           {totalPages > 1 && (
-            <div className="text-xs text-paper/60">
+            <div className="text-xs text-gray-50/60">
               Page {page} / {totalPages}
             </div>
           )}
         </div>
-        <div className="overflow-x-auto bg-paper-light">
+        <div className="overflow-x-auto bg-gray-100">
           <table className="w-full text-left text-sm">
             <thead>
-              <tr className="border-b border-ink/20 bg-ink/5 text-ink/70">
+              <tr className="border-b border-gray-900/20 bg-gray-900/5 text-gray-50/70">
                 <th className="p-3 font-semibold">Code</th>
                 <th className="p-3 font-semibold">File</th>
                 <th className="p-3 font-semibold">User</th>
@@ -165,14 +165,14 @@ export default function JobsTab({ canManage }: { canManage: boolean }) {
             <tbody>
               {(isLoading || isFetching) && (
                 <tr>
-                  <td colSpan={8} className="p-6 text-center text-fog italic">
+                  <td colSpan={8} className="p-6 text-center text-gray-500 italic">
                     Loading…
                   </td>
                 </tr>
               )}
               {!isLoading && !isFetching && jobs.length === 0 && (
                 <tr>
-                  <td colSpan={8} className="p-6 text-center text-fog italic">
+                  <td colSpan={8} className="p-6 text-center text-gray-500 italic">
                     No jobs match your search.
                   </td>
                 </tr>
@@ -183,24 +183,24 @@ export default function JobsTab({ canManage }: { canManage: boolean }) {
                 return (
                   <tr
                     key={job.id}
-                    className="border-b border-ink/10 last:border-0 hover:bg-ink/5 transition-colors"
+                    className="border-b border-gray-900/10 last:border-0 hover:bg-gray-900/5 transition-colors"
                   >
                     <td className="p-3">
                       <span className="pl-mono font-bold text-sm tracking-wider">{job.code}</span>
                     </td>
                     <td className="p-3 max-w-[180px]">
-                      <div className="font-medium text-ink truncate" title={job.fileName}>
+                      <div className="font-medium text-gray-900 truncate" title={job.fileName}>
                         {job.fileName?.replace(/\.[^.]+$/, "") || "—"}
                       </div>
-                      <div className="text-xs text-fog">{job.totalPages}pp</div>
+                      <div className="text-xs text-gray-500">{job.totalPages}pp</div>
                     </td>
                     <td className="p-3">
-                      <div className="font-bold text-ink text-xs">
+                      <div className="font-bold text-gray-900 text-xs">
                         {u.firstName ? `${u.firstName} ${u.lastName}` : "—"}
                       </div>
-                      <div className="text-xs text-fog">{u.email}</div>
+                      <div className="text-xs text-gray-500">{u.email}</div>
                     </td>
-                    <td className="p-3 text-xs text-fog">
+                    <td className="p-3 text-xs text-gray-500">
                       <div>
                         {cfg.paper} · {cfg.color === "color" ? "Colour" : "B&W"}
                       </div>
@@ -214,20 +214,20 @@ export default function JobsTab({ canManage }: { canManage: boolean }) {
                     <td className="p-3">
                       <span
                         className={`pl-pill text-[10px] font-bold uppercase ${
-                          STATUS_STYLES[job.status] || "bg-ink/10"
+                          STATUS_STYLES[job.status] || "bg-gray-900/10"
                         }`}
                       >
                         {job.status}
                       </span>
                     </td>
-                    <td className="p-3 text-xs text-fog whitespace-nowrap">
+                    <td className="p-3 text-xs text-gray-500 whitespace-nowrap">
                       {new Date(job.createdAt).toLocaleString()}
                     </td>
                     <td className="p-3 text-right space-x-3 whitespace-nowrap">
                       {canManage && job.status === "failed" && (
                         <button
                           onClick={() => handleRequeue(job.id, job.code)}
-                          className="text-xs text-ochre font-bold hover:underline"
+                          className="text-xs text-amber-500 font-bold hover:underline"
                         >
                           REQUEUE
                         </button>
@@ -235,7 +235,7 @@ export default function JobsTab({ canManage }: { canManage: boolean }) {
                       {canManage && (
                         <button
                           onClick={() => handleStatusChange(job.id, job.status, job.code)}
-                          className="text-xs text-sage font-bold hover:underline"
+                          className="text-xs text-emerald-600 font-bold hover:underline"
                         >
                           STATUS
                         </button>
@@ -258,7 +258,7 @@ export default function JobsTab({ canManage }: { canManage: boolean }) {
           >
             ← PREV
           </button>
-          <span className="px-4 py-2 text-xs font-bold border-2 border-ink bg-paper">
+          <span className="px-4 py-2 text-xs font-bold border-2 border-gray-900 bg-gray-50">
             {page} / {totalPages}
           </span>
           <button

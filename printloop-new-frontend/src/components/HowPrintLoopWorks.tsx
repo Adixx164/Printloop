@@ -9,12 +9,12 @@
  * Pure presentational — no props, no data fetching.
  */
 
-const INK = "#1A1410";
-const PAPER = "#F8F4ED";
-const PERSIMMON = "#D14B2C";
-const OCHRE = "#C7944A";
-const SAGE = "#6B7A5C";
-const FOG = "#888888";
+const INK = "var(--toner)";
+const PAPER = "var(--sheet)";
+const PERSIMMON = "var(--process)";
+const OCHRE = "var(--ochre)";
+const SAGE = "var(--pass)";
+const FOG = "var(--muted)";
 
 export default function HowPrintLoopWorks() {
   return (
@@ -83,8 +83,8 @@ function Box({
       className="rounded-lg px-3 py-2 text-center border-2"
       style={{
         borderColor: color,
-        backgroundColor: filled ? color : "#fff",
-        color: filled ? "#fff" : INK,
+        backgroundColor: filled ? color : "var(--paper)",
+        color: filled ? "var(--paper)" : INK,
         minWidth: 120,
       }}
     >
@@ -242,8 +242,8 @@ function UserJourney() {
         {steps.map((s, i) => (
           <li
             key={i}
-            className="flex items-start gap-2 rounded-lg border p-2.5 bg-white"
-            style={{ borderColor: "#e5e0d6" }}
+            className="flex items-start gap-2 rounded-lg border p-2.5 bg-paper"
+            style={{ borderColor: "var(--hairline)" }}
           >
             <span
               className="shrink-0 inline-flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold text-white"
@@ -278,7 +278,7 @@ function Lifecycle() {
   return (
     <section>
       <SectionTitle n="3">Job lifecycle</SectionTitle>
-      <div className="rounded-lg border-2 p-4 overflow-x-auto" style={{ borderColor: INK, backgroundColor: "#fff" }}>
+      <div className="rounded-lg border-2 p-4 overflow-x-auto" style={{ borderColor: INK, backgroundColor: "var(--paper)" }}>
         <div className="flex items-center gap-1 min-w-max">
           {happy.map((st, i) => (
             <div key={st.s} className="flex items-center gap-1">
@@ -354,7 +354,7 @@ function TrustLoop() {
   return (
     <section>
       <SectionTitle n="5">Trust &amp; accountability</SectionTitle>
-      <div className="rounded-lg border-2 p-4" style={{ borderColor: INK, backgroundColor: "#fff" }}>
+      <div className="rounded-lg border-2 p-4" style={{ borderColor: INK, backgroundColor: "var(--paper)" }}>
         <div className="flex flex-wrap items-center gap-1">
           <Box label="Print done" color={SAGE} filled />
           <Arrow />

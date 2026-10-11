@@ -101,7 +101,7 @@ export default function EditorWorkspacePage() {
       <div className="flex items-center justify-center min-h-[500px]">
         <div className="flex flex-col items-center gap-4">
           <div className="w-10 h-10 border-4 border-persimmon border-t-transparent rounded-full animate-spin" />
-          <p className="pl-serif italic text-ink/60">Loading editor session…</p>
+          <p className="pl-serif italic text-gray-50/60">Loading editor session…</p>
         </div>
       </div>
     );
@@ -109,10 +109,10 @@ export default function EditorWorkspacePage() {
 
   if (!token || !session) {
     return (
-      <div className="border-2 border-ink rounded-pl p-8 text-center">
+      <div className="border-2 border-gray-900 rounded-pl p-8 text-center">
         <div className="text-4xl mb-3">📝</div>
         <h2 className="pl-serif font-bold text-xl mb-2">Unable to load editor</h2>
-        <p className="text-ink/60 mb-4">The editing session could not be loaded.</p>
+        <p className="text-gray-50/60 mb-4">The editing session could not be loaded.</p>
         <Button variant="ghost" onClick={handleBack}>← Back to Edit Queue</Button>
       </div>
     );
@@ -131,7 +131,7 @@ export default function EditorWorkspacePage() {
             BACK
           </Button>
           <div>
-            <div className="editorial-label text-persimmon">EDITOR WORKSPACE</div>
+            <div className="editorial-label text-indigo-600">EDITOR WORKSPACE</div>
             <h1 className="pl-serif font-extrabold text-2xl sm:text-3xl leading-tight">
               {univerDocument?.name || 'Untitled Document'}
             </h1>
@@ -140,8 +140,8 @@ export default function EditorWorkspacePage() {
 
         <div className="flex items-center gap-3 flex-wrap">
           {/* Connection status */}
-          <div className={`flex items-center gap-1.5 px-3 py-1.5 border-2 rounded-pl ${isConnected ? 'border-sage bg-sage/10' : 'border-persimmon bg-persimmon/10'}`}>
-            <span className={`w-2 h-2 rounded-full ${isConnected ? 'bg-sage' : 'bg-persimmon'}`} />
+          <div className={`flex items-center gap-1.5 px-3 py-1.5 border-2 rounded-pl ${isConnected ? 'border-emerald-600 bg-emerald-600/10' : 'border-indigo-600 bg-indigo-600/10'}`}>
+            <span className={`w-2 h-2 rounded-full ${isConnected ? 'bg-emerald-600' : 'bg-indigo-600'}`} />
             <span className="text-[10px] font-bold tracking-editorial">
               {isConnected ? 'LIVE' : 'OFFLINE'}
             </span>
@@ -149,14 +149,14 @@ export default function EditorWorkspacePage() {
 
           {/* Save status */}
           <div className={`flex items-center gap-1.5 px-3 py-1.5 border-2 rounded-pl ${
-            saveStatus === 'saving' ? 'border-ochre bg-ochre/10' :
-            saveStatus === 'error' ? 'border-persimmon bg-persimmon/10' :
-            'border-sage bg-sage/10'
+            saveStatus === 'saving' ? 'border-amber-500 bg-amber-500/10' :
+            saveStatus === 'error' ? 'border-indigo-600 bg-indigo-600/10' :
+            'border-emerald-600 bg-emerald-600/10'
           }`}>
             <span className={`w-2 h-2 rounded-full ${saveStatus === 'saving' ? 'animate-pulse' : ''} ${
-              saveStatus === 'saving' ? 'bg-ochre' :
-              saveStatus === 'error' ? 'bg-persimmon' :
-              'bg-sage'
+              saveStatus === 'saving' ? 'bg-amber-500' :
+              saveStatus === 'error' ? 'bg-indigo-600' :
+              'bg-emerald-600'
             }`} />
             <span className="text-[10px] font-bold tracking-editorial">
               {saveStatus === 'saving' ? 'SAVING…' : saveStatus === 'saved' ? 'SAVED' : saveStatus.toUpperCase()}
@@ -189,34 +189,34 @@ export default function EditorWorkspacePage() {
       </div>
 
       {/* Document info bar */}
-      <div className="border-2 border-ink bg-paper-light rounded-pl p-4 mb-4">
+      <div className="border-2 border-gray-900 bg-gray-100 rounded-pl p-4 mb-4">
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-sm">
           <div>
-            <div className="editorial-label text-ink/60">PRINT JOB</div>
+            <div className="editorial-label text-gray-50/60">PRINT JOB</div>
             <div className="font-bold pl-mono">{printJob?.code || '—'}</div>
           </div>
           <div>
-            <div className="editorial-label text-ink/60">PAGES</div>
+            <div className="editorial-label text-gray-50/60">PAGES</div>
             <div className="font-bold pl-mono">{printJob?.totalPages || '?'} pp</div>
           </div>
           <div>
-            <div className="editorial-label text-ink/60">FORMAT</div>
+            <div className="editorial-label text-gray-50/60">FORMAT</div>
             <div className="font-bold">{printJob?.printConfiguration?.paper || 'A4'}</div>
           </div>
           <div>
-            <div className="editorial-label text-ink/60">COLOR</div>
+            <div className="editorial-label text-gray-50/60">COLOR</div>
             <div className="font-bold">{printJob?.printConfiguration?.color === 'color' ? 'Colour' : 'B&W'}</div>
           </div>
           <div>
-            <div className="editorial-label text-ink/60">QUALITY</div>
+            <div className="editorial-label text-gray-50/60">QUALITY</div>
             <div className="font-bold pl-mono">{printJob?.printConfiguration?.qualityDpi || 300}dpi</div>
           </div>
         </div>
         
         {/* Edit instructions */}
-        <div className="mt-4 pt-4 border-t-2 border-ink/20">
-          <div className="editorial-label text-persimmon mb-1">EDIT INSTRUCTIONS</div>
-          <p className="pl-serif italic text-ink/70 whitespace-pre-wrap">{editInstructions}</p>
+        <div className="mt-4 pt-4 border-t-2 border-gray-900/20">
+          <div className="editorial-label text-indigo-600 mb-1">EDIT INSTRUCTIONS</div>
+          <p className="pl-serif italic text-gray-50/70 whitespace-pre-wrap">{editInstructions}</p>
         </div>
       </div>
 
@@ -247,26 +247,26 @@ export default function EditorWorkspacePage() {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3 py-4">
-            {(['pdf', 'pwg'] as const).map(format => (
-              <button
-                key={format}
-                onClick={() => handleExport(format)}
-                disabled={isExporting}
-                className={`w-full p-4 border-2 rounded-pl text-left transition-colors ${
-                  exportFormat === format
-                    ? 'border-ink bg-ink/5'
-                    : 'border-ink/20 hover:border-persimmon'
-                }`}
+{(['pdf', 'pwg'] as const).map(format => (
+                <button
+                  key={format}
+                  onClick={() => handleExport(format)}
+                  disabled={isExporting}
+                  className={`w-full p-4 border-2 rounded-pl text-left transition-colors ${
+                    exportFormat === format
+                      ? 'border-gray-900 bg-gray-900/5'
+                      : 'border-gray-900/20 hover:border-indigo-600'
+                  }`}
               >
                 <div className="flex items-center justify-between">
                   <div>
                     <div className="font-bold">{format.toUpperCase()}</div>
-                    <div className="text-sm text-ink/60">
+                    <div className="text-sm text-gray-50/60">
                       {format === 'pdf' ? 'Standard PDF for review & archival' : 'PWG Raster for direct printing'}
                     </div>
                   </div>
                   <span className={`px-2 py-0.5 text-[10px] font-bold rounded-pl-sm ${
-                    exportFormat === format ? 'bg-persimmon text-paper' : 'bg-ink/10 text-ink'
+                    exportFormat === format ? 'bg-indigo-600 text-gray-50' : 'bg-gray-900/10 text-gray-900'
                   }`}>
                     {exportFormat === format ? 'SELECTED' : 'CHOOSE'}
                   </span>

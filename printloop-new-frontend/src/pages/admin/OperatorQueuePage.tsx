@@ -8,17 +8,17 @@ import {
 } from "@/store/services/adminApi";
 
 const STATUS_BADGES: Record<string, string> = {
-  ready: "bg-sage/15 text-sage border border-sage/30",
-  printing: "bg-ochre/15 text-ochre border border-ochre/30 animate-pulse",
-  done: "bg-ink/10 text-ink border border-ink/20",
-  failed: "bg-persimmon/15 text-persimmon border border-persimmon/30",
+  ready: "bg-emerald-600/15 text-emerald-600 border border-emerald-600/30",
+  printing: "bg-amber-500/15 text-amber-500 border border-amber-500/30 animate-pulse",
+  done: "bg-gray-900/10 text-gray-900 border border-gray-900/20",
+  failed: "bg-indigo-600/15 text-indigo-600 border border-indigo-600/30",
 };
 
 const KIOSK_STATUS_BADGES: Record<string, string> = {
-  ACTIVE: "bg-sage text-paper",
-  OFFLINE: "bg-persimmon text-paper",
-  MAINTENANCE: "bg-ochre text-paper",
-  DISABLED: "bg-ink/30 text-paper",
+  ACTIVE: "bg-emerald-600 text-gray-50",
+  OFFLINE: "bg-indigo-600 text-gray-50",
+  MAINTENANCE: "bg-amber-500 text-gray-50",
+  DISABLED: "bg-gray-900/30 text-gray-50",
 };
 
 export default function OperatorQueuePage() {
@@ -76,14 +76,14 @@ export default function OperatorQueuePage() {
       {/* Page Header */}
       <div className="flex justify-between items-end gap-4 flex-wrap">
         <div>
-          <div className="editorial-label text-persimmon mb-1">OPERATOR DASHBOARD</div>
-          <h1 className="pl-serif text-4xl font-bold text-ink mb-1">Live Queue & Fleet</h1>
-          <p className="pl-serif italic text-ink/60">
+          <div className="editorial-label text-indigo-600 mb-1">OPERATOR DASHBOARD</div>
+          <h1 className="pl-serif text-4xl font-bold text-gray-900 mb-1">Live Queue & Fleet</h1>
+          <p className="pl-serif italic text-gray-50/60">
             Monitor real-time printshop queue status, page counts, and physical kiosk heartbeats.
           </p>
         </div>
         <div className="flex gap-2 items-center">
-          <label className="text-xs text-fog font-medium mr-2">
+          <label className="text-xs text-gray-500 font-medium mr-2">
             Auto-refresh:
             <select
               value={pollingInterval}
@@ -98,7 +98,7 @@ export default function OperatorQueuePage() {
           </label>
           <button
             onClick={handleRefresh}
-            className="pl-btn bg-sage text-paper border-sage hover:bg-ink hover:border-ink text-xs px-4"
+            className="pl-btn bg-emerald-600 text-gray-50 border-emerald-600 hover:bg-gray-900 hover:border-gray-900 text-xs px-4"
           >
             ↻ REFRESH
           </button>
@@ -106,23 +106,23 @@ export default function OperatorQueuePage() {
       </div>
 
       {/* Overview Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 border-2 border-ink">
-        <div className="p-4 bg-paper-light">
-          <div className="editorial-label text-fog mb-1">JOBS IN QUEUE</div>
-          <div className="pl-mono text-3xl font-bold text-ink">{activeQueue.length}</div>
+      <div className="grid grid-cols-1 md:grid-cols-4 border-2 border-gray-900">
+        <div className="p-4 bg-gray-100">
+          <div className="editorial-label text-gray-500 mb-1">JOBS IN QUEUE</div>
+          <div className="pl-mono text-3xl font-bold text-gray-900">{activeQueue.length}</div>
         </div>
-        <div className="p-4 bg-paper-light border-t-2 md:border-t-0 md:border-l-2 border-ink">
-          <div className="editorial-label text-fog mb-1">PAGES TO PRINT</div>
-          <div className="pl-mono text-3xl font-bold text-ink">{totalPagesInQueue}</div>
+        <div className="p-4 bg-gray-100 border-t-2 md:border-t-0 md:border-l-2 border-gray-900">
+          <div className="editorial-label text-gray-500 mb-1">PAGES TO PRINT</div>
+          <div className="pl-mono text-3xl font-bold text-gray-900">{totalPagesInQueue}</div>
         </div>
-        <div className="p-4 bg-paper-light border-t-2 md:border-t-0 md:border-l-2 border-ink">
-          <div className="editorial-label text-fog mb-1">EST. WAIT TIME</div>
-          <div className="pl-mono text-3xl font-bold text-ochre">
+        <div className="p-4 bg-gray-100 border-t-2 md:border-t-0 md:border-l-2 border-gray-900">
+          <div className="editorial-label text-gray-500 mb-1">EST. WAIT TIME</div>
+          <div className="pl-mono text-3xl font-bold text-amber-500">
             {estimatedQueueTimeMin} <span className="text-sm font-normal">mins</span>
           </div>
         </div>
-        <div className="p-4 bg-ink text-paper border-t-2 md:border-t-0 md:border-l-2 border-ink">
-          <div className="editorial-label text-paper/60 mb-1">KIOSKS ONLINE</div>
+        <div className="p-4 bg-gray-900 text-gray-50 border-t-2 md:border-t-0 md:border-l-2 border-gray-900">
+          <div className="editorial-label text-gray-50/60 mb-1">KIOSKS ONLINE</div>
           <div className="pl-mono text-3xl font-bold">
             {kiosks.filter((k: any) => k.status === "ACTIVE").length}{" "}
             <span className="text-sm font-normal opacity-50">/ {kiosks.length}</span>
@@ -133,13 +133,13 @@ export default function OperatorQueuePage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Active Queue Section */}
         <div className="lg:col-span-2 space-y-4">
-          <div className="editorial-label text-ink/50">ACTIVE PRINT QUEUE</div>
+          <div className="editorial-label text-gray-50/50">ACTIVE PRINT QUEUE</div>
           
-          <div className="border-2 border-ink overflow-hidden bg-paper-light">
+          <div className="border-2 border-gray-900 overflow-hidden bg-gray-100">
             <div className="overflow-x-auto">
               <table className="w-full text-left text-sm border-collapse">
                 <thead>
-                  <tr className="bg-ink/5 border-b border-ink/20 text-ink/70">
+                  <tr className="bg-gray-900/5 border-b border-gray-900/20 text-gray-50/70">
                     <th className="p-3 font-semibold text-xs">Job Code</th>
                     <th className="p-3 font-semibold text-xs">Document</th>
                     <th className="p-3 font-semibold text-xs">Print Settings</th>
@@ -150,14 +150,14 @@ export default function OperatorQueuePage() {
                 <tbody>
                   {jobsLoading && (
                     <tr>
-                      <td colSpan={5} className="p-6 text-center text-fog italic">
+                      <td colSpan={5} className="p-6 text-center text-gray-500 italic">
                         Loading live queue…
                       </td>
                     </tr>
                   )}
                   {!jobsLoading && activeQueue.length === 0 && (
                     <tr>
-                      <td colSpan={5} className="p-12 text-center text-fog italic">
+                      <td colSpan={5} className="p-12 text-center text-gray-500 italic">
                         No active jobs in the queue.
                         <div className="text-xs mt-1 not-italic">
                           Pending and ready jobs will appear here in real-time.
@@ -170,24 +170,24 @@ export default function OperatorQueuePage() {
                     return (
                       <tr
                         key={job.id}
-                        className="border-b border-ink/10 last:border-0 hover:bg-ink/5 transition-colors align-middle"
+                        className="border-b border-gray-900/10 last:border-0 hover:bg-gray-900/5 transition-colors align-middle"
                       >
                         <td className="p-3">
-                          <span className="pl-mono font-bold text-sm tracking-wider text-ink block">
+                          <span className="pl-mono font-bold text-sm tracking-wider text-gray-900 block">
                             {job.code}
                           </span>
-                          <span className="text-[10px] text-fog font-medium block uppercase mt-0.5">
+                          <span className="text-[10px] text-gray-500 font-medium block uppercase mt-0.5">
                             {new Date(job.createdAt).toLocaleTimeString()}
                           </span>
                         </td>
                         <td className="p-3">
-                          <div className="font-medium text-ink truncate max-w-[180px]" title={job.fileName}>
+                          <div className="font-medium text-gray-900 truncate max-w-[180px]" title={job.fileName}>
                             {job.fileName}
                           </div>
-                          <div className="text-xs text-fog">{job.totalPages || 0} pages</div>
+                          <div className="text-xs text-gray-500">{job.totalPages || 0} pages</div>
                         </td>
-                        <td className="p-3 text-xs text-fog">
-                          <div className="font-medium text-ink">
+                        <td className="p-3 text-xs text-gray-500">
+                          <div className="font-medium text-gray-900">
                             {cfg.paper} · {cfg.color === "color" ? "Colour" : "B&W"}
                           </div>
                           <div>
@@ -197,7 +197,7 @@ export default function OperatorQueuePage() {
                         <td className="p-3 text-center">
                           <span
                             className={`pl-pill text-[10px] font-bold uppercase ${
-                              STATUS_BADGES[job.status] || "bg-ink/10"
+                              STATUS_BADGES[job.status] || "bg-gray-900/10"
                             }`}
                           >
                             {job.status === "ready" ? "READY" : "PRINTING"}
@@ -207,14 +207,14 @@ export default function OperatorQueuePage() {
                           {job.status === "printing" && (
                             <button
                               onClick={() => handleCompleteJob(job.id, job.code)}
-                              className="text-xs bg-sage text-paper px-2 py-1 border border-sage hover:bg-ink hover:border-ink font-bold transition-colors"
+                              className="text-xs bg-emerald-600 text-gray-50 px-2 py-1 border border-emerald-600 hover:bg-gray-900 hover:border-gray-900 font-bold transition-colors"
                             >
                               MARK DONE
                             </button>
                           )}
                           <button
                             onClick={() => handleCancelJob(job.id, job.code)}
-                            className="text-xs text-persimmon font-bold hover:underline"
+                            className="text-xs text-indigo-600 font-bold hover:underline"
                           >
                             CANCEL
                           </button>
@@ -230,12 +230,12 @@ export default function OperatorQueuePage() {
 
         {/* Kiosks & Hardware Section */}
         <div className="space-y-4">
-          <div className="editorial-label text-ink/50">KIOSK FLEET STATUS</div>
+          <div className="editorial-label text-gray-50/50">KIOSK FLEET STATUS</div>
 
-          <div className="border-2 border-ink bg-paper-light p-4 space-y-4">
-            {kiosksLoading && <div className="text-center italic text-fog text-sm py-4">Loading kiosks…</div>}
+          <div className="border-2 border-gray-900 bg-gray-100 p-4 space-y-4">
+            {kiosksLoading && <div className="text-center italic text-gray-500 text-sm py-4">Loading kiosks…</div>}
             {!kiosksLoading && kiosks.length === 0 && (
-              <div className="text-center italic text-fog text-sm py-4">No kiosks registered.</div>
+              <div className="text-center italic text-gray-500 text-sm py-4">No kiosks registered.</div>
             )}
             {kiosks.map((k: any) => {
               const minutesSinceLastSeen = k.lastSeenAt
@@ -244,33 +244,33 @@ export default function OperatorQueuePage() {
               const isOffline = k.status === "OFFLINE" || (minutesSinceLastSeen !== null && minutesSinceLastSeen > 2);
 
               return (
-                <div key={k.id} className="border border-ink/10 p-3 bg-paper hover:bg-ink/5 transition-colors">
+                <div key={k.id} className="border border-gray-900/10 p-3 bg-gray-50 hover:bg-gray-900/5 transition-colors">
                   <div className="flex justify-between items-start">
                     <div>
-                      <h4 className="font-bold text-sm text-ink">{k.name}</h4>
-                      <p className="text-xs text-fog">{k.location || "No location info"}</p>
+                      <h4 className="font-bold text-sm text-gray-900">{k.name}</h4>
+                      <p className="text-xs text-gray-500">{k.location || "No location info"}</p>
                     </div>
                     <span
                       className={`pl-pill text-[9px] font-bold uppercase ${
                         isOffline
-                          ? "bg-persimmon text-paper"
+                          ? "bg-indigo-600 text-gray-50"
                           : k.status === "MAINTENANCE"
-                          ? "bg-ochre text-paper"
-                          : "bg-sage text-paper"
+                          ? "bg-amber-500 text-gray-50"
+                          : "bg-emerald-600 text-gray-50"
                       }`}
                     >
                       {isOffline ? "OFFLINE" : k.status}
                     </span>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-2 mt-3 pt-2 border-t border-ink/10 text-xs">
+                  <div className="grid grid-cols-2 gap-2 mt-3 pt-2 border-t border-gray-900/10 text-xs">
                     <div>
-                      <span className="text-[10px] text-fog block font-semibold">IP ADDRESS</span>
-                      <span className="pl-mono font-medium text-ink">{k.ipAddress || "—"}</span>
+                      <span className="text-[10px] text-gray-500 block font-semibold">IP ADDRESS</span>
+                      <span className="pl-mono font-medium text-gray-900">{k.ipAddress || "—"}</span>
                     </div>
                     <div>
-                      <span className="text-[10px] text-fog block font-semibold">LAST SEEN</span>
-                      <span className="font-medium text-ink whitespace-nowrap">
+                      <span className="text-[10px] text-gray-500 block font-semibold">LAST SEEN</span>
+                      <span className="font-medium text-gray-900 whitespace-nowrap">
                         {minutesSinceLastSeen === null
                           ? "Never"
                           : minutesSinceLastSeen === 0

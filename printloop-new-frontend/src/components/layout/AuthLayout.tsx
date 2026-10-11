@@ -4,7 +4,7 @@ import { EditorialFooter } from "@/components/layout/EditorialFooter";
 
 export function AuthLayout() {
   return (
-    <div className="min-h-screen bg-paper text-ink flex flex-col">
+    <div className="min-h-screen bg-gray-50 text-gray-900 flex flex-col">
       <Marquee
         items={[
           { text: "● 12 STATIONS LIVE", accent: true },

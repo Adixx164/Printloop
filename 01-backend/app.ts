@@ -1,6 +1,7 @@
 import "reflect-metadata";
 import express, { type Application } from "express";
 import cors from "cors";
+import { trpcHandler } from "./src/trpc/index.js";
 import devApiRoutes from "./routes/devApi.routes.js";
 import adminAuthRoutes from "./routes/adminAuth.routes.js";
 import adminRoutes from "./routes/admin.routes.js";
@@ -245,6 +246,11 @@ export function createApp(): Application {
 
   // Public marketing blog (V2-54) — published posts only, no auth.
   app.use("/api/blog", blogRoutes);
+
+  // ── tRPC API (type-safe backend endpoints, V2-XX) ───────────────────────
+  // Shares Typescript types with the frontend for end-to-end type safety.
+  // Auto-infers procedures from the router defined in src/trpc/.
+  app.use("/api/trpc", trpcHandler);
 
   // ── "PrintLoop as a network printer" — CUPS ingress (token-auth, no JWT).
   //    A laptop adds PrintLoop as a CUPS printer; that backend POSTs here.

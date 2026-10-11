@@ -41,7 +41,7 @@ export function AppLayout() {
   const fullName = [user?.firstName, user?.lastName].filter(Boolean).join(" ") || "Account";
 
   return (
-    <div className="min-h-screen bg-paper text-ink flex flex-col">
+    <div className="min-h-screen bg-gray-50 text-gray-900 flex flex-col">
       <Marquee
         items={[
           { text: "★ PRINTLOOP — VOL. I · ISSUE 09 · LAGOS, NIGERIA" },
@@ -54,7 +54,7 @@ export function AppLayout() {
       />
 
       {/* ── Header ────────────────────────────────────────────────── */}
-      <div className="pl-anim-header bg-paper border-b-2 border-ink px-4 sm:px-6 lg:px-8 py-3 sm:py-4 flex items-center justify-between gap-4">
+      <div className="pl-anim-header bg-paper border-b-2 border-gray-900 px-4 sm:px-6 lg:px-8 py-3 sm:py-4 flex items-center justify-between gap-4">
         {/* Logo + (desktop) horizontal nav */}
         <div className="flex items-center gap-4 lg:gap-8 min-w-0">
           <Link
@@ -62,7 +62,7 @@ export function AppLayout() {
             className="group font-serif font-extrabold text-[20px] sm:text-[22px] lg:text-[26px] tracking-tight flex-shrink-0"
           >
             PrintLoop
-            <span className="text-persimmon inline-block transition-transform duration-200 ease-expressive group-hover:scale-150">.</span>
+            <span className="text-indigo-600 inline-block transition-transform duration-200 ease-expressive group-hover:scale-150">.</span>
           </Link>
           <nav className="hidden lg:flex gap-1 flex-wrap">
             {NAV_ITEMS.map((it) => {
@@ -72,9 +72,9 @@ export function AppLayout() {
                   key={it.to}
                   to={it.to}
                   className={`pl-nav-link px-3 py-2 text-xs font-bold uppercase tracking-wider border-2 ${
-                    active
-                      ? "bg-persimmon text-paper border-ink"
-                      : "border-transparent text-ink hover:bg-ink hover:text-paper hover:border-ink"
+active
+                      ? "bg-indigo-600 text-gray-50 border-gray-900"
+                      : "border-transparent text-gray-900 hover:bg-gray-900 hover:text-gray-50 hover:border-gray-900"
                   }`}
                 >
                   {it.label}
@@ -92,7 +92,7 @@ export function AppLayout() {
           </span>
           <button
             onClick={handleLogout}
-            className="pl-nav-link hidden lg:inline-block text-[10px] font-bold tracking-editorial border-2 border-ink px-3 py-1.5 hover:bg-ink hover:text-paper"
+            className="pl-nav-link hidden lg:inline-block text-[10px] font-bold tracking-editorial border-2 border-gray-900 px-3 py-1.5 hover:bg-gray-900 hover:text-gray-50"
           >
             SIGN OUT
           </button>
@@ -102,7 +102,7 @@ export function AppLayout() {
             onClick={() => setMenuOpen(true)}
             aria-label="Open menu"
             aria-expanded={menuOpen}
-            className="pl-nav-link lg:hidden text-[10px] font-bold tracking-editorial border-2 border-ink px-3 py-2 hover:bg-ink hover:text-paper"
+            className="pl-nav-link lg:hidden text-[10px] font-bold tracking-editorial border-2 border-gray-900 px-3 py-2 hover:bg-gray-900 hover:text-gray-50"
           >
             MENU
           </button>

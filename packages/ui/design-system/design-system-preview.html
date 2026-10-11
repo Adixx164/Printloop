@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PrintLoop Design System Preview</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      /* Colors from design-tokens.json */
+      --color-brand-50: #EEF2FF;
+      --color-brand-100: #E0E7FF;
+      --color-brand-200: #C7D2FE;
+      --color-brand-300: #A5B4FC;
+      --color-brand-400: #818CF8;
+      --color-brand-500: #6366F1;
+      --color-brand-600: #4F46E5;
+      --color-brand-700: #4338CA;
+      --color-brand-800: #3730A3;
+      --color-brand-900: #312E81;
+      --color-brand-950: #1E1B4B;
+
+      --color-neutral-0: #FFFFFF;
+      --color-neutral-50: #FAFAFA;
+      --color-neutral-100: #F4F4F5;
+      --color-neutral-200: #E4E4E7;
+      --color-neutral-300: #D4D4D8;
+      --color-neutral-400: #A1A1AA;
+      --color-neutral-500: #71717A;
+      --color-neutral-600: #52525B;
+      --color-neutral-700: #3F3F46;
+      --color-neutral-800: #27272A;
+      --color-neutral-900: #18181B;
+      --color-neutral-950: #09090B;
+
+      --color-success-50: #F0FDF4;
+      --color-success-100: #DCFCE7;
+      --color-success-500: #22C55E;
+      --color-success-600: #16A34A;
+      --color-success-700: #15803D;
+
+      --color-warning-50: #FFFBEB;
+      --color-warning-100: #FEF3C7;
+      --color-warning-500: #F59E0B;
+      --color-warning-600: #D97706;
+      --color-warning-700: #B45309;
+
+      --color-error-50: #FEF2F2;
+      --color-error-100: #FEE2E2;
+      --color-error-500: #EF4444;
+      --color-error-600: #DC2626;
+      --color-error-700: #B91C1C;
+
+      --color-info-50: #EFF6FF;
+      --color-info-100: #DBEAFE;
+      --color-info-500: #3B82F6;
+      --color-info-600: #2563EB;
+      --color-info-700: #1D4ED8;
+
+      --color-primary: #4F46E5;
+      --color-primary-hover: #4338CA;
+      --color-primary-active: #3730A3;
+      --color-primary-foreground: #FFFFFF;
+
+      --color-secondary: #F4F4F5;
+      --color-secondary-hover: #E4E4E7;
+      --color-secondary-foreground: #18181B;
+
+      --color-destructive: #DC2626;
+      --color-destructive-hover: #B91C1C;
+      --color-destructive-foreground: #FFFFFF;
+
+      --color-muted: #F4F4F5;
+      --color-muted-foreground: #71717A;
+
+      --color-accent: #E0E7FF;
+      --color-accent-foreground: #4F46E5;
+
+      --color-background: #FFFFFF;
+      --color-foreground: #18181B;
+
+      --color-card: #FFFFFF;
+      --color-card-foreground: #18181B;
+
+      --color-border: #E4E4E7;
+      --color-input: #F4F4F5;
+      --color-ring: #6366F1;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --color-background: #09090B;
+        --color-foreground: #F4F4F5;
+        --color-card: #18181B;
+        --color-card-foreground: #F4F4F5;
+        --color-popover: #18181B;
+        --color-popover-foreground: #F4F4F5;
+        --color-border: #71717A;
+        --color-input: #71717A;
+        --color-muted: #71717A;
+        --color-muted-foreground: #D4D4D8;
+        --color-accent: #312E81;
+        --color-accent-foreground: #A5B4FC;
+      }
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Geist', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background-color: var(--color-background);
+      color: var(--color-foreground);
+      min-height: 100vh;
+    }
+
+    .font-mono {
+      font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    }
+
+    /* Color swatch utility */
+    .color-swatch {
+      width: 120px;
+      height: 40px;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--color-on-primary, #FFFFFF);
+      font-size: 0.75rem;
+      font-weight: 500;
+    }
+
+    .color-swatch-text {
+      color: currentColor;
+    }
+
+    /* Typography scale */
+    .type-scale > * {
+      margin-bottom: 0.5rem;
+    }
+
+    /* Spacing scale */
+    .spacing-scale > div {
+      height: 32px;
+      background: var(--color-muted);
+      margin: 4px 0;
+    }
+
+    /* Component preview */
+    .component-preview > div {
+      margin-bottom: 1rem;
+      padding: 1rem;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 0.75rem;
+    }
+
+    .toast {
+      position: fixed;
+      top: 1rem;
+      right: 1rem;
+      background: var(--color-card);
+      border: 1px solid var(--color-border);
+      border-radius: 8px;
+      padding: 1rem 1.25rem;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+      z-index: 1000;
+      min-width: 200px;
+    }
+
+    /* Button styles */
+    .btn-preview {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      padding: 0.75rem 1.25rem;
+      border-radius: 8px;
+      font-family: 'Geist', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-size: 0.875rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 200ms ease;
+    }
+
+    .btn-primary { background: var(--color-primary); color: var(--color-primary-foreground); }
+    .btn-primary:hover { background: var(--color-primary-hover); }
+    .btn-primary:active { background: var(--color-primary-active); }
+
+    .btn-secondary { background: var(--color-secondary); color: var(--color-secondary-foreground); border: 1px solid var(--color-border); }
+    .btn-secondary:hover { background: var(--color-secondary-hover); }
+
+    .btn-outline { background: transparent; color: var(--color-foreground); border: 1px solid var(--color-border); }
+    .btn-outline:hover { background: var(--color-muted); }
+
+    .btn-ghost { background: transparent; color: var(--color-foreground); padding: 0.5rem 0.75rem; }
+    .btn-ghost:hover { background: var(--color-accent); }
+
+    .btn-destructive { background: var(--color-destructive); color: var(--color-destructive-foreground); }
+    .btn-destructive:hover { background: var(--color-destructive-hover); }
+
+    @media (prefers-reduced-motion: reduce) {
+      .btn-preview { transition: none; }
+    }
+  </style>
+</head>
+<body class="p-6">
+
+  <header class="mb-8 max-w-3xl">
+    <h1 class="text-4xl font-bold tracking-tight mb-2">PrintLoop Design System</h1>
+    <p class="text-muted-foreground text-lg">Modern SaaS aesthetic • Clean, dense, data-dense</p>
+  </header>
+
+  <section class="grid grid-cols-2 gap-6 mb-8">
+
+    <!-- Color Palette -->
+    <div class="component-preview">
+      <h2 class="text-lg font-semibold mb-4">Color Palette</h2>
+      
+      <div class="grid grid-cols-6 gap-3 text-sm">
+        <!-- Brand -->
+        <div>
+          <span class="text-[var(--color-neutral-500)] text-xs uppercase tracking-wider">Brand</span>
+          <div class="color-swatch" style="background: var(--color-brand-600); --color-on-primary: var(--color-primary-foreground);">
+            <span>Brand 600</span>
+          </div>
+        </div>
+        <div>
+          <span class="text-[var(color-neutral-500)] text-xs uppercase tracking-wider">Brand Hover</span>
+          <div class="color-swatch" style="background: var(--color-brand-700); --color-on-primary: var(--color-primary-foreground);">
+            <span>Brand 700</span>
+          </div>
+        </div>
+        <div>
+          <span class="text-[var(color-neutral-500)] text-xs uppercase tracking-wider">Brand Active</span>
+          <div class="color-swatch" style="background: var(--color-brand-800); --color-on-primary: var(--color-primary-foreground);">
+            <span>Brand 800</span>
+          </div>
+        </div>
+
+        <!-- Neutral -->
+        <div>
+          <span class="text-[var(color-neutral-500)] text-xs uppercase tracking-wider">Neutral</span>
+          <div class="color-swatch" style="background: var(--color-neutral-950); --color-on-primary: var(--color-primary-foreground);">
+            <span>Neutral 950</span>
+          </div>
+        </div>
+        <div>
+          <span class="text-[var(color-neutral-500)] text-xs uppercase tracking-wider">Background</span>
+          <div class="color-swatch" style="background: var(--color-neutral-0); --color-on-primary: var(--color-primary-foreground);">
+            <span>Background</span>
+          </div>
+        </div>
+        <div>
+          <span class="text-[var(color-neutral-500)] text-xs uppercase tracking-wider">Card</span>
+          <div class="color-swatch" style="background: var(--color-card); --color-on-primary: var(--color-primary-foreground);">
+            <span>Card</span>
+          </div>
+        </div>
+        <div>
+          <span class="text-[var(color-neutral-500)] text-xs uppercase tracking-wider">Border</span>
+          <div class="color-swatch" style="background: var(--color-border); --color-on-primary: var(--color-primary-foreground);">
+            <span>Border</span>
+          </div>
+        </div>
+
+        <!-- Semantic -->
+        <div>
+          <span class="text-[var(color-neutral-500)] text-xs uppercase tracking-wider">Success</span>
+          <div class="color-swatch" style="background: var(--color-success-600); --color-on-primary: var(--color-primary-foreground);">
+            <span>Success</span>
+          </div>
+        </div>
+        <div>
+          <span class="text-[var(color-neutral-500)] text-xs uppercase tracking-wider">Warning</span>
+          <div class="color-swatch" style="background: var(--color-warning-600); --color-on-primary: var(--color-primary-foreground);">
+            <span>Warning</span>
+          </div>
+        </div>
+        <div>
+          <span class="text-[var(color-neutral-500)] text-xs uppercase tracking-wider">Error</span>
+          <div class="color-swatch" style="background: var(--color-error-600); --color-on-primary: var(--color-primary-foreground);">
+            <span>Error</span>
+          </div>
+        </div>
+        <div>
+          <span class="text-[var(color-neutral-500)] text-xs uppercase tracking-wider">Info</span>
+          <div class="color-swatch" style="background: var(--color-info-600); --color-on-primary: var(--color-primary-foreground);">
+            <span>Info</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Typography Scale -->
+    <div class="component-preview">
+      <h2 class="text-lg font-semibold mb-4">Typography Scale</h2>
+      <div class="type-scale space-y-1">
+        <div class="font-mono text-[var(--text-xs)]">0.75rem / 1rem — Fine print, badges</div>
+        <div class="font-mono text-[var(--text-sm)]">0.875rem / 1.25rem — Captions, labels</div>
+        <div class="font-body text-[var(--text-base)]">1rem / 1.5rem — Body text</div>
+        <div class="font-semibold text-[var(--text-lg)]">1.125rem / 1.75rem — Lead text</div>
+        <div class="font-semibold text-[var(--text-xl)]">1.25rem / 1.75rem — Section headers</div>
+        <div class="font-bold text-[var(--text-2xl)]">1.5rem / 2rem — Page headers</div>
+        <div class="font-bold text-[var(--text-3xl)]">1.875rem / 2.25rem — Hero titles</div>
+        <div class="font-extrabold text-[var(--text-4xl)]">2.25rem / 2.5rem — Display text</div>
+      </div>
+      <p class="text-[var(--text-sm)] text-muted-foreground mt-2">
+        Font: Geist • Weights: 400/500/600/700/800 • Line heights scaled proportionally
+      </p>
+    </div>
+
+    <!-- Spacing Scale -->
+    <div class="component-preview">
+      <h2 class="text-lg font-semibold mb-4">Spacing Scale</h2>
+      <div class="spacing-scale">
+        <div style="width: calc(var(--space-1) * 4);"></div> {/* 4px */}
+        <div style="width: calc(var(--space-2) * 4);"></div> {/* 8px */}
+        <div style="width: calc(var(--space-3) * 4);"></div> {/* 12px */}
+        <div style="width: calc(var(--space-4) * 4);"></div> {/* 16px */}
+        <div style="width: calc(var(--space-5) * 4);"></div> {/* 20px */}
+        <div style="width: calc(var(--space-6) * 4);"></div> {/* 24px */}
+        <div style="width: calc(var(--space-8) * 4);"></div> {/* 32px */}
+        <div style="width: calc(var(--space-10) * 4);"></div> {/* 40px */}
+        <div style="width: calc(var(--space-12) * 4);"></div> {/* 48px */}
+        <div style="width: calc(var(--space-16) * 4);"></div> {/* 64px */}
+      </div>
+      <p class="text-[var(--text-sm)] text-muted-foreground mt-2">
+        Base unit: 4px • Scale: 0, 1, 2, 3, 4, 5, 6, 8, 10, 12, 16
+      </p>
+    </div>
+
+    <!-- Component Patterns -->
+    <div class="component-preview">
+      <h2 class="text-lg font-semibold mb-4">Component Patterns</h2>
+
+      <!-- Buttons -->
+      <div>
+        <h3 class="text-sm font-medium uppercase tracking-wider mb-2">Buttons</h3>
+        <div class="flex gap-2 flex-wrap">
+          <button class="btn-preview btn-primary">Primary</button>
+          <button class="btn-preview btn-secondary">Secondary</button>
+          <button class="btn-preview btn-outline">Outline</button>
+          <button class="btn-preview btn-ghost">Ghost</button>
+          <button class="btn-preview btn-destructive">Destructive</button>
+        </div>
+      </div>
+
+      <!-- Cards -->
+      <div class="grid grid-cols-2 gap-3 mt-4">
+        <div class="p-4 border var(--color-border) rounded-lg">
+          <p class="text-[var(--text-sm)] text-[var(--color-muted-foreground)]">Card with var(--radius-md)</p>
+        </div>
+        <div class="p-4 border var(--color-border) rounded-xl">
+          <p class="text-[var(--text-sm)] text-[var(--color-muted-foreground)]">Card with var(--radius-xl)</p>
+        </div>
+      </div>
+
+      <!-- Input -->
+      <div class="grid gap-3 mt-4">
+        <div>
+          <label class="block text-[var(--text-sm)] mb-1">Input</label>
+          <input 
+            type="email" 
+            class="w-full px-3 py-2 bg-[var(--color-input)] border border-[var(--color-border)] rounded-md text-[var(--text-sm)] focus:outline-none focus:ring-2 focus:ring-[var(--color-ring)] focus:border-transparent"
+            placeholder="you@example.com"
+          >
+        </div>
+        <div>
+          <label class="block text-[var(--text-sm)] mb-1">Filled Input</label>
+          <input 
+            type="email" 
+            class="w-full px-3 py-2 bg-[var(--color-background)] border border-[var(--color-primary)] rounded-md text-[var(--text-sm)] focus:outline-none focus:ring-2 focus:ring-[var(--color-ring)] focus:border-transparent"
+            placeholder="you@example.com"
+          >
+        </div>
+      </div>
+
+      <!-- Badge -->
+      <div class="flex gap-2 mt-4">
+        <span class="badge" style="background: var(--color-brand-100); color: var(--color-brand-600);">Default</span>
+        <span class="badge" style="background: var(--color-success-100); color: var(--color-success-600);">Success</span>
+        <span class="badge" style="background: var(--color-warning-100); color: var(--color-warning-600);">Warning</span>
+        <span class="badge" style="background: var(--color-error-100); color: var(--color-error-600);">Error</span>
+      </div>
+    </div>
+
+  </section>
+
+  <footer class="mt-8 text-[var(--text-sm)] text-muted-foreground max-w-3xl">
+    <p>PrintLoop Design System v1.0 • Generated from design-tokens.json</p>
+    <p class="mt-2">Fonts: Geist (Google Fonts) + JetBrains Mono (Google Fonts)</p>
+  </footer>
+
+</body>
+</html>

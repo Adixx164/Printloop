@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PrintLoop — Design Direction Sample (Sheet 01)</title>
+<meta name="color-scheme" content="light">
+<meta name="description" content="Proposed visual direction for PrintLoop: six print-shop inks, two typefaces, a job-ticket hero.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800;900&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --sheet:#F9FBFF;
+  --paper:#FFFFFF;
+  --toner:#17140F;
+  --muted:#6E6A61;
+  --ink-soft:#3B372F;
+  --process:#0077C8;
+  --process-ink:#005E9E;
+  --register:#CE2B37;
+  --highlight:#FFD400;
+  --pass:#177245;
+  --hairline:#E3E8F0;
+  --r:3px;
+  --rail:52px;
+  --display:'Archivo','Helvetica Neue',Arial,sans-serif;
+  --body:'IBM Plex Sans',system-ui,-apple-system,sans-serif;
+  --data:'Archivo','Helvetica Neue',Arial,sans-serif;
+}
+*,*::before,*::after{box-sizing:border-box}
+html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
+body{
+  margin:0;
+  background:var(--sheet);
+  color:var(--toner);
+  font:400 16px/1.6 var(--body);
+  color-scheme:light;
+  overflow-x:hidden;
+}
+h1,h2,h3,h4,p,dl,dd,dt,figure{margin:0}
+img{max-width:100%;display:block}
+a{color:var(--process-ink);text-underline-offset:3px}
+:focus-visible{outline:3px solid var(--process);outline-offset:3px;border-radius:2px}
+.mono{font-family:var(--data)}
+.wrap{max-width:1120px;margin:0 auto;padding:0 clamp(18px,4vw,40px)}
+
+/* skip link */
+.skip{position:absolute;left:-9999px;top:0;z-index:99;background:var(--toner);color:var(--sheet);font:600 14px var(--data);padding:12px 18px;text-decoration:none}
+.skip:focus{left:8px;top:8px}
+
+/* corner trim marks — the page as a printed sheet */
+.trim{position:fixed;width:22px;height:22px;z-index:60;pointer-events:none}
+.trim::before{content:"";position:absolute;top:0;left:0;width:22px;height:1px;background:var(--toner);opacity:.35}
+.trim::after{content:"";position:absolute;top:0;left:0;width:1px;height:22px;background:var(--toner);opacity:.35}
+.trim-tl{top:12px;left:12px}
+.trim-tr{top:12px;right:12px}
+.trim-tr::before{left:auto;right:0}
+.trim-tr::after{left:auto;right:0}
+.trim-bl{bottom:12px;left:12px}
+.trim-bl::before{top:auto;bottom:0}
+.trim-bl::after{top:auto;bottom:0}
+.trim-br{bottom:12px;right:12px}
+.trim-br::before{top:auto;bottom:0;left:auto;right:0}
+.trim-br::after{top:auto;bottom:0;left:auto;right:0}
+
+/* right-edge scroll rail */
+.rail{position:fixed;top:0;right:0;width:var(--rail);height:100vh;z-index:55;pointer-events:none}
+.rail-track{position:absolute;top:26px;bottom:26px;right:26px;width:1px;background:var(--hairline)}
+.rail-mark{position:absolute;top:26px;right:23px;width:7px;height:26px;background:var(--toner);will-change:transform}
+.rail-label{position:absolute;top:74px;right:33px;writing-mode:vertical-rl;font:600 11px/1 var(--data);letter-spacing:.2em;text-transform:uppercase;color:var(--muted)}
+
+/* sections — spec-sheet labels with trailing hairline */
+.sec{border-top:1px solid var(--hairline);padding:clamp(52px,8vw,92px) 0}
+.sec-head{margin-bottom:clamp(26px,4vw,42px)}
+.sec-label{display:flex;align-items:center;gap:14px;font:600 12px/1 var(--data);text-transform:uppercase;letter-spacing:.16em;color:var(--process-ink);margin-bottom:18px}
+.sec-label::after{content:"";flex:1;height:1px;background:var(--hairline)}
+.sec-title{font-family:var(--display);font-weight:800;font-size:clamp(28px,4.4vw,46px);line-height:1.04;letter-spacing:-.02em;max-width:22ch}
+.sec-sub{margin-top:14px;color:var(--muted);max-width:58ch}
+/* hero */
+.hero{padding:clamp(48px,7vw,84px) 0 clamp(56px,8vw,96px)}
+.hero-grid{display:grid;gap:clamp(34px,5vw,56px);align-items:start}
+@media(min-width:920px){.hero-grid{grid-template-columns:1.05fr .95fr}}
+.kicker{display:inline-flex;align-items:center;gap:10px;font:600 12px/1 var(--data);text-transform:uppercase;letter-spacing:.18em;color:var(--muted);border:1px solid var(--hairline);background:var(--paper);border-radius:var(--r);padding:8px 12px}
+.kicker b{color:var(--register);font-weight:600}
+.hero h1{font-family:var(--display);font-weight:900;font-size:clamp(42px,8.4vw,84px);line-height:.94;letter-spacing:-.035em;text-transform:uppercase;margin-top:22px}
+.hero h1 em{font-style:normal;color:var(--process)}
+.hero-lede{margin-top:20px;font-size:clamp(17px,2vw,20px);line-height:1.55;max-width:46ch;color:var(--ink-soft)}
+.hero-cta{display:flex;flex-wrap:wrap;gap:14px;margin-top:30px}
+.hero-fine{margin-top:26px;display:flex;flex-wrap:wrap;gap:10px 20px;font:500 13px var(--data);color:var(--muted)}
+.hero-fine span{display:inline-flex;align-items:center;gap:8px}
+.hero-fine i{width:8px;height:8px;background:var(--highlight);border:1px solid var(--toner);border-radius:50%}
+
+/* the job ticket */
+.ticket{position:relative;background:var(--paper);border:1px solid var(--hairline);border-radius:var(--r);box-shadow:12px 12px 0 #E3E9F4;overflow:hidden}
+.ticket-top{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;padding:20px 22px 16px;border-bottom:1px solid var(--hairline)}
+.ticket-kicker{font:600 11px/1 var(--data);text-transform:uppercase;letter-spacing:.16em;color:var(--muted)}
+.ticket-id{font-family:var(--display);font-weight:800;font-size:clamp(23px,3vw,31px);letter-spacing:-.01em;margin-top:9px}
+.ticket-rows{padding:6px 22px 14px}
+.ticket-rows>div{display:flex;justify-content:space-between;gap:18px;padding:11px 0;border-bottom:1px dashed var(--hairline)}
+.ticket-rows dt{font:500 12px/1.45 var(--data);text-transform:uppercase;letter-spacing:.1em;color:var(--muted);flex:none}
+.ticket-rows dd{font:500 15px/1.45 var(--body);text-align:right}
+.ticket-total{display:flex;justify-content:space-between;align-items:baseline;gap:16px;padding:14px 22px 20px}
+.ticket-total-label{font:600 12px/1 var(--data);text-transform:uppercase;letter-spacing:.16em;color:var(--muted)}
+.ticket-total-num{font-family:var(--display);font-weight:900;font-size:clamp(34px,5vw,46px);letter-spacing:-.02em}
+.perf{position:relative;border-top:1.5px dashed rgba(23,20,15,.4)}
+.perf::before,.perf::after{content:"";position:absolute;top:-12px;width:22px;height:22px;border-radius:50%;background:var(--sheet)}
+.perf::before{left:-13px}
+.perf::after{right:-13px}
+.ticket-stub{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;min-height:86px;padding:16px 22px;background:#F1F5FC}
+.stub-note{font:600 11px/1.5 var(--data);text-transform:uppercase;letter-spacing:.14em;color:var(--muted)}
+.stub-id{font:500 13px var(--data);color:var(--toner)}
+.stamp{font-family:var(--display);font-weight:900;font-size:clamp(24px,3.4vw,32px);letter-spacing:.1em;text-transform:uppercase;color:var(--register);border:1.5px solid var(--register);border-radius:4px;padding:3px 16px;transform:rotate(-9deg);mix-blend-mode:multiply;opacity:.92;animation:stamp-in .55s .85s cubic-bezier(.2,.9,.3,1.4) both}
+@keyframes stamp-in{from{opacity:0;transform:rotate(-30deg) scale(1.8)}}
+
+/* buttons */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:9px;font-family:var(--display);font-weight:700;font-size:14px;letter-spacing:.06em;text-transform:uppercase;text-decoration:none;color:var(--toner);background:var(--paper);border:1px solid var(--hairline);border-radius:var(--r);padding:12px 20px;cursor:pointer;transition:background .15s ease}
+.btn:hover{background:#EDF1F8}
+.btn:active{filter:brightness(.95)}
+.btn-primary{background:var(--process);border-color:var(--process);color:#fff}
+.btn-primary:hover{background:#0066AD}
+.btn-danger{background:var(--register);border-color:var(--register);color:#fff}
+.btn-danger:hover{background:#B0222C}
+.btn-ghost{border-color:transparent;background:transparent;color:var(--process-ink);text-decoration:underline;text-underline-offset:4px;padding:12px 8px}
+.btn-ghost:hover{background:#EAF2FA}
+.btn:disabled,.btn[aria-disabled="true"]{opacity:.45;pointer-events:none}
+
+/* badges */
+.badge{display:inline-flex;align-items:center;gap:7px;font:600 12px/1 var(--data);text-transform:uppercase;letter-spacing:.08em;padding:7px 11px;border-radius:var(--r);background:#EDF0F6;color:var(--toner);white-space:nowrap}
+.badge::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor;flex:none}
+.badge-queue{background:var(--highlight);color:var(--toner)}
+.badge-ready{color:var(--pass);background:#E9F3EE}
+.badge-render{color:var(--process-ink);background:#E9F2FA}
+.badge-err{color:#fff;background:var(--register)}
+
+/* form fields */
+.field label{display:block;font:600 12px var(--data);text-transform:uppercase;letter-spacing:.12em;color:var(--muted);margin-bottom:7px}
+.field input{width:100%;padding:12px 14px;font:400 16px var(--body);color:var(--toner);background:var(--paper);border:1px solid var(--hairline);border-radius:var(--r)}
+.field .hint{font-size:13px;color:var(--muted);margin-top:7px}
+.field.has-error input{border-color:var(--register)}
+.field .err{display:flex;gap:7px;font:500 13px var(--data);color:var(--register);margin-top:7px}
+.field .err::before{content:"!";flex:none;width:16px;height:16px;border-radius:50%;background:var(--register);color:#fff;font:700 11px/16px var(--display);text-align:center}
+/* palette section */
+.ink-grid{display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(168px,1fr));margin-top:30px}
+.ink{border:1px solid var(--hairline);border-radius:var(--r);overflow:hidden;background:var(--paper)}
+.ink-chip{height:88px;position:relative}
+.ink-chip span{position:absolute;bottom:8px;right:8px;font:600 11px var(--data);background:var(--paper);border:1px solid var(--hairline);border-radius:3px;padding:3px 6px}
+.ink-meta{padding:11px 13px 13px}
+.ink-name{font-family:var(--display);font-weight:800;font-size:16px;text-transform:uppercase;letter-spacing:-.01em}
+.ink-use{font:400 12.5px/1.5 var(--body);color:var(--muted);margin-top:4px}
+.ink-note{grid-column:1/-1;border:1px dashed var(--hairline);border-radius:var(--r);padding:14px 16px;font:500 13px/1.6 var(--data);color:var(--muted);background:#F1F5FC}
+.ink-note b{color:var(--register);font-weight:600}
+
+/* type specimens */
+.spec-grid{display:grid;gap:18px;margin-top:30px}
+@media(min-width:820px){.spec-grid{grid-template-columns:repeat(3,1fr)}}
+.spec{border:1px solid var(--hairline);border-radius:var(--r);padding:20px;background:var(--paper);display:flex;flex-direction:column;gap:14px}
+.spec-tag{font:600 11px var(--data);text-transform:uppercase;letter-spacing:.16em;color:var(--muted)}
+.spec-display{font-family:var(--display);font-weight:900;font-size:clamp(40px,5vw,56px);line-height:.95;letter-spacing:-.03em}
+.spec-body{font:400 16px/1.65 var(--body)}
+.spec-data{font:500 17px/1.6 var(--data);color:var(--process-ink)}
+.spec-scale{font:500 12.5px/1.7 var(--data);color:var(--muted);border-top:1px dashed var(--hairline);padding-top:12px;margin-top:auto}
+.spec-scale b{color:var(--toner);font-weight:600}
+
+/* components row */
+.comp-grid{display:grid;gap:18px;margin-top:30px}
+@media(min-width:860px){.comp-grid{grid-template-columns:1.1fr .9fr}}
+.comp{border:1px solid var(--hairline);border-radius:var(--r);padding:20px;background:var(--paper)}
+.comp h3{font:600 11px var(--data);text-transform:uppercase;letter-spacing:.16em;color:var(--muted);margin-bottom:16px}
+.comp-row{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+.comp-row+.comp-row{margin-top:16px}
+.alert{display:flex;gap:13px;align-items:flex-start;border:1px solid #EFC7CC;border-radius:var(--r);background:#FDF0F1;padding:14px 16px;margin-top:16px}
+.alert-mark{flex:none;width:24px;height:24px;border-radius:50%;background:var(--register);color:#fff;font:900 15px/24px var(--display);text-align:center}
+.alert strong{display:block;font:700 14px var(--display);text-transform:uppercase;letter-spacing:.04em;color:var(--register)}
+.alert p{font:400 14px/1.55 var(--body);color:var(--toner);margin-top:3px}
+
+/* jobs table */
+.table-wrap{margin-top:30px;border:1px solid var(--hairline);border-radius:var(--r);overflow-x:auto;background:var(--paper)}
+table{width:100%;border-collapse:collapse;min-width:660px;font-variant-numeric:tabular-nums}
+caption{text-align:left;font:600 11px var(--data);text-transform:uppercase;letter-spacing:.16em;color:var(--muted);padding:14px 18px 0}
+th{font:600 12px var(--data);text-transform:uppercase;letter-spacing:.1em;color:var(--muted);text-align:left;padding:13px 18px;border-bottom:1px solid var(--toner);white-space:nowrap}
+td{padding:14px 18px;border-bottom:1px dashed var(--hairline);font:400 14.5px var(--body);vertical-align:middle}
+tr:last-child td{border-bottom:none}
+td.num,td.code{font:500 14px var(--data)}
+td.money{font:600 15px var(--data);text-align:right;white-space:nowrap}
+th.money{text-align:right}
+tbody tr:hover{background:#F2F5FB}
+
+/* footer */
+footer{border-top:1px solid var(--hairline);margin-top:clamp(56px,8vw,96px);padding:34px 0 46px}
+.foot{display:flex;flex-wrap:wrap;gap:18px;justify-content:space-between;align-items:center;font:500 13px var(--data);color:var(--muted)}
+.foot b{color:var(--toner);font-weight:600}
+.foot a{color:var(--process-ink);text-decoration:underline;text-underline-offset:3px}
+
+/* responsive */
+@media(min-width:1024px){body{padding-right:52px}.trim-tr,.trim-br{right:64px}}
+@media(max-width:1023px){.rail{display:none}}
+@media(max-width:640px){.trim-tl,.trim-tr,.trim-bl,.trim-br{display:none}.ticket-stub{justify-content:center;text-align:center}}
+@media print{.rail,.trim-tl,.trim-tr,.trim-bl,.trim-br,.skip{display:none!important}body{padding-right:0;background:#fff}.btn{display:none}}
+
+/* reduced motion — show final states, no animation */
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}.stamp{opacity:.92;transform:rotate(-9deg)}}
+</style>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+
+<div class="trim-tl" aria-hidden="true"></div>
+<div class="trim-tr" aria-hidden="true"></div>
+<div class="trim-bl" aria-hidden="true"></div>
+<div class="trim-br" aria-hidden="true"></div>
+
+<div class="rail" aria-hidden="true">
+  <span class="rail-label" id="rail-label">HERO</span>
+  <div class="rail-track"><span class="rail-mark" id="rail-mark"></span></div>
+</div>
+
+<header class="hero wrap" id="main">
+  <div class="hero-grid">
+    <div>
+      <span class="kicker">PrintLoop design system <b>v2</b> · six inks, two faces</span>
+      <h1>Your print job is a <em>ticket</em>, not a file.</h1>
+      <p class="hero-lede">Students upload at midnight, pay per page in naira, and collect by 8&nbsp;am. The interface should feel like the counter at a campus print shop — quick, exact, and stamped when it's done.</p>
+      <div class="hero-cta">
+        <a class="btn btn-primary" href="#palette">See the inks</a>
+        <a class="btn" href="#components">Browse components</a>
+        <a class="btn btn-ghost" href="#jobs">Today's queue</a>
+      </div>
+      <div class="hero-fine">
+        <span><i></i>₦480 total for 240 pages</span>
+        <span><i></i>Ready by 07:50</span>
+        <span><i></i>Stall B12, Unilag</span>
+      </div>
+    </div>
+
+    <div class="ticket">
+      <div class="ticket-top">
+        <div>
+          <div class="ticket-kicker">Print job ticket</div>
+          <div class="ticket-id">#PL-8241-GST201</div>
+        </div>
+        <span class="badge badge-ready">Ready</span>
+      </div>
+      <dl class="ticket-rows">
+        <div><dt>Customer</dt><dd>Chidinma O. · 21034567</dd></div>
+        <div><dt>Document</dt><dd>GST201 — Entrepreneurship notes</dd></div>
+        <div><dt>Copies</dt><dd>3 × 80 pages, A4 duplex</dd></div>
+        <div><dt>Paper</dt><dd>80gsm · black only</dd></div>
+        <div><dt>Pickup</dt><dd>Today, 07:50 — Stall B12</dd></div>
+      </dl>
+      <div class="ticket-total">
+        <span class="ticket-total-label">Total due</span>
+        <span class="ticket-total-num">₦480</span>
+      </div>
+      <div class="perf">
+        <div class="ticket-stub">
+          <div>
+            <div class="stub-note">Keep this stub · collect at counter</div>
+            <div class="stub-id">PL-8241-GST201 · 07:50</div>
+          </div>
+          <span class="stamp">Paid</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<main>
+<section class="sec wrap" id="palette" data-rail="INKS">
+  <div class="sec-label">Palette</div>
+  <h2 class="sec-title">Six inks</h2>
+  <p class="sec-sub">Ink on paper, the way a real press works. Two accents do the talking; the rest stay out of the way.</p>
+  <div class="ink-grid">
+    <div class="ink"><div class="ink-chip" style="background:#17140F"><span>#17140F</span></div><div class="ink-meta"><div class="ink-name">Toner</div><div class="ink-use">Text, borders, headings. The default ink.</div></div></div>
+    <div class="ink"><div class="ink-chip" style="background:#F9FBFF"><span>#F9FBFF</span></div><div class="ink-meta"><div class="ink-name">Sheet</div><div class="ink-use">Page background. Bright white sheet, never grey.</div></div></div>
+    <div class="ink"><div class="ink-chip" style="background:#0077C8"><span>#0077C8</span></div><div class="ink-meta"><div class="ink-name">Process</div><div class="ink-use">Primary buttons, links, focus rings.</div></div></div>
+    <div class="ink"><div class="ink-chip" style="background:#CE2B37"><span>#CE2B37</span></div><div class="ink-meta"><div class="ink-name">Register</div><div class="ink-use">Errors, destructive, the PAID stamp.</div></div></div>
+    <div class="ink"><div class="ink-chip" style="background:#FFD400"><span>#FFD400</span></div><div class="ink-meta"><div class="ink-name">Highlight</div><div class="ink-use">Selection, callouts, the queue badge.</div></div></div>
+    <div class="ink"><div class="ink-chip" style="background:#177245"><span>#177245</span></div><div class="ink-meta"><div class="ink-name">Pass</div><div class="ink-use">Ready, confirmed, printed OK.</div></div></div>
+    <div class="ink-note">Supporting only: <b>muted #6E6A61</b>, hairline #E3E8F0, radius 3px, hard shadow <b>5px 5px 0</b> — never blurred.</div>
+  </div>
+</section>
+<section class="sec wrap" id="type" data-rail="TYPE">
+  <div class="sec-label">Typography</div>
+  <h2 class="sec-title">Two faces</h2>
+  <p class="sec-sub">Archivo shouts and counts, Plex Sans speaks. Two faces, three jobs.</p>
+  <div class="spec-grid">
+    <div class="spec">
+      <span class="spec-tag">Display · Archivo 800–900</span>
+      <div class="spec-display">Aa</div>
+      <div class="spec-display" style="font-size:24px">JOBS DONE RIGHT</div>
+      <div class="spec-scale">Headlines, hero, ticket ID, big numbers.<br><b>Never</b> below 24px.</div>
+    </div>
+    <div class="spec">
+      <span class="spec-tag">Body · IBM Plex Sans 400–600</span>
+      <p class="spec-body">Upload your handouts at midnight. We print, staple, and hold them at the counter for pickup before your 8&nbsp;am lecture — no queue, no surprise fees.</p>
+      <div class="spec-scale">Paragraphs, labels, descriptions.<br>Line-height <b>1.6</b>, measure <b>~65ch</b>.</div>
+    </div>
+    <div class="spec">
+      <span class="spec-tag">Data · Archivo 500–600</span>
+      <div class="spec-data">#PL-8241</div>
+      <div class="spec-data">₦480.00 · 07:50 · 80gsm</div>
+      <div class="spec-scale">Job numbers, prices, times.<br>Tabular figures keep the columns aligned.</div>
+    </div>
+  </div>
+</section>
+
+<section class="sec wrap" id="components" data-rail="COMPONENTS">
+  <div class="sec-label">Components</div>
+  <h2 class="sec-title">Buttons, badges &amp; fields</h2>
+  <p class="sec-sub">Colour fills carry the state; hairlines only where a line does a job. Everything you can tap, in one place.</p>
+  <div class="comp-grid">
+    <div class="comp">
+      <h3>Buttons &amp; badges</h3>
+      <div class="comp-row">
+        <button class="btn btn-primary">Print now</button>
+        <button class="btn">Download</button>
+        <button class="btn btn-danger">Cancel job</button>
+        <button class="btn btn-ghost">View receipt</button>
+      </div>
+      <div class="comp-row">
+        <span class="badge badge-queue">In queue</span>
+        <span class="badge badge-render">Rendering</span>
+        <span class="badge badge-ready">Ready</span>
+        <span class="badge badge-err">Failed</span>
+      </div>
+      <div class="comp-row">
+        <button class="btn btn-primary" aria-disabled="true">Disabled</button>
+        <span class="stamp" style="font-size:20px;animation:none">Paid</span>
+      </div>
+      <div class="alert">
+        <span class="alert-mark">!</span>
+        <div>
+          <strong>Paper jam on tray 2</strong>
+          <p>Job #PL-8241 is paused. Clear the jam at Stall B12, then tap resume — your files are safe.</p>
+        </div>
+      </div>
+    </div>
+    <div class="comp">
+      <h3>Form fields</h3>
+      <div class="field" style="margin-bottom:16px">
+        <label for="f-email">Student email</label>
+        <input id="f-email" type="email" value="chidinma.o@unilag.edu.ng">
+        <div class="hint">We send the pickup code here.</div>
+      </div>
+      <div class="field has-error">
+        <label for="f-copies">Number of copies</label>
+        <input id="f-copies" type="text" value="0" aria-invalid="true" aria-describedby="e-copies">
+        <div class="err" id="e-copies">Enter at least 1 copy</div>
+      </div>
+    </div>
+  </div>
+</section>
+<section class="sec wrap" id="jobs" data-rail="QUEUE">
+  <div class="sec-label">Today's queue</div>
+  <h2 class="sec-title">The job table</h2>
+  <p class="sec-sub">Every price, page count, and job number in tabular figures — so staff can scan a column, not read a paragraph.</p>
+  <div class="table-wrap" tabindex="0" role="region" aria-label="Today's print queue, scrollable">
+    <table>
+      <caption>Stall B12 · Thursday 8 Oct 2026 · 6 jobs</caption>
+      <thead>
+        <tr>
+          <th scope="col">Job</th>
+          <th scope="col">Student</th>
+          <th scope="col">Doc</th>
+          <th scope="col" class="money">Pages</th>
+          <th scope="col" class="money">Due</th>
+          <th scope="col">Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td class="code">#PL-8241</td><td>Chidinma O.</td><td>GST201 notes</td><td class="money">240</td><td class="money">₦480</td><td><span class="badge badge-ready">Ready</span></td></tr>
+        <tr><td class="code">#PL-8242</td><td>Emeka A.</td><td>NYSC form ×2</td><td class="money">16</td><td class="money">₦64</td><td><span class="badge badge-render">Rendering</span></td></tr>
+        <tr><td class="code">#PL-8243</td><td>Fatima B.</td><td>Thesis ch. 4</td><td class="money">98</td><td class="money">₦294</td><td><span class="badge badge-queue">In queue</span></td></tr>
+        <tr><td class="code">#PL-8244</td><td>Tunde O.</td><td>Poster A1 ×4</td><td class="money">4</td><td class="money">₦1,200</td><td><span class="badge badge-queue">In queue</span></td></tr>
+        <tr><td class="code">#PL-8245</td><td>Aisha Y.</td><td>Assignment</td><td class="money">12</td><td class="money">₦48</td><td><span class="badge badge-err">Failed</span></td></tr>
+        <tr><td class="code">#PL-8246</td><td>Ibrahim K.</td><td>ID photos ×8</td><td class="money">1</td><td class="money">₦600</td><td><span class="badge badge-ready">Ready</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+</main>
+
+<footer>
+  <div class="wrap foot">
+    <span><b>PrintLoop</b> — design system v2 · sample page</span>
+    <span>Toner · Sheet · Process · Register · Highlight · Pass</span>
+    <span>Archivo + IBM Plex · <a href="#main">Back to top</a></span>
+  </div>
+</footer>
+<script>
+(function(){
+  var mark = document.getElementById('rail-mark');
+  var label = document.getElementById('rail-label');
+  var secs = Array.prototype.slice.call(document.querySelectorAll('[data-rail]'));
+  if (!mark || !label) return;
+  var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var ticking = false;
+
+  function update(){
+    ticking = false;
+    var doc = document.documentElement;
+    var max = doc.scrollHeight - window.innerHeight;
+    var p = max > 0 ? Math.min(1, Math.max(0, window.scrollY / max)) : 0;
+    mark.style.top = 'calc(26px + (100vh - 78px) * ' + p + ')';
+    var cur = secs[0];
+    for (var i = 0; i < secs.length; i++) {
+      if (secs[i].getBoundingClientRect().top <= window.innerHeight * 0.4) cur = secs[i];
+    }
+    if (cur) label.textContent = cur.getAttribute('data-rail');
+  }
+
+  window.addEventListener('scroll', function(){
+    if (!ticking) { ticking = true; requestAnimationFrame(update); }
+  }, {passive:true});
+  window.addEventListener('resize', update, {passive:true});
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) mark.style.transition = 'none';
+  update();
+})();
+</script>
+</body>
+</html>

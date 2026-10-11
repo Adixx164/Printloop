@@ -91,15 +91,15 @@ export default function SignupPage() {
   return (
     <div className="max-w-xl mx-auto py-12 px-4">
       <Reveal variant="rise">
-        <div className="editorial-label text-persimmon mb-1">▸ FOR PRINT SHOPS</div>
+        <div className="editorial-label text-indigo-600 mb-1">▸ FOR PRINT SHOPS</div>
       </Reveal>
       <Reveal variant="wipe" delay={100}>
         <h1 className="pl-serif font-extrabold text-4xl tracking-tight mb-2">
-          Start your <em className="italic text-persimmon">PrintLoop</em> business
+          Start your <em className="italic text-indigo-600">PrintLoop</em> business
         </h1>
       </Reveal>
       <Reveal variant="rise" delay={220}>
-        <p className="text-ink/60 mb-8">
+        <p className="text-gray-50/60 mb-8">
           ₦0 to sign up. We earn 10% on every print you process. No card,
           no monthly fee — payouts to your bank account every Friday.
         </p>
@@ -124,16 +124,16 @@ export default function SignupPage() {
               placeholder="kampala-prints"
               required
             />
-            <span className="text-ink/50 text-sm font-mono">.printloop.app</span>
+            <span className="text-gray-50/50 text-sm font-mono">.printloop.app</span>
           </div>
           {slugMsg[slugStatus] && (
             <p
-              className={`text-sm mt-1 font-semibold ${
+className={`text-sm mt-1 font-semibold ${
                 slugStatus === "available"
-                  ? "text-sage"
-                  : slugStatus === "checking"
-                  ? "text-fog"
-                  : "text-persimmon"
+                  ? "text-emerald-600"
+                : slugStatus === "checking"
+                  ? "text-gray-500"
+                  : "text-indigo-600"
               }`}
             >
               {slugMsg[slugStatus]}
@@ -176,7 +176,7 @@ export default function SignupPage() {
         />
 
         {signupState.isError && (
-          <p className="text-persimmon text-sm font-semibold">
+          <p className="text-indigo-600 text-sm font-semibold">
             {(signupState.error as any)?.data?.message ||
               "Signup failed. Try again."}
           </p>
@@ -189,7 +189,7 @@ export default function SignupPage() {
         >
           {signupState.isLoading ? "Creating your business…" : "Create my PrintLoop"}
         </button>
-        <p className="text-xs text-ink/50 text-center">
+        <p className="text-xs text-gray-50/50 text-center">
           By signing up you agree to our Terms of Service. We email you a
           6-digit code to verify your address.
         </p>

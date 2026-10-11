@@ -33,40 +33,40 @@ export default function AdminLoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-ink flex items-stretch">
+    <div className="min-h-screen bg-gray-900 flex items-stretch">
       {/* Left brand strip */}
-      <div className="hidden md:flex w-72 bg-sage flex-col justify-between p-10">
+      <div className="hidden md:flex w-72 bg-emerald-600 flex-col justify-between p-10">
         <div>
-          <div className="editorial-label text-paper/50 mb-1">PRINTLOOP</div>
-          <div className="pl-serif text-4xl font-bold text-paper leading-tight">
+          <div className="editorial-label text-gray-50/50 mb-1">PRINTLOOP</div>
+          <div className="pl-serif text-4xl font-bold text-gray-50 leading-tight">
             Admin<br />Console
           </div>
-          <div className="editorial-rule mt-4 mb-6 border-paper/20" />
-          <p className="pl-serif italic text-paper/60 text-sm leading-relaxed">
+          <div className="editorial-rule mt-4 mb-6 border-gray-50/20" />
+          <p className="pl-serif italic text-gray-50/60 text-sm leading-relaxed">
             Restricted access. Only authorised administrators may enter.
           </p>
         </div>
-        <div className="editorial-label text-paper/30">VOL I · ISSUE 09</div>
+        <div className="editorial-label text-gray-50/30">VOL I · ISSUE 09</div>
       </div>
 
       {/* Right form panel */}
-      <div className="flex-1 flex items-center justify-center p-4 sm:p-6 lg:p-8 bg-paper">
+      <div className="flex-1 flex items-center justify-center p-4 sm:p-6 lg:p-8 bg-gray-50">
         <div className="w-full max-w-md">
           {/* Mobile logo */}
           <div className="md:hidden mb-6">
-            <div className="editorial-label text-persimmon mb-1">PRINTLOOP ADMIN</div>
+            <div className="editorial-label text-indigo-600 mb-1">PRINTLOOP ADMIN</div>
           </div>
 
-          <div className="editorial-label text-persimmon mb-1">RESTRICTED ACCESS</div>
-          <h1 className="pl-serif text-3xl sm:text-4xl font-bold text-ink mb-1">
+          <div className="editorial-label text-indigo-600 mb-1">RESTRICTED ACCESS</div>
+          <h1 className="pl-serif text-3xl sm:text-4xl font-bold text-gray-900 mb-1">
             Admin Sign In
           </h1>
-          <p className="pl-serif italic text-ink/60 mb-6 sm:mb-8 text-sm sm:text-base">
+          <p className="pl-serif italic text-gray-50/60 mb-6 sm:mb-8 text-sm sm:text-base">
             Enter your administrative credentials to continue.
           </p>
 
           {error && (
-            <div className="border-2 border-persimmon bg-persimmon/10 text-ink p-3 mb-5 text-sm font-semibold">
+            <div className="border-2 border-indigo-600 bg-indigo-600/10 text-gray-900 p-3 mb-5 text-sm font-semibold">
               ⚠ {error}
             </div>
           )}
@@ -107,17 +107,17 @@ export default function AdminLoginPage() {
           </form>
 
           {/* Dev hint */}
-          <div className="mt-8 border-2 border-ink/10 bg-ink/5 p-4">
-            <div className="editorial-label text-ink/40 mb-2">DEV CREDENTIALS</div>
-            <div className="pl-mono text-xs text-ink/60 space-y-1">
-              <div><span className="font-bold text-ink">Email:</span> admin@printloop.test</div>
-              <div><span className="font-bold text-ink">Password:</span> Admin1234!</div>
+          <div className="mt-8 border-2 border-gray-900/10 bg-gray-900/5 p-4">
+            <div className="editorial-label text-gray-50/40 mb-2">DEV CREDENTIALS</div>
+            <div className="pl-mono text-xs text-gray-50/60 space-y-1">
+              <div><span className="font-bold text-gray-900">Email:</span> admin@printloop.test</div>
+              <div><span className="font-bold text-gray-900">Password:</span> Admin1234!</div>
             </div>
           </div>
 
-          <p className="text-center text-xs text-fog mt-6">
+          <p className="text-center text-xs text-gray-500 mt-6">
             Not an admin?{" "}
-            <a href={ROUTES.AUTH.LOGIN} className="text-persimmon font-bold border-b border-persimmon">
+            <a href={ROUTES.AUTH.LOGIN} className="text-indigo-600 font-bold border-b border-indigo-600">
               Return to user login →
             </a>
           </p>

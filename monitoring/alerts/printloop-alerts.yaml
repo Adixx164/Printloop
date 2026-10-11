@@ -1,0 +1,246 @@
+groups:
+  - name: printloop.rules
+    rules:
+      # PrintLoop API Alerts
+      - alert: PrintLoopAPIHighErrorRate
+        expr: |
+          (
+            rate(http_requests_total{job="printloop-api",status=~"5.."}[5m])
+            /
+            rate(http_requests_total{job="printloop-api"}[5m])
+          ) > 0.05
+        for: 2m
+        labels:
+          severity: critical
+          service: printloop-api
+        annotations:
+          summary: "High error rate on PrintLoop API"
+          description: "Error rate is above 5% for the last 5 minutes"
+          runbook_url: "https://wiki.printloop.app/runbooks/api-high-error-rate"
+
+      - alert: PrintLoopAPIHighLatency
+        expr: |
+          histogram_quantile(0.95, rate(http_request_duration_seconds_bucket{job="printloop-api"}[5m])) > 2
+        for: 5m
+        labels:
+          severity: warning
+          service: printloop-api
+        annotations:
+          summary: "High API latency (p95 > 2s)"
+          description: "P95 latency has exceeded 2 seconds for the last 5 minutes"
+
+      - alert: PrintLoopAPIHighLatencyP99
+        expr: |
+          histogram_quantile(0.99, rate(http_request_duration_seconds_bucket{job="printloop-api"}[5m])) > 5
+        for: 5m
+        labels:
+          severity: critical
+          service: printloop-api
+        annotations:
+          summary: "Critical API latency (p99 > 5s)"
+          description: "P99 latency has exceeded 5 seconds for the last 5 minutes"
+
+      - alert: PrintLoopAPIDown
+        expr: |
+          up{job="printloop-api"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: printloop-api
+        annotations:
+          summary: "PrintLoop API is down"
+          description: "PrintLoop API has been down for more than 1 minute"
+
+      # Payment-related alerts
+      - alert: PrintLoopPaymentFailureRateHigh
+        expr: |
+          (
+            rate(payments_total{status="failed",job="printloop-api"}[5m])
+            /
+            rate(payments_total{job="printloop-api"}[5m])
+          ) > 0.1
+        for: 5m
+        labels:
+          severity: critical
+          service: printloop-api
+          component: payments
+        annotations:
+          summary: "Payment failure rate > 10%"
+          description: "Payment failure rate has exceeded 10% over the last 5 minutes"
+          runbook_url: "https://wiki.printloop.app/runbooks/payment-failures"
+
+      - alert: PrintLoopPaystackWebhookFailures
+        expr: |
+          rate(paystack_webhook_failures_total[5m]) > 0
+        for: 1m
+        labels:
+          severity: critical
+          service: printloop-api
+          component: paystack-webhook
+        annotations:
+          summary: "Paystack webhook failures detected"
+          description: "Paystack webhook failures detected in the last minute"
+          runbook_url: "https://wiki.printloop.app/runbooks/paystack-webhook-failures"
+
+      # Render pipeline alerts
+      - alert: PrintLoopRenderWorkerDown
+        expr: |
+          up{job="printloop-render-worker"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: printloop-render-worker
+        annotations:
+          summary: "Render worker is down"
+          description: "Render worker has been down for more than 1 minute"
+          runbook_url: "https://wiki.printloop.app/runbooks/render-worker-down"
+
+      - alert: PrintLoopRenderHighLatency
+        expr: |
+          histogram_quantile(0.95, rate(render_duration_seconds_bucket[5m])) > 300
+        for: 5m
+        labels:
+          severity: warning
+          service: printloop-render-worker
+        annotations:
+          summary: "Render worker high latency (p95 > 300s)"
+          description: "P95 render duration has exceeded 300 seconds for the last 5 minutes"
+          runbook_url: "https://wiki.printloop.app/runbooks/render-high-latency"
+
+      - alert: PrintLoopRenderFailureRate
+        expr: |
+          rate(render_jobs_failed_total[5m]) / rate(render_jobs_total[5m]) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+          service: printloop-render-worker
+        annotations:
+          summary: "Render failure rate > 10%"
+          description: "Render job failure rate has exceeded 10% over the last 5 minutes"
+          runbook_url: "https://wiki.printloop.app/runbooks/render-failures"
+
+      # Database alerts
+      - alert: PrintLoopDatabaseConnectionPoolExhausted
+        expr: |
+          pg_stat_database_connections / pg_settings_max_connections > 0.85
+        for: 5m
+        labels:
+          severity: warning
+          service: printloop-api
+          component: database
+        annotations:
+          summary: "Database connection pool > 85% utilized"
+          description: "Database connection pool utilization has exceeded 85%"
+          runbook_url: "https://wiki.printloop.app/runbooks/db-connection-pool-exhausted"
+
+      - alert: PrintLoopDatabaseReplicationLag
+        expr: |
+          pg_replication_lag_seconds > 30
+        for: 5m
+        labels:
+          severity: warning
+          service: printloop-api
+          component: database
+        annotations:
+          summary: "Database replication lag > 30s"
+          description: "PostgreSQL replication lag has exceeded 30 seconds"
+          runbook_url: "https://wiki.printloop.app/runbooks/db-replication-lag"
+
+      # Redis alerts
+      - alert: PrintLoopRedisDown
+        expr: |
+          up{job="redis"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: redis
+        annotations:
+          summary: "Redis is down"
+          description: "Redis has been down for more than 1 minute"
+          runbook_url: "https://wiki.printloop.app/runbooks/redis-down"
+
+      - alert: PrintLoopRedisMemoryHigh
+        expr: |
+          redis_memory_used_bytes / redis_memory_max_bytes > 0.85
+        for: 5m
+        labels:
+          severity: warning
+          service: redis
+        annotations:
+          summary: "Redis memory usage > 85%"
+          description: "Redis memory usage has exceeded 85% of max memory"
+          runbook_url: "https://wiki.printloop.app/runbooks/redis-memory-high"
+
+      # PrintLoop kiosk agent alerts
+      - alert: PrintLoopKioskAgentDown
+        expr: |
+          up{job="printloop-kiosk-agent"} == 0
+        for: 5m
+        labels:
+          severity: critical
+          service: printloop-kiosk-agent
+        annotations:
+          summary: "Kiosk agent is down"
+          description: "Kiosk agent has been down for more than 5 minutes"
+          runbook_url: "https://wiki.printloop.app/runbooks/kiosk-agent-down"
+
+      - alert: PrintLoopKioskAgentOffline
+        expr: |
+          time() - kiosk_agent_last_seen_timestamp > 300
+        for: 2m
+        labels:
+          severity: critical
+          service: printloop-kiosk-agent
+        annotations:
+          summary: "Kiosk agent offline"
+          description: "Kiosk agent hasn't checked in for 5 minutes"
+          runbook_url: "https://wiki.printloop.app/runbooks/kiosk-agent-offline"
+
+      # Disk space alerts
+      - alert: PrintLoopDiskSpaceCritical
+        expr: |
+          (node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"}) < 0.1
+        for: 5m
+        labels:
+          severity: critical
+          service: node-exporter
+        annotations:
+          summary: "Disk space critical (< 10% free)"
+          description: "Disk space has fallen below 10% free space"
+          runbook_url: "https://wiki.printloop.app/runbooks/disk-space-critical"
+
+      - alert: PrintLoopDiskSpaceWarning
+        expr: |
+          (node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"}) < 0.2
+        for: 5m
+        labels:
+          severity: warning
+          service: node-exporter
+        annotations:
+          summary: "Disk space warning (< 20% free)"
+          description: "Disk space has fallen below 20% free space"
+
+      # CPU and Memory alerts
+      - alert: PrintLoopHighCPUUsage
+        expr: |
+          100 - (avg by(instance) (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 85
+        for: 5m
+        labels:
+          severity: warning
+          service: node-exporter
+        annotations:
+          summary: "High CPU usage (> 85%)"
+          description: "CPU usage has exceeded 85% for 5 minutes"
+          runbook_url: "https://wiki.printloop.app/runbooks/high-cpu-usage"
+
+      - alert: PrintLoopHighMemoryUsage
+        expr: |
+          (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) > 0.85
+        for: 5m
+        labels:
+          severity: warning
+          service: node-exporter
+        annotations:
+          summary: "High memory usage (> 85%)"
+          description: "Memory usage has exceeded 85% for 5 minutes"
+          runbook_url: "https://wiki.printloop.app/runbooks/high-memory-usage"

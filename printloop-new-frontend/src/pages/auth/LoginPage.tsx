@@ -112,28 +112,28 @@ export default function LoginPage() {
     <div className="px-4 sm:px-6 lg:px-8 py-8 sm:py-12 lg:py-16 flex justify-center relative overflow-hidden">
       <Link
         to={ROUTES.ADMIN.LOGIN}
-        className="absolute right-4 sm:right-8 top-4 sm:top-6 z-20 text-[10px] font-bold tracking-editorial border-2 border-ink px-2.5 sm:px-3 py-1.5 bg-paper hover:bg-ink hover:text-paper transition-all"
+        className="absolute right-4 sm:right-8 top-4 sm:top-6 z-20 text-[10px] font-bold tracking-editorial border-2 border-gray-900 px-2.5 sm:px-3 py-1.5 bg-gray-50 hover:bg-gray-900 hover:text-gray-50 transition-all"
       >
         ADMIN →
       </Link>
-      <div className="absolute -right-4 top-10 w-24 h-24 sm:w-36 sm:h-36 rounded-full bg-persimmon/10 pointer-events-none" />
-      <div className="absolute -left-4 bottom-10 w-24 h-24 sm:w-32 sm:h-32 rounded-full bg-ochre/15 pointer-events-none" />
+      <div className="absolute -right-4 top-10 w-24 h-24 sm:w-36 sm:h-36 rounded-full bg-indigo-600/10 pointer-events-none" />
+      <div className="absolute -left-4 bottom-10 w-24 h-24 sm:w-32 sm:h-32 rounded-full bg-amber-500/15 pointer-events-none" />
 
       <div className="relative z-10 w-full max-w-md py-4">
-        <div className="editorial-label text-persimmon mb-2">▸ WELCOME BACK</div>
+        <div className="editorial-label text-indigo-600 mb-2">▸ WELCOME BACK</div>
         <h1 className="pl-serif font-extrabold text-[32px] sm:text-[38px] lg:text-[42px] leading-[1.02] sm:leading-[0.98] tracking-tight mb-2">
-          Sign in to your <em className="italic text-persimmon font-semibold">loop</em>.
+          Sign in to your <em className="italic text-indigo-600 font-semibold">loop</em>.
         </h1>
-        <p className="pl-serif italic text-sm text-ink/70 mb-6 sm:mb-7">
+        <p className="pl-serif italic text-sm text-gray-50/70 mb-6 sm:mb-7">
           Three jobs printed last week. Welcome back to the dispatch.
         </p>
 
         {needsVerification && (
-          <div className="border-2 border-ochre bg-ochre/10 text-ink p-3 rounded mb-4 text-sm font-semibold">
+          <div className="border-2 border-amber-500 bg-amber-500/10 text-gray-900 p-3 rounded mb-4 text-sm font-semibold">
             Your email isn't verified.{" "}
             <Link
               to={`${ROUTES.AUTH.VERIFY_EMAIL}?email=${encodeURIComponent(needsVerification)}`}
-              className="underline text-persimmon font-bold"
+              className="underline text-indigo-600 font-bold"
             >
               Verify your email →
             </Link>
@@ -161,7 +161,7 @@ export default function LoginPage() {
               <label className="editorial-label">PASSWORD</label>
               <Link
                 to={ROUTES.AUTH.FORGOT_PASSWORD}
-                className="text-[11px] text-persimmon font-bold border-b-2 border-persimmon"
+                className="text-[11px] text-indigo-600 font-bold border-b-2 border-indigo-600"
               >
                 FORGOT? →
               </Link>
@@ -177,7 +177,7 @@ export default function LoginPage() {
               className={`pl-input ${formik.touched.password && formik.errors.password ? "error" : ""}`}
             />
             {formik.touched.password && formik.errors.password && (
-              <div className="text-xs text-persimmon font-semibold mt-1">{formik.errors.password}</div>
+              <div className="text-xs text-indigo-600 font-semibold mt-1">{formik.errors.password}</div>
             )}
           </div>
 
@@ -198,7 +198,7 @@ export default function LoginPage() {
                 className="pl-input tracking-[0.4em] text-center text-lg"
                 autoFocus
               />
-              <p className="text-[11px] text-ink/60 mt-1">
+              <p className="text-[11px] text-gray-50/60 mt-1">
                 From your authenticator app (Google Authenticator, Authy…).
               </p>
             </div>
@@ -212,15 +212,15 @@ export default function LoginPage() {
           </Button>
         </form>
 
-        <p className="text-center text-sm text-ink/65 mt-6">
+        <p className="text-center text-sm text-gray-50/65 mt-6">
           No account yet?{" "}
-          <Link to={ROUTES.AUTH.REGISTER} className="text-persimmon font-bold border-b-2 border-persimmon">
+          <Link to={ROUTES.AUTH.REGISTER} className="text-indigo-600 font-bold border-b-2 border-indigo-600">
             Create one →
           </Link>
         </p>
-        <p className="text-center text-sm text-ink/65 mt-4">
+        <p className="text-center text-sm text-gray-50/65 mt-4">
           Are you a print shop owner?{" "}
-          <Link to="/saas/login" className="text-persimmon font-bold border-b-2 border-persimmon">
+          <Link to="/saas/login" className="text-indigo-600 font-bold border-b-2 border-indigo-600">
             Sign in to your shop console →
           </Link>
         </p>

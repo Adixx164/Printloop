@@ -396,10 +396,10 @@ export function ScrollProgress({ className = "" }: { className?: string }) {
   }, []);
 
   return (
-    <div className={`h-[3px] bg-paper ${className}`} aria-hidden="true">
+    <div className={`h-[3px] bg-gray-50 ${className}`} aria-hidden="true">
       <div
         ref={ref}
-        className="h-full w-full bg-persimmon origin-left"
+        className="h-full w-full bg-indigo-600 origin-left"
         style={{ transform: "scaleX(0)" }}
       />
     </div>

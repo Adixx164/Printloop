@@ -38,7 +38,7 @@ export default function DomainsPage() {
     <div className="space-y-6">
       <div>
         <h2 className="pl-serif font-extrabold text-2xl tracking-tight">Custom domain</h2>
-        <p className="text-sm text-ink/60">
+        <p className="text-sm text-gray-50/60">
           Serve your customers on your own domain instead of a
           PrintLoop subdomain. You'll add two DNS records, then verify.
         </p>
@@ -66,13 +66,13 @@ export default function DomainsPage() {
         </button>
       </form>
       {claimState.isError && (
-        <p className="text-persimmon text-sm font-semibold">
+        <p className="text-indigo-600 text-sm font-semibold">
           {(claimState.error as any)?.data?.message || "Claim failed."}
         </p>
       )}
 
       {claimed && (
-        <div className="bg-paper-warm border-2 border-ink rounded-pl p-4 space-y-3">
+        <div className="bg-amber-100 border-2 border-gray-900 rounded-pl p-4 space-y-3">
           <h3 className="font-bold">
             Add these DNS records for {claimed.domain}
           </h3>
@@ -86,7 +86,7 @@ export default function DomainsPage() {
             name={claimed.dns.cname.name}
             value={claimed.dns.cname.value}
           />
-          <p className="text-xs text-ink/60">
+          <p className="text-xs text-gray-50/60">
             DNS can take a few minutes to propagate. Once added, hit
             Verify on the row below.
           </p>
@@ -95,20 +95,20 @@ export default function DomainsPage() {
 
       <div>
         <h3 className="font-bold mb-2">Your domains</h3>
-        {isLoading && <p className="text-fog text-sm pl-serif italic">Loading…</p>}
+        {isLoading && <p className="text-gray-500 text-sm pl-serif italic">Loading…</p>}
         {domains && domains.length === 0 && (
-          <p className="text-fog text-sm">No domains yet.</p>
+          <p className="text-gray-500 text-sm">No domains yet.</p>
         )}
         <div className="space-y-2">
           {domains?.map((d) => (
             <div
               key={d.id}
-              className="flex items-center justify-between border-2 border-ink rounded-pl p-3 bg-paper-light"
+              className="flex items-center justify-between border-2 border-gray-900 rounded-pl p-3 bg-gray-100"
             >
               <div>
                 <div className="font-bold">{d.domain}</div>
                 {d.lastCheckError && (
-                  <div className="text-xs text-persimmon">{d.lastCheckError}</div>
+                  <div className="text-xs text-indigo-600">{d.lastCheckError}</div>
                 )}
               </div>
               <div className="flex items-center gap-3">
@@ -133,7 +133,7 @@ export default function DomainsPage() {
           ))}
         </div>
         {verifyState.isError && (
-          <p className="text-persimmon text-sm mt-2 font-semibold">
+<p className="text-indigo-600 text-sm mt-2 font-semibold">
             {(verifyState.error as any)?.data?.message ||
               "Verification failed — check the TXT record."}
           </p>
@@ -176,9 +176,9 @@ function LmsLinkCard() {
     navigator.clipboard.writeText(text).catch(() => undefined);
 
   return (
-    <div className="border-t-2 border-ink pt-6">
+    <div className="border-t-2 border-gray-900 pt-6">
       <h3 className="font-bold mb-1">Campus LMS button</h3>
-      <p className="text-sm text-ink/60 mb-3 max-w-xl">
+      <p className="text-sm text-gray-50/60 mb-3 max-w-xl">
         Put your shop one tap from every course page. Paste this link
         behind a button in Moodle / Canvas / Blackboard (using the
         LMS's own link or HTML block) — students land on your shop
@@ -198,7 +198,7 @@ function LmsLinkCard() {
               : "Generate campus link"}
         </button>
         {lms?.keySet && !revealed && (
-          <span className="px-2 py-0.5 rounded-pl-sm text-[10px] font-bold uppercase tracking-editorial bg-sage/20 text-sage">
+          <span className="px-2 py-0.5 rounded-pl-sm text-[10px] font-bold uppercase tracking-editorial bg-emerald-600/20 text-emerald-600">
             link active
           </span>
         )}
@@ -210,10 +210,10 @@ function LmsLinkCard() {
       )}
       {revealed && (
         <div className="mt-3 space-y-2">
-          <p className="text-xs font-bold uppercase tracking-wider text-persimmon">
+          <p className="text-xs font-bold uppercase tracking-wider text-indigo-600">
             Shown once — copy it now
           </p>
-          <div className="bg-paper-light border-2 border-ink rounded-pl-sm p-2 font-mono text-xs break-all">
+          <div className="bg-gray-100 border-2 border-gray-900 rounded-pl-sm p-2 font-mono text-xs break-all">
             {revealed.url}
           </div>
           <div className="flex gap-2">
@@ -244,15 +244,15 @@ function DnsRow({
   value: string;
 }) {
   return (
-    <div className="bg-paper-light border-2 border-ink rounded-pl-sm p-2 font-mono text-xs grid grid-cols-[60px_1fr] gap-2">
+    <div className="bg-gray-100 border-2 border-gray-900 rounded-pl-sm p-2 font-mono text-xs grid grid-cols-[60px_1fr] gap-2">
       <span className="font-bold">{type}</span>
       <div className="break-all">
         <div>
-          <span className="text-ink/40">name </span>
+          <span className="text-gray-50/40">name </span>
           {name}
         </div>
         <div>
-          <span className="text-ink/40">value </span>
+          <span className="text-gray-50/40">value </span>
           {value}
         </div>
       </div>
@@ -263,10 +263,10 @@ function DnsRow({
 function StatusPill({ status }: { status: string }) {
   const color =
     status === "verified"
-      ? "bg-sage/20 text-sage"
+      ? "bg-emerald-600/20 text-emerald-600"
       : status === "failed"
-      ? "bg-persimmon/15 text-persimmon"
-      : "bg-ochre/20 text-ochre";
+      ? "bg-indigo-600/15 text-indigo-600"
+      : "bg-amber-500/20 text-amber-500";
   return (
     <span
       className={`px-2 py-0.5 rounded-pl-sm text-[10px] font-bold uppercase tracking-editorial ${color}`}

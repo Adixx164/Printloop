@@ -23,7 +23,7 @@ export function BottomTabBar({ tabs }: BottomTabBarProps) {
   return (
     <nav
       aria-label="Primary"
-      className="fixed bottom-0 left-0 right-0 z-30 bg-paper border-t-2 border-ink md:hidden"
+      className="fixed bottom-0 left-0 right-0 z-30 bg-gray-50 border-t-2 border-gray-900 md:hidden"
       style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
     >
       <ul
@@ -33,11 +33,11 @@ export function BottomTabBar({ tabs }: BottomTabBarProps) {
         {tabs.map((tab) => {
           const active = location.pathname === tab.to;
           return (
-            <li key={tab.to} className="border-r-2 border-ink last:border-r-0">
+            <li key={tab.to} className="border-r-2 border-gray-900 last:border-r-0">
               <Link
                 to={tab.to}
                 className={`flex items-center justify-center px-2 py-3 text-[10px] font-bold tracking-editorial uppercase transition-all duration-150 active:scale-95 ${
-                  active ? "bg-persimmon text-paper" : "text-ink hover:bg-ink hover:text-paper"
+                  active ? "bg-indigo-600 text-gray-50" : "text-gray-900 hover:bg-gray-900 hover:text-gray-50"
                 }`}
               >
                 <span className={`inline-block transition-transform duration-200 ease-expressive ${active ? "scale-110" : ""}`}>

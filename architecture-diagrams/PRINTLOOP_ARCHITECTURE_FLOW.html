@@ -1,0 +1,1165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PrintLoop SaaS v2 - Architecture Flow Chart</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --ink: #1A1410;
+            --paper: #F8F4ED;
+            --persimmon: #D14B2C;
+            --ochre: #C7944A;
+            --sage: #6B7A5C;
+            --fog: #888888;
+        }
+        body { font-family: 'Inter', sans-serif; background: var(--paper); color: var(--ink); }
+        .mono { font-family: 'JetBrains Mono', monospace; }
+        .btn-persimmon { background: var(--persimmon); color: white; border: 2px solid var(--persimmon); }
+        .btn-persimmon:hover { transform: translate(-3px, -3px); box-shadow: 5px 5px 0 var(--ink); }
+        .btn-ink { background: var(--ink); color: var(--paper); border: 2px solid var(--ink); }
+        .btn-ink:hover { transform: translate(-3px, -3px); box-shadow: 5px 5px 0 var(--persimmon); }
+        .card { border: 2px solid var(--ink); background: white; }
+        .mermaid { background: white; padding: 1rem; border-radius: 8px; border: 2px solid var(--ink); }
+        .flow-container { max-width: 1400px; margin: 0 auto; padding: 2rem; }
+        .section-title { font-family: 'Fraunces', serif; color: var(--persimmon); border-bottom: 2px solid var(--ink); padding-bottom: 0.5rem; }
+        .legend-item { display: flex; align-items: center; gap: 0.5rem; font-size: 0.875rem; }
+        .legend-color { width: 16px; height: 16px; border: 2px solid var(--ink); }
+        .toc-link { color: var(--persimmon); text-decoration: underline; }
+        .toc-link:hover { color: var(--ink); }
+        @media print { .no-print { display: none; } .mermaid { page-break-inside: avoid; } }
+    </style>
+</head>
+<body>
+    <div class="flow-container">
+        <!-- Header -->
+        <header class="mb-8">
+            <h1 class="text-4xl md:text-5xl font-bold mb-2" style="font-family: 'Fraunces', serif; color: var(--ink);">
+                PrintLoop SaaS v2
+            </h1>
+            <p class="text-lg text-gray-600 mb-4">Complete Architectural Flow Mapping</p>
+            <div class="flex flex-wrap gap-2">
+                <span class="px-3 py-1 bg-persimmon text-white text-sm rounded">v2.0</span>
+                <span class="px-3 py-1 bg-ink text-white text-sm rounded">Architecture</span>
+                <span class="px-3 py-1 bg-ochre text-white text-sm rounded">Flow Mapping</span>
+            </div>
+        </header>
+
+        <!-- Navigation -->
+        <nav class="mb-8 no-print">
+            <div class="flex flex-wrap gap-2">
+                <a href="#overview" class="toc-link px-4 py-2 bg-white border-2 border-ink rounded hover:bg-ink hover:text-paper transition">Overview</a>
+                <a href="#upload-flow" class="toc-link px-4 py-2 bg-white border-2 border-ink rounded hover:bg-ink hover:text-paper transition">Upload Flow</a>
+                <a href="#render-pipeline" class="toc-link px-4 py-2 bg-white border-2 border-ink rounded hover:bg-ink hover:text-paper transition">Render Pipeline</a>
+                <a href="#kiosk-agent" class="toc-link px-4 py-2 bg-white border-2 border-ink rounded hover:bg-ink hover:text-paper transition">Kiosk Agent</a>
+                <a href="#payment-flow" class="toc-link px-4 py-2 bg-white border-2 border-ink rounded hover:bg-ink hover:text-paper transition">Payment</a>
+                <a href="#job-lifecycle" class="toc-link px-4 py-2 bg-white border-2 border-ink rounded hover:bg-ink hover:text-paper transition">Job Lifecycle</a>
+                <a href="#deployment" class="toc-link px-4 py-2 bg-white border-2 border-ink rounded hover:bg-ink hover:text-paper transition">Deployment</a>
+            </div>
+        </nav>
+
+        <!-- Legend -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-2 mb-8 no-print">
+            <div class="legend-item">
+                <div class="legend-color bg-persimmon"></div>
+                <span>Customer Actions</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color bg-ink"></div>
+                <span>System Processes</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color bg-ochre"></div>
+                <span>Payment/Money</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color bg-sage"></div>
+                <span>Rendering/Printing</span>
+            </div>
+        </div>
+
+        <!-- Section 1: System Overview -->
+        <section id="overview" class="mb-12">
+            <h2 class="section-title text-2xl md:text-3xl mb-6">System Overview</h2>
+            <div class="mermaid">
+%%{init: {'theme': 'base', 'themeVariables': { 'primaryColor': '#D14B2C', 'edgeLabelBackground': '#F8F4ED', 'tertiaryColor': '#1A1410', 'background': '#F8F4ED', 'mainBkg': '#FFFFFF', 'secondaryColor': '#C7944A', 'lineColor': '#1A1410', 'textColor': '#1A1410', 'fontFamily': 'Inter' }}}%%
+flowchart TB
+    subgraph Customer["🌐 Customer Layer"]
+        CB[Customer Browser\nReact Frontend]
+        CA[CUPS/Laptop\nPrint Client]
+        CK[Kiosk App\nTouchscreen UI]
+    end
+
+    subgraph API["☁️ Backend API\nExpress.js on Railway"]
+        GW[API Gateway\nExpress + Middleware]
+        CP[Customer Print API\nUpload, Quote, Jobs]
+        AG[Agent API\nPolling, Dispatch, Confirm]
+        CU[CUPS Ingress\nLaptop Printing]
+        SA[SaaS Onboarding\nShop Signup]
+        PY[Payments\nPaystack Integration]
+        RE[Render Enqueue\nBullMQ Queue]
+        CR[Cost Reconciliation\nPricing Engine]
+        TB[Tenant Balance\nLedger Service]
+        CM[Commission\nBolt-Style Split]
+        TW[Tenant Webhooks\nDimension 14]
+    end
+
+    subgraph Render["🎨 Render Worker\nRailway + BullMQ"]
+        RW[Render Worker\nGhostscript + cups-filters]
+        RQ[Render Queue\nBullMQ]
+        RC[Callback\nHMAC-SHA256]
+    end
+
+    subgraph Agent["🤖 Kiosk Agent\nOn-Site Node.js"]
+        AK[Agent Core\nPolling Loop]
+        AD[Dispatch Engine\n6 Transports]
+        AC[Confirmation\nJob-Truth V2-44]
+        AH[Heartbeat\n30s Interval]
+    end
+
+    subgraph Kiosk["🖨️ Physical Kiosk"]
+        KP[Kiosk App\nElectron Touchscreen]
+        PR[Printer\nLAN Connected]
+    end
+
+    subgraph Infra["🏗️ Shared Infrastructure"]
+        DB[(PostgreSQL\nNeon/Railway)]
+        RD[(Redis\nUpstash/Railway)]
+        S3[(S3 Storage\nAWS/R2/MinIO)]
+        PS[Paystack\nSplit Payments]
+        WH[Tenant Webhooks\nDimension 14]
+    end
+
+    %% Connections
+    CB -->|HTTPS/REST| GW
+    CA -->|CUPS/IPP| CU
+    CK -->|HTTPS/WS| AG
+    
+    GW --> CP
+    GW --> AG
+    GW --> CU
+    GW --> SA
+    GW --> PY
+    GW --> RE
+    GW --> CR
+    GW --> TB
+    GW --> CM
+    GW --> TW
+    
+    RE -->|enqueue| RQ
+    RQ -->|consume| RW
+    RW -->|HMAC POST| RC
+    RC -->|callback| CR
+    CR -->|reconcile| TB
+    CR -->|webhook| TW
+    
+    PY -->|Split Payment| PS
+    PY -->|Webhook| PYW
+    PYW -->|charge.success| CPL
+    CPL -->|mint code| JP
+    CPL -->|enqueue| RE
+    
+    AG -->|poll 4s| RWQ
+    RWQ -->|jobs ready| AK
+    AK -->|dispatch| AD
+    AD -->|6 transports| PR
+    AD -->|confirm| AC
+    AC -->|job-truth| CPL
+    
+    RW -->|HMAC| RC
+    RC -->|callback| CR
+    CR -->|reconcile| TB
+    CR -->|webhook| TW
+    
+    SA -->|onboard| TENANT
+    SA -->|subaccount| PS
+    
+    CP -->|upload| S3
+    RW -->|download| S3
+    RW -->|upload| S3
+    AG -->|download| S3
+    
+    CP -->|quote| CR
+    CR -->|computeCost| PR
+    CP -->|promo| PM
+    
+    PY -->|split| PS
+    PS -->|webhook| TW
+    TW -->|deliver| WH
+    
+    JP -->|code| CPL
+    CPL -->|mint| JP
+    JP -->|SMS/Email| NS
+    
+    CR -->|reconcile| TB
+    CR -->|webhook| TW
+    TB -->|balance| LD
+    
+    %% Styling
+    classDef customer fill:#D14B2C,color:#fff,stroke:#1A1410,stroke-width:2px;
+    classDef api fill:#1A1410,color:#F8F4ED,stroke:#D14B2C,stroke-width:2px;
+    classDef render fill:#6B7A5C,color:#fff,stroke:#1A1410,stroke-width:2px;
+    classDef agent fill:#C7944A,color:#fff,stroke:#1A1410,stroke-width:2px;
+    classDef kiosk fill:#888888,color:#fff,stroke:#1A1410,stroke-width:2px;
+    classDef infra fill:#F8F4ED,stroke:#1A1410,stroke-width:2px,stroke-dasharray: 5 5;
+    classDef payment fill:#C7944A,color:#fff,stroke:#1A1410,stroke-width:2px;
+    
+    class CB,CA,CK customer;
+    class GW,CP,AG,CU,SA,RE,CR,TB,CM,TW api;
+    class RW,RQ,RC render;
+    class AK,AD,AC,AH agent;
+    class KP,PR kiosk;
+    class DB,RD,S3,PS,WH infra;
+    class PY,PS,PYW,CPL,JP,PM payment;
+%% 
+</div>
+</section>
+
+<!-- Section 2: Customer Upload Flow -->
+<section id="upload-flow" class="mb-12">
+    <h2 class="section-title text-2xl md:text-3xl mb-6">1. Customer Upload Flow</h2>
+    <div class="mermaid">
+%%{init: {'theme': 'base', 'themeVariables': { 'primaryColor': '#D14B2C', 'edgeLabelBackground': '#F8F4ED', 'tertiaryColor': '#1A1410', 'background': '#F8F4ED', 'mainBkg': '#FFFFFF', 'secondaryColor': '#C7944A', 'lineColor': '#1A1410', 'textColor': '#1A1410', 'fontFamily': 'Inter' }}}%%
+flowchart TD
+    subgraph Browser["🌐 Customer Browser"]
+        U1["Upload Document\nDrag & Drop / File Picker"]
+        U2["Enter Print Config\nCopies, Paper, Color, Sides, DPI"]
+        U3["Apply Promo Code\nOptional"]
+        U4["Review Quote\nReal-time Price"]
+        U5["Click \"Pay & Print\""]
+    end
+
+    subgraph Backend["☁️ Backend Processing"]
+        B1["POST /api/customer/print-jobs\nmultipart/form-data"]
+        B2["flattenAnnotations\nSignatures → Raster"]
+        B3["countPages\npdf-lib"]
+        B4["computeCost\nPricing Matrix"]
+        B5["applyPromotion\nDiscount Logic"]
+        B6["saveBuffer → S3\nFile Entity"]
+        B7["Create PrintJob\nPENDING, code=null"]
+        B8["POST /payments/initialize\nPaystack Checkout"]
+        B9["Return authorization_url\n+ reference"]
+    end
+
+    subgraph Paystack["💳 Paystack Checkout"]
+        P1["Customer Redirected\nPaystack Hosted Page"]
+        P2["Payment Methods\nCard / Transfer / USSD"]
+        P3["Payment Complete\ncharge.success"]
+        P4["Webhook Fired\n/api/payments/webhook"]
+    end
+
+    subgraph Webhook["🔔 Webhook Handler"]
+        W1["/api/payments/webhook\ncharge.success"]
+        W2["verifyWebhookSignature\nHMAC-SHA512"]
+        W3["completePrintJobPayment\njobId + reference"]
+        W4["completePrintJobPayment\nLogic"]
+    end
+
+    subgraph Complete["✅ Complete Payment"]
+        C1["Mint Release Code\n6-char alphanumeric"]
+        C2["Record Payment +\nTransaction"]
+        C3["applyTransactionDelta\nTenant Balance"]
+        C6["enqueueRenderOrReady\nBullMQ"]
+        C7["Arm Accept Window\nV2-58 Marketplace"]
+        C8["SMS/Email with Code\nTermii + Nodemailer"]
+    end
+
+    %% Flow
+    U1 --> U2 --> U3 --> U4 --> U5
+    U5 --> B1
+    B1 --> B2 --> B3 --> B4 --> B5 --> B6 --> B7 --> B8 --> B9
+    B9 --> P1 --> P2 --> P3 --> P4
+    P4 --> W1 --> W2 --> W3 --> W4
+    W4 --> C1 --> C2 --> C3 --> C6 --> C7 --> C8
+
+    %% Styling
+    classDef browser fill:#D14B2C,color:#fff,stroke:#1A1410,stroke-width:2px;
+    classDef backend fill:#1A1410,color:#F8F4ED,stroke:#D14B2C,stroke-width:2px;
+    classDef paystack fill:#C7944A,color:#fff,stroke:#1A1410,stroke-width:2px;
+    classDef webhook fill:#6B7A5C,color:#fff,stroke:#1A1410,stroke-width:2px;
+    classDef complete fill:#1A1410,color:#F8F4ED,stroke:#D14B2C,stroke-width:2px;
+
+    class U1,U2,U3,U4,U5 browser;
+    class B1,B2,B3,B4,B5,B6,B7,B8,B9 backend;
+    class P1,P2,P3,P3,P4 paystack;
+    class W1,W2,W3,W4 webhook;
+    class C1,C2,C3,C6,C7,C8 complete;
+</div>
+</section>
+
+<!-- Section 3: Render Pipeline -->
+<section id="render-pipeline" class="mb-12">
+    <h2 class="section-title text-2xl md:text-3xl mb-6">2. Cloud Render → Kiosk Spool Pipeline (V2-6)</h2>
+    <div class="mermaid">
+%%{init: {'theme': 'base', 'themeVariables': { 'primaryColor': '#6B7A5C', 'edgeLabelBackground': '#F8F4ED', 'tertiaryColor': '#1A1410', 'background': '#F8F4ED', 'mainBkg': '#FFFFFF', 'secondaryColor': '#D14B2C', 'lineColor': '#1A1410', 'textColor': '#1A1410', 'fontFamily': 'Inter' }}}%%
+flowchart TB
+    subgraph Trigger["🎯 Trigger"]
+        T1[Payment Complete\nWebhook]
+        T2[enqueueRenderOrReady\njobId]
+        T3{REDIS_ENABLED?}
+    end
+
+    subgraph Queue["📋 BullMQ Queue"]
+        Q1[renderQueue.add\n'render' job]
+        Q2[Job Payload\n{printJobId, tenantId,\nsourceFileKey, profileId}]
+    end
+
+    subgraph Worker["🎨 Render Worker (Railway)"]
+        W1[Consume 'render' queue\nconcurrency: 2]
+        W2[renderPipeline.run\nmanifest]
+    end
+
+    subgraph Pipeline["🎨 Render Pipeline\npipeline/render.ts"]
+        P1["Download PDF from S3\nsourceFileUrl"]
+        P2["Ghostscript: PDF → PDF/A\nNormalization"]
+        P3["cups-filters pdftopwg\nPDF → PWG-Raster"]
+        P3a["dpi, color, duplex,\npageSize, orientation"]
+        P4["Ghostscript Preview\nJPEG thumbnails"]
+        P5["Upload to S3\nPWG + Previews"]
+        P6["HMAC Callback\nPOST /api/render/callback"]
+    end
+
+    subgraph Callback["🔔 Callback Handler"]
+        C1["POST /api/render/callback\nHMAC-SHA256"]
+        C2["Verify HMAC\nRENDER_CALLBACK_SECRET"]
+        C3["applyRenderCostReconciliation\njob + render result"]
+        C4["delta = final - paid"]
+        C5["delta < 0 → Write-off"]
+        C6["delta > 0 → Shortfall"]
+        C7["delta = 0 → None"]
+        C7b["status = READY /\nAWAITING_ACCEPT"]
+        C8["Mint Release Code\nif not exists"]
+        C9["Webhook: JOB_READY /\nJOB_FAILED"]
+    end
+
+    subgraph Reconciliation["💰 Cost Reconciliation"]
+        R1["finalCost = computeCost\nactualPages"]
+        R2["delta = final - paid"]
+        R2a["delta < 0 → Write-off\nTenant ledger reversal"]
+        R2b["delta > 0 → Shortfall\nKiosk gate charges card"]
+        R2c["delta = 0 → No action"]
+        R3["Update PrintJob\nfinalCost, status"]
+        R4["Webhook: JOB_READY/FAILED"]
+    end
+
+    subgraph Reconcile["🔄 Stuck Render Reconciliation"]
+        RC1["Scheduled: every 10min\nreconcileStuckRenders"]
+        RC2["Find RENDERING > 15min\nthresholdMs = 15min"]
+        RC3["reenqueue?"]
+        RC4["Re-enqueue via\nenqueueRenderOrReady"]
+        RC5["Mark FAILED\napplyRenderFailure"]
+    end
+
+    %% Connections
+    T1 --> T2 --> T3
+    T3 -- Yes --> Q1 --> Q2
+    T3 -- No --> F1["Fallback: READY direct\nno render worker"]
+    Q1 --> W1 --> W2
+    W2 --> P1 --> P2 --> P3 --> P4 --> P5 --> P6
+    P6 --> C1 --> C2
+    C2 -- Valid --> C3
+    C2 -- Invalid --> REJ["Reject 401"]
+    C3 --> C4
+    C4 -- < 0 --> C5
+    C4 -- > 0 --> C6
+    C4 -- = 0 --> C7
+    C7b --> C8 --> C9
+    C4 -- = 0 --> C7
+    C7 --> C7b --> C8 --> C9
+
+    RC1 --> RC2 --> RC3
+    RC3 -- Yes --> RC4
+    RC3 -- No --> RC5
+
+    %% Styling
+    classDef trigger fill:#D14B2C,color:#fff,stroke:#1A1410,stroke-width:2px;
+    classDef queue fill:#1A1410,color:#F8F4ED,stroke:#D14B2C,stroke-width:2px;
+    classDef worker fill:#6B7A5C,color:#fff,stroke:#1A1410,stroke-width:2px;
+    classDef pipeline fill:#6B7A5C,color:#fff,stroke:#1A1410,stroke-width:2px;
+    classDef callback fill:#D14B2C,color:#fff,stroke:#1A1410,stroke-width:2px;
+    classDef recon fill:#C7944A,color:#fff,stroke:#1A1410,stroke-width:2px;
+    classDef reconcile fill:#C7944A,color:#fff,stroke:#1A1410,stroke-width:2px;
+
+    class T1,T2,T3 trigger;
+    class Q1,Q2 queue;
+    class W1,W2 worker;
+    class P1,P2,P3,P3a,P4,P5,P6 pipeline;
+    class C1,C2,C3,C4,C5,C6,C7,C7b,C8,C9 callback;
+    class R1,R2,R2a,R2b,R2c,R3,R4 reconciliation;
+    class RC1,RC2,RC3,RC4,RC5 reconcile;
+    class F1 fallback;
+</div>
+</section>
+
+<!-- Section 4: Kiosk Agent Flow -->
+<section id="kiosk-agent" class="mb-12">
+    <h2 class="section-title text-2xl md:text-3xl mb-6">3. Kiosk Agent Flow (On-Site)</h2>
+    <div class="mermaid">
+%%{init: {'theme': 'base', 'themeVariables': { 'primaryColor': '#C7944A', 'edgeLabelBackground': '#F8F4ED', 'tertiaryColor': '#1A1410', 'background': '#F8F4ED', 'mainBkg': '#FFFFFF', 'secondaryColor': '#D14B2C', 'lineColor': '#1A1410', 'textColor': '#1A1410', 'fontFamily': 'Inter' }}}%%
+flowchart TB
+    subgraph Startup["🚀 Agent Startup"]
+        S1[Load .env Config\nloadConfig()]
+        S2[Validate Config\nPRINTER_TRANSPORT]
+        S2a{Auto-Discover?}
+        S2b[Auto-Discover\nUSB + mDNS + Scan]
+        S2c[Select Best Transport\nspooler/ipp/raw9100/printnode/lpd/email]
+        S3[Connect to Cloud\n/agent/jobs/ready probe]
+        S4[Report Capabilities\nIPP Get-Printer-Attributes]
+        S5[Start Poll Loop\n4s interval]
+        S6[Heartbeat\n30s interval]
+        S7[Report Capabilities\nEvery 6h]
+    end
+
+    subgraph Poll["🔄 Poll Loop (4s)"]
+        P1[GET /api/agent/jobs/ready\nX-Kiosk-Key]
+        P2{jobs ready?}
+        P3[For each job\nprocessJob]
+        P4[Claim Job\nPOST /jobs/:id/start]
+        P4a{claim success?}
+    end
+
+    subgraph Process["⚙️ Process Job"]
+        PJ1[GET /jobs/:id/file\nSigned JWT (5min)]
+        PJ2{Transport?}
+        PJ3[Download File\nSigned URL → S3/Local]
+        PJ4[Process PDF\nAnnotations, Range, Grayscale, Orientation]
+    end
+
+    subgraph Dispatch["🚚 Dispatch (6 Transports)"]
+        D1["Transport?"]
+        D2["IPP\nport 631\nippDispatch"]
+        D2a["confirmIppJob\nGet-Job-Attributes"]
+        D2b["completed?"]
+        D2c["canceled/aborted?"]
+        D2d["timeout → unconfirmed"]
+        D3["raw9100\nport 9100 + PJL\nrawDispatch"]
+        D4["spooler\nOS lp/PrintTo\nspoolerDispatch"]
+        D4a["confirmSpoolerDrain\nqueue drain"]
+        D5["printnode\nHTTPS API\nprintnodeDispatch"]
+        D6["lpd\nport 515\nLPD Protocol"]
+        D7["email\nSMTP\nemailDispatch"]
+    end
+
+    subgraph Confirm["✅ V2-44 Job-Truth Confirmation"]
+        C1["Transport?"]
+        C2["IPP → confirmIppJob\nGet-Job-Attributes poll"]
+        C2a["completed → confirmed"]
+        C2b["canceled/aborted → FAILED"]
+        C2c["timeout → unconfirmed"]
+        C3["spooler → confirmSpoolerDrain\nlpstat/Get-PrintJob"]
+        C3a["queue drained → confirmed"]
+        C3b["timeout/error → unconfirmed"]
+        C4["raw9100/printnode/lpd/email\n→ unconfirmed\nno feedback channel"]
+        C5["Return Confirmation\n{state, method, detail}"]
+    end
+
+    subgraph Report["📤 Report Back"]
+        R1["POST /jobs/:id/complete\n{confirmation, method, detail}"]
+        R2["POST /jobs/:id/failed\n{reason}"]
+        R2a["V2-44 agentConfirmation\n\"method:state\""]
+        R3["printerExt.completePrintJob\nkiosk counters, cleanup"]
+        R4["Webhook: JOB_FAILED\nif failed"]
+    end
+
+    %% Connections
+    S1 --> S2 --> S2a
+    S2a -- Yes --> S2b --> S2c
+    S2a -- No --> S2d["Manual Config"]
+    S2c --> S3 --> S4 --> S5 --> S6 --> S7
+    S7 -.-> P1
+    P1 --> P2
+    P2 -- Yes --> P3
+    P2 -- No --> P1
+    P3 --> P4
+    P4 --> P4a
+    P4a -- Yes --> PJ1
+    P4a -- No --> P1
+    PJ1 --> PJ2
+    PJ2 -- ipp --> D2
+    PJ2 -- raw9100 --> D3
+    PJ2 -- spooler --> D4
+    PJ2 -- printnode --> D5
+    PJ2 -- lpd --> D6
+    PJ2 -- email --> D7
+    D2 --> PJ3 --> PJ4 --> D2
+    D2 --> D2a
+    D2a -- completed --> D2b
+    D2b -- Yes --> C2a
+    D2b -- No --> D2c
+    D2c -- Yes --> C2b
+    D2c -- No --> D2d
+    D3 --> PJ3 --> PJ4 --> D3
+    D4 --> PJ3 --> PJ4 --> D4
+    D4 --> D4a
+    D5 --> PJ3 --> PJ4 --> D5
+    D6 --> PJ3 --> PJ4 --> D6
+    D7 --> PJ3 --> PJ4 --> D7
+    PJ4 --> C1
+    C1 -- ipp --> C2
+    C1 -- spooler --> C3
+    C1 -- raw9100/printnode/lpd/email --> C4
+    C2 --> C2a
+    C2 -- canceled/aborted --> C2b
+    C2 -- timeout --> C2c
+    C3 --> C3a
+    C3 -- timeout/error --> C3b
+    C4 --> C5
+    C2a --> C5
+    C2b --> C5
+    C2c --> C5
+    C3a --> C5
+    C3b --> C5
+    C4 --> C5
+    C5 --> R1
+    R1 --> R2
+    R1 --> R2a
+    R2a --> R3
+    R2 --> R4
+
+    %% Styling
+    classDef startup fill:#D14B2C,color:#fff,stroke:#1A1410,stroke-width:2px;
+    classDef poll fill:#1A1410,color:#F8F4ED,stroke:#D14B2C,stroke-width:2px;
+    classDef process fill:#C7944A,color:#fff,stroke:#1A1410,stroke-width:2px;
+    classDef dispatch fill:#6B7A5C,color:#fff,stroke:#1A1410,stroke-width:2px;
+    classDef confirm fill:#C7944A,color:#fff,stroke:#1A1410,stroke-width:2px;
+    classDef report fill:#1A1410,color:#F8F4ED,stroke:#D14B2C,stroke-width:2px;
+
+    class S1,S2,S2a,S2b,S2c,S3,S4,S5,S6,S7 startup;
+    class P1,P2,P3,P4,P4a poll;
+    class PJ1,PJ2,PJ3,PJ4 process;
+    class D1,D2,D2a,D2b,D2c,D2d,D3,D4,D4a,D5,D6,D7 dispatch;
+    class C1,C2,C2a,C2b,C2c,C3,C3a,C3b,C4,C5 confirm;
+    class R1,R2,R2a,R3,R4 report;
+</div>
+</section>
+
+<!-- Section 5: Payment Flow -->
+<section id="payment-flow" class="mb-12">
+    <h2 class="section-title text-2xl md:text-3xl mb-6">4. Payment Flow (Paystack)</h2>
+    <div class="mermaid">
+%%{init: {'theme': 'base', 'themeVariables': { 'primaryColor': '#C7944A', 'edgeLabelBackground': '#F8F4ED', 'tertiaryColor': '#1A1410', 'background': '#F8F4ED', 'mainBkg': '#FFFFFF', 'secondaryColor': '#D14B2C', 'lineColor': '#1A1410', 'textColor': '#1A1410', 'fontFamily': 'Inter' }}}%%
+flowchart TB
+    subgraph Init["🚀 Initialize Payment"]
+        I1[POST /api/payments/initialize-job-payment\n{jobId}]
+        I2[Validate Job\nPENDING + user match]
+        I3[Load Tenant\ncommissionPct, subaccount]
+        I4[Build Paystack Payload\nemail, amount, reference,\nmetadata{jobId, type, commission}]
+        I5{tenant.subaccount?}
+        I5a[Add subaccount\ntransaction_charge\nbearer=account]
+        I6[POST /transaction/initialize\nPaystack API]
+        I7{Success?}
+        I7a[Return authorization_url\n+ reference]
+        I7b[Return Error\n500]
+    end
+
+    subgraph Checkout["💳 Customer Checkout"]
+        C1[Redirect to\nPaystack Checkout]
+        C2[Payment Methods\nCard / Transfer / USSD]
+        C3[Customer Completes\nPayment]
+        C4[Paystack Redirect\ncallback_url]
+    end
+
+    subgraph Webhook["🔔 Webhook Processing"]
+        W1[POST /api/payments/webhook\ncharge.success]
+        W2[verifyWebhookSignature\nHMAC-SHA512]
+        W3{Valid?}
+        W3a[completePrintJobPayment\njobId, reference]
+        W3b[401 Invalid Signature]
+    end
+
+    subgraph Complete["✅ Complete Payment Logic"]
+        CP1[completePrintJobPayment\n(jobId, reference)]
+        CP2[Atomic Transaction]
+        CP3[Mint Release Code\nmakeCode(6)]
+        CP4[Resolve Tenant\ncommission split]
+        CP5[Record Payment\n+ Transaction]
+        CP6[applyTransactionDelta\nTenant Balance]
+        CP7[SMS/Email Notification\nTermii + Nodemailer]
+        CP8[enqueueRenderOrReady\nBullMQ]
+        CP9[Arm Accept Window\nV2-58 Marketplace]
+    end
+
+    subgraph ChargeAuth["💳 Charge Authorization\n(V2-53 Delta Charges)"]
+        CA1[settleShortfall\njobId]
+        CA2[shortfall = finalCost - paid]
+        CA2a{shortfall > 0?}
+        CA2b{authorizationCode?}
+        CA3[chargeAuthorization\nPaystack API]
+        CA3a{Success?}
+        CA3b[Record Transaction\n+ update job.cost = finalCost]
+        CA3c[applyTransactionDelta\ncommission]
+    end
+
+subgraph Refund["🚫 Refunds Eliminated (V2-53)"]
+        R1["No Refunds\nWrite-offs Only"]
+        R2["delta < 0 → Write-off\nTenant ledger reversal"]
+        R3["delta > 0 → Shortfall\nCharge saved card at gate"]
+        R4["No Customer Refunds\nOperator resolves manually"]
+    end
+
+    %% Connections
+    I1 --> I2 --> I3 --> I4 --> I5
+    I5 -- Yes --> I5a
+    I5 -- No --> I6
+    I5a --> I6 --> I7
+    I7 -- Yes --> I7a
+    I7 -- No --> I7b
+    I7a --> C1
+    C1 --> C2 --> C3 --> C4
+    C4 --> W1 --> W2 --> W3
+    W3 -- Valid --> W3a
+    W3 -- Invalid --> W3b
+    W3a --> CP1
+    CP1 --> CP2 --> CP3 --> CP4 --> CP5 --> CP6 --> CP7 --> CP8 --> CP9
+    CP2 --> CA1
+    CP5 --> R1
+    CA1 --> CA2 --> CA2a
+    CA2a -- Yes --> CA2b
+    CA2a -- No --> CA2c["Return no-shortfall"]
+    CA2b -- Yes --> CA3 --> CA3a
+    CA3a -- Yes --> CA3b
+    CA3a -- No --> CA3c["Return charge-failed"]
+
+    %% Styling
+    classDef init fill:#C7944A,color:#fff,stroke:#1A1410,stroke-width:2px;
+    classDef checkout fill:#D14B2C,color:#fff,stroke:#1A1410,stroke-width:2px;
+    classDef webhook fill:#6B7A5C,color:#fff,stroke:#1A1410,stroke-width:2px;
+    classDef complete fill:#1A1410,color:#F8F4ED,stroke:#D14B2C,stroke-width:2px;
+    classDef charge fill:#C7944A,color:#fff,stroke:#1A1410,stroke-width:2px;
+    classDef refund fill:#D14B2C,color:#fff,stroke:#1A1410,stroke-width:2px;
+
+    class I1,I2,I3,I4,I5,I5a,I6,I7,I7a,I7b init;
+    class C1,C2,C3,C4 checkout;
+    class W1,W2,W3,W3a,W3b webhook;
+    class CP1,CP2,CP3,CP4,CP5,CP6,CP7,CP8,CP9 complete;
+    class CA1,CA2,CA2a,CA2b,CA3,CA3a,CA3b,CA3c charge;
+    class R1,R2,R3,R4 refund;
+</div>
+</section>
+
+<!-- Section 6: Job Lifecycle -->
+<section id="job-lifecycle" class="mb-12">
+    <h2 class="section-title text-2xl md:text-3xl mb-6">5. Job Lifecycle State Machine</h2>
+    <div class="mermaid">
+%%{init: {'theme': 'base', 'themeVariables': { 'primaryColor': '#1A1410', 'edgeLabelBackground': '#F8F4ED', 'tertiaryColor': '#D14B2C', 'background': '#F8F4ED', 'mainBkg': '#FFFFFF', 'secondaryColor': '#C7944A', 'lineColor': '#1A1410', 'textColor': '#1A1410', 'fontFamily': 'Inter' }}}%%
+stateDiagram-v2
+    [*] --> PENDING: "Created\n(upload, CUPS, batch)"
+    
+    PENDING --> RENDERING: "Payment webhook\ncharge.success"
+    PENDING --> AWAITING_EDIT: "editingRequired=true"
+    PENDING --> AWAITING_PAYMENT: "payment pending"
+    PENDING --> PAID: "payment complete\n(no render needed)"
+    
+    RENDERING --> AWAITING_ACCEPT: "render callback\nrequiresAccept=true"
+    RENDERING --> READY: "render callback\nrequiresAccept=false"
+    RENDERING --> FAILED: "render failure\ncallback error"
+    RENDERING --> RENDERING: "reconcileStuckRenders\nre-enqueue"
+    
+    AWAITING_ACCEPT --> RELEASING: "Operator accepts\nshop console"
+    AWAITING_ACCEPT --> RELEASING: "auto-reroute\naccept window expires"
+    AWAITING_ACCEPT --> EXPIRED: "24h TTL"
+    
+    READY --> RELEASING: "Agent polls\nclaims job"
+    
+    AWAITING_EDIT --> EDIT_COMPLETE: "Shop finishes\nediting"
+    EDIT_COMPLETE --> AWAITING_PAYMENT: "edit fee due"
+    AWAITING_PAYMENT --> PAID: "edit fee paid"
+    
+    RELEASING --> PRINTING: "Agent claims\nPOST /jobs/:id/start"
+    PRINTING --> DONE: "Agent reports\nPOST /jobs/:id/complete"
+    PRINTING --> FAILED: "Agent reports\nPOST /jobs/:id/failed"
+    
+    DONE --> [*]
+    FAILED --> [*]
+    EXPIRED --> [*]
+    REFUNDED --> [*]
+    AWAITING_PAYMENT --> EXPIRED: "24h TTL"
+    
+    AWAITING_EDIT --> EDIT_COMPLETE: "Shop finishes\nediting"
+    EDIT_COMPLETE --> AWAITING_PAYMENT: "edit fee due"
+    
+    style PENDING fill:#C7944A,color:#fff
+    style RENDERING fill:#6B7A5C,color:#fff
+    style AWAITING_ACCEPT fill:#D14B2C,color:#fff
+    style READY fill:#6B7A5C,color:#fff
+    style RELEASING fill:#C7944A,color:#fff
+    style PRINTING fill:#D14B2C,color:#fff
+    style DONE fill:#6B7A5C,color:#fff
+    style FAILED fill:#D14B2C,color:#fff
+    style EXPIRED fill:#888888,color:#fff
+    style AWAITING_EDIT fill:#C7944A,color:#fff
+    style EDIT_COMPLETE fill:#6B7A5C,color:#fff
+    style AWAITING_PAYMENT fill:#C7944A,color:#fff
+    style PAID fill:#6B7A5C,color:#fff
+</div>
+</section>
+
+<!-- Section 7: Deployment -->
+<section id="deployment" class="mb-12">
+    <h2 class="section-title text-2xl md:text-3xl mb-6">6. Deployment Topology</h2>
+    <div class="mermaid">
+%%{init: {'theme': 'base', 'themeVariables': { 'primaryColor': '#1A1410', 'edgeLabelBackground': '#F8F4ED', 'tertiaryColor': '#D14B2C', 'background': '#F8F4ED', 'mainBkg': '#FFFFFF', 'secondaryColor': '#C7944A', 'lineColor': '#1A1410', 'textColor': '#1A1410', 'fontFamily': 'Inter' }}}%%
+flowchart TB
+    subgraph Cloud["☁️ Cloud (Railway/Vercel)"]
+        FE["Frontend\nVercel/Netlify\nStatic React"]
+        BE["Backend API\nRailway/Render\nExpress + TypeORM"]
+        RW["Render Worker\nRailway\nBullMQ Consumer"]
+    end
+
+    subgraph Infra["🏗️ Shared Infrastructure"]
+        PG["(PostgreSQL\nNeon/Railway)"]
+        RD["(Redis\nUpstash/Railway)"]
+        S3["(S3 Storage\nAWS/R2/MinIO)"]
+        PS["Paystack\nSplit Payments"]
+    end
+
+    subgraph OnSite["🏪 On-Site (Per Shop)"]
+        KA["Kiosk Agent\nNode.js Service\nsystemd/Scheduled Task"]
+        KAPP["Kiosk App\nElectron\nTouchscreen"]
+        PR["Printer\nLAN Connected"]
+    end
+
+    subgraph Dev["🛠️ Dev/Ops"]
+        GH["GitHub Actions\nCI/CD Pipeline"]
+        DH["Render Deploy Hooks\nAuto-deploy on push"]
+        SH["Shell Scripts\ninstall.ps1 / install.sh"]
+    end
+
+    %% Connections
+    FE -->|"HTTPS/REST"| BE
+    BE -->|"BullMQ"| RW
+    BE -->|"SQL"| PG
+    BE -->|"BullMQ"| RD
+    BE -->|"S3 API"| S3
+    BE -->|"Webhooks"| PS
+    BE -->|"HTTPS"| KA
+    KA -->|"LAN"| PR
+    KA -->|"HTTPS/WS"| KAPP
+    GH -->|"push main"| DH
+    DH -->|"trigger"| BE
+    DH -->|"trigger"| RW
+    DH -->|"trigger"| FE
+    SH -->|"run"| KA
+
+    %% Styling
+    classDef cloud fill:#1A1410,color:#F8F4ED,stroke:#D14B2C,stroke-width:2px;
+    classDef infra fill:#F8F4ED,stroke:#1A1410,stroke-width:2px,stroke-dasharray: 5 5;
+    classDef onsite fill:#C7944A,color:#fff,stroke:#1A1410,stroke-width:2px;
+    classDef dev fill:#6B7A5C,color:#fff,stroke:#1A1410,stroke-width:2px;
+
+    class FE,BE,RW cloud;
+    class PG,RD,S3,PS infra;
+    class KA,KAPP,PR onsite;
+    class GH,DH,SH dev;
+</div>
+</section>
+
+<!-- Section 8: Entity Relationship Diagram -->
+<section id="erd" class="mb-12">
+    <h2 class="section-title text-2xl md:text-3xl mb-6">7. Entity Relationship Diagram</h2>
+    <div class="mermaid">
+%%{init: {'theme': 'base', 'themeVariables': { 'primaryColor': '#1A1410', 'edgeLabelBackground': '#F8F4ED', 'tertiaryColor': '#D14B2C', 'background': '#F8F4ED', 'mainBkg': '#FFFFFF', 'secondaryColor': '#C7944A', 'lineColor': '#1A1410', 'textColor': '#1A1410', 'fontFamily': 'Inter' }}}%%
+erDiagram
+    TENANT ||--o{ TENANT_MEMBER : has
+    TENANT ||--o{ TENANT_BRANDING : has
+    TENANT ||--o{ TENANT_DOMAIN : has
+    TENANT ||--o{ TENANT_WEBHOOK : has
+    TENANT ||--o{ TENANT_BALANCE : has
+    TENANT ||--o{ KIOSK : owns
+    TENANT ||--o{ PRICING_CONFIG : configures
+    TENANT ||--o{ PRINTER_PROFILE : owns
+    TENANT ||--o{ PRINT_JOB : owns
+    TENANT ||--o{ PAYMENT : receives
+    TENANT ||--o{ TRANSACTION : records
+    TENANT ||--o{ WALLET : owns
+    TENANT ||--o{ PAYOUT : receives
+    TENANT ||--o{ PAYOUT_SCHEDULE : schedules
+    TENANT ||--o{ PROMOTION : creates
+    TENANT ||--o{ SHOP_REVIEW : receives
+    TENANT ||--o{ DISPUTE : handles
+    TENANT ||--o{ BLOG_POST : publishes
+    TENANT ||--o{ GROUP_SESSION : hosts
+    TENANT ||--o{ FILE : stores
+    TENANT ||--o{ TENANT_BRANDING : brands
+    TENANT ||--o{ TENANT_WEBHOOK : subscribes
+    TENANT ||--o{ TENANT_DOMAIN : maps
+
+    USER ||--o{ TENANT_MEMBER : belongs_to
+    USER ||--o{ PRINT_JOB : creates
+    USER ||--o{ FILE : uploads
+    USER ||--o{ TRANSACTION : initiates
+    USER ||--o{ WALLET : owns
+    USER ||--o{ PRINT_TOKEN : has
+
+    PRINT_JOB ||--o{ PRINT_JOB_ITEM : contains
+    PRINT_JOB ||--|| FILE : references
+    PRINT_JOB ||--o| KIOSK : assigned_to
+    PRINT_JOB ||--o| PRINTER_PROFILE : uses
+    PRINT_JOB ||--o| DOCUMENT_EDIT : may_have
+    PRINT_JOB ||--o| PAYMENT : paid_by
+    PRINT_JOB ||--o| DOCUMENT_EDIT : may_have
+
+    PRINT_JOB_ITEM ||--|| FILE : references
+    PRINT_JOB_ITEM ||--|| PRINT_JOB : belongs_to
+
+    FILE ||--o{ PRINT_JOB : attached_to
+    FILE ||--o{ PRINT_JOB_ITEM : attached_to
+
+    KIOSK ||--o{ PRINT_JOB : processes
+    KIOSK ||--o| TENANT : belongs_to
+
+    PAYMENT ||--|| USER : made_by
+    PAYMENT ||--o| TENANT : belongs_to
+    PAYMENT ||--|| PRINT_JOB : pays_for
+
+    TRANSACTION ||--|| USER : initiated_by
+    TRANSACTION ||--o| TENANT : belongs_to
+    TRANSACTION ||--o| PRINT_JOB : related_to
+
+    WALLET ||--|| USER : owned_by
+    WALLET ||--o| TENANT : scoped_to
+
+    PAYOUT ||--|| TENANT : paid_to
+    PAYOUT ||--o| PAYOUT_SCHEDULE : scheduled_by
+
+    PAYOUT_SCHEDULE ||--|| TENANT : configured_for
+
+    DOCUMENT_EDIT ||--|| PRINT_JOB : edits
+    DOCUMENT_EDIT ||--|| TENANT : shop
+    DOCUMENT_EDIT ||--o| USER : edited_by
+
+    EDIT_PRICING_CONFIG ||--|| TENANT : configured_for
+
+    PRINTER_PROFILE ||--|| TENANT : configured_for
+    PRINTER_PROFILE ||--o{ PRINT_JOB : used_by
+
+    PAYOUT_SCHEDULE ||--o{ PAYOUT : generates
+
+    TENANT_WEBHOOK ||--|| TENANT : subscribes
+
+    TENANT_DOMAIN ||--|| TENANT : maps_to
+
+    GROUP_SESSION ||--|| TENANT : hosted_by
+    GROUP_SESSION ||--o{ GROUP_PARTICIPANT : has
+
+    GROUP_PARTICIPANT ||--|| GROUP_SESSION : participates_in
+    GROUP_PARTICIPANT ||--|| USER : participant
+
+    SHOP_REVIEW ||--|| TENANT : reviews
+    SHOP_REVIEW ||--|| USER : written_by
+
+    DISPUTE ||--|| TENANT : filed_against
+    DISPUTE ||--|| USER : filed_by
+    DISPUTE ||--|| PRINT_JOB : about
+
+    BLOG_POST ||--|| TENANT : published_by
+
+    AUDIT_LOG ||--o| USER : action_by
+    AUDIT_LOG ||--o| TENANT : scoped_to
+
+    %% Styling
+    classDef tenant fill:#1A1410,color:#F8F4ED,stroke:#D14B2C,stroke-width:2px;
+    classDef user fill:#C7944A,color:#fff,stroke:#1A1410,stroke-width:2px;
+    classDef job fill:#D14B2C,color:#fff,stroke:#1A1410,stroke-width:2px;
+    classDef payment fill:#C7944A,color:#fff,stroke:#1A1410,stroke-width:2px;
+    classDef kiosk fill:#6B7A5C,color:#fff,stroke:#1A1410,stroke-width:2px;
+    classDef file fill:#6B7A5C,color:#fff,stroke:#1A1410,stroke-width:2px;
+    classDef other fill:#F8F4ED,stroke:#1A1410,stroke-width:2px,stroke-dasharray: 5 5;
+
+    class TENANT tenant;
+    class USER user;
+    class PRINT_JOB,PRINT_JOB_ITEM,PAYMENT,TRANSACTION,WALLET,PAYOUT,PAYOUT_SCHEDULE,DOCUMENT_EDIT,EDIT_PRICING_CONFIG,PRINTER_PROFILE,PAYOUT_SCHEDULE,TENANT_WEBHOOK,TENANT_DOMAIN,GROUP_SESSION,GROUP_PARTICIPANT,SHOP_REVIEW,DISPUTE,BLOG_POST,AUDIT_LOG job;
+    class PAYMENT,TRANSACTION payment;
+    class KIOSK kiosk;
+    class FILE file;
+    class TENANT_MEMBER,TENANT_BRANDING,TENANT_DOMAIN,TENANT_WEBHOOK,TENANT_BALANCE,PRICING_CONFIG,PRINTER_PROFILE,PAYOUT_SCHEDULE,TENANT_WEBHOOK,TENANT_DOMAIN,GROUP_SESSION,GROUP_PARTICIPANT,SHOP_REVIEW,DISPUTE,BLOG_POST,AUDIT_LOG,PAYOUT_SCHEDULE,TENANT_WEBHOOK,TENANT_DOMAIN,PAYOUT,PAYOUT_SCHEDULE,EDIT_PRICING_CONFIG,PRINTER_PROFILE,DOCUMENT_EDIT,SHOP_REVIEW,DISPUTE,BLOG_POST,AUDIT_LOG,GROUP_SESSION,GROUP_PARTICIPANT other;
+</div>
+</section>
+
+<!-- Section 9: Sequence Diagram - Customer Upload to Print -->
+<section id="sequence-upload" class="mb-12">
+    <h2 class="section-title text-2xl md:text-3xl mb-6">8. Sequence: Customer Upload to Print</h2>
+    <div class="mermaid">
+%%{init: {'theme': 'base', 'themeVariables': { 'primaryColor': '#D14B2C', 'edgeLabelBackground': '#F8F4ED', 'tertiaryColor': '#1A1410', 'background': '#F8F4ED', 'mainBkg': '#FFFFFF', 'secondaryColor': '#C7944A', 'lineColor': '#1A1410', 'textColor': '#1A1410', 'fontFamily': 'Inter' }}}%%
+sequenceDiagram
+    autonumber
+    actor Customer
+    participant Browser as Customer Browser
+    participant API as Backend API
+    participant Paystack as Paystack
+    participant Queue as BullMQ
+    participant Worker as Render Worker
+    participant Agent as Kiosk Agent
+    participant Printer as Printer
+
+    Customer->>Browser: Upload document + config
+    Browser->>API: POST /api/customer/print-jobs (multipart)
+    API->>API: flattenAnnotations (signatures)
+    API->>API: countPages (pdf-lib)
+    API->>API: computeCost (pricing matrix)
+    API->>API: applyPromotion
+    API->>API: saveBuffer → S3
+    API->>API: Create PrintJob (PENDING, code=null)
+    API->>Paystack: POST /transaction/initialize
+    Paystack-->>API: authorization_url + reference
+    API-->>Browser: {authorization_url, reference}
+    Browser->>Paystack: Redirect to checkout
+    Customer->>Paystack: Pay (Card/Transfer/USSD)
+    Paystack->>Paystack: Process payment
+    Paystack->>API: POST /api/payments/webhook (charge.success)
+    API->>API: verifyWebhookSignature (HMAC-SHA512)
+    API->>API: completePrintJobPayment(jobId, reference)
+    API->>API: Mint release code (6-char)
+    API->>API: Record Payment + Transaction
+    API->>API: applyTransactionDelta (tenant balance)
+    API->>Queue: enqueueRenderOrReady (BullMQ)
+    API->>API: Arm accept window (V2-58)
+    API->>Customer: SMS/Email with code
+    API-->>Browser: {code, payUrl}
+    Browser->>Customer: Show release code
+
+    par Render Path (if Redis enabled)
+        Queue->>Worker: Consume 'render' job
+        Worker->>S3: Download PDF
+        Worker->>Worker: Ghostscript PDF → PDF/A
+        Worker->>Worker: pdftopwg PDF → PWG-Raster
+        Worker->>Worker: Ghostscript preview JPGs
+        Worker->>S3: Upload PWG + Previews
+        Worker->>API: POST /api/render/callback (HMAC)
+        API->>API: verify HMAC
+        API->>API: applyRenderCostReconciliation
+        API->>API: Mint release code (if needed)
+        API->>API: Fire webhook JOB_READY/JOB_FAILED
+    else Fallback (Redis disabled)
+        API->>API: enqueueRenderOrReady → READY direct
+    end
+
+    par Kiosk Agent Path
+        Agent->>API: GET /api/agent/jobs/ready (poll 4s)
+        API-->>Agent: Jobs with signed JWT URLs
+        Agent->>S3: Download PDF/PWG
+        Agent->>Printer: Dispatch via transport
+        alt Transport = IPP
+            Agent->>Printer: IPP Print-Job
+            Agent->>Printer: Get-Job-Attributes (poll)
+            Printer-->>Agent: job-state=completed
+        else raw9100
+            Agent->>Printer: Raw 9100 + PJL
+        else spooler
+            Agent->>OS: lp -d / PrintTo
+            Agent->>OS: lpstat / Get-PrintJob (poll)
+        else printnode
+            Agent->>PrintNode: HTTPS POST /printjobs
+        else lpd
+            Agent->>Printer: LPD port 515
+        else email
+            Agent->>SMTP: Email with attachment
+        end
+        Agent->>API: POST /jobs/:id/complete {confirmation}
+    end
+
+    Agent->>API: POST /jobs/:id/complete {confirmation}
+    API->>API: printerExt.completePrintJob
+    API->>API: kiosk counters, cleanup, audit log
+    API->>TenantWebhook: JOB_FAILED (if failed)
+</div>
+</section>
+
+<!-- Section 10: Security Flow -->
+<section id="security-flow" class="mb-12">
+    <h2 class="section-title text-2xl md:text-3xl mb-6">9. Security Flow</h2>
+    <div class="mermaid">
+%%{init: {'theme': 'base', 'themeVariables': { 'primaryColor': '#D14B2C', 'edgeLabelBackground': '#F8F4ED', 'tertiaryColor': '#1A1410', 'background': '#F8F4ED', 'mainBkg': '#FFFFFF', 'secondaryColor': '#C7944A', 'lineColor': '#1A1410', 'textColor': '#1A1410', 'fontFamily': 'Inter' }}}%%
+flowchart TB
+    subgraph Auth["🔐 Authentication Layers"]
+        A1[Customer API\nJWT (HttpOnly Cookie)\n+ optionalTenant]
+        A2[Admin API\nJWT + authenticate\n+ resolveTenant]
+        A3[SaaS API\nJWT + optionalTenant]
+        A4[Agent API\nX-Kiosk-Key Header\nLong-lived]
+        A5[CUPS Ingress\nPrintToken\nBearer / X-PrintLoop-Token]
+        A6[Render Callback\nHMAC-SHA256\nRENDER_CALLBACK_SECRET]
+        A7[Webhooks\nHMAC-SHA256\nPer-webhook secret]
+        A8[Paystack\nHMAC-SHA512\nPAYSTACK_WEBHOOK_SECRET]
+        A9[CUPS\nPrintToken\nBearer / X-PrintLoop-Token]
+    end
+
+    subgraph RateLimit["⏱️ Rate Limiting (V2-28)"]
+        RL1[loginLimiter\n5/min\n/api/*/auth/login]
+        RL2[signupLimiter\n10/hour\n/api/saas/signup + register]
+        RL3[otpLimiter\n10/hour\n/api/saas/verify-email]
+        RL4[passwordResetLimiter\n5/hour\n/api/auth/forgot-password]
+    end
+
+    subgraph TenantResolution["🔍 Tenant Resolution Chain"]
+        TR1[1. JWT token\n(tenantId claim)]
+        TR2[2. Subdomain\ntenant.printloop.app]
+        TR3[3. Custom Domain\nprint.shop.com]
+        TR4[4. X-Tenant-Slug\nHeader]
+        TR5[5. Legacy Fallback\ntenantId=null]
+    end
+
+    subgraph DataProtection["🛡️ Data Protection"]
+        DP1[Row-Level Security\ntenantId NOT NULL\nAll queries scoped]
+        DP2[Partial Unique Indexes\n(email, tenantId)\n(idempotencyKey, userId)]
+        DP3[Webhook HMAC\nSHA256 per webhook\nSigned POST body]
+        DP4[Paystack HMAC\nSHA512\nPAYSTACK_WEBHOOK_SECRET]
+        DP5[Render Callback HMAC\nSHA256\nRENDER_CALLBACK_SECRET]
+        DP6[CUPS PrintToken\nBearer / X-PrintLoop-Token\nNot in URL (production)]
+        DP7[Idempotency Keys\nCUPS retries\ndeduplication]
+    end
+
+    subgraph Transport["🚚 Transport Security"]
+        TS1[HTTPS Only\nProduction]
+        TS2[CORS\nAllowed Origins\nConfigurable]
+        TS3[CSP Headers\nHelmet.js]
+        TS4[Rate Limiting\nRedis-backed\nPer-tenant/IP]
+        TS5[Input Validation\nZod schemas\nAll endpoints]
+    end
+
+    %% Connections
+    Auth -.-> RateLimit
+    Auth -.-> TenantResolution
+    Auth -.-> DataProtection
+    Auth -.-> Transport
+
+    %% Styling
+    classDef auth fill:#D14B2C,color:#fff,stroke:#1A1410,stroke-width:2px;
+    classDef ratelimit fill:#C7944A,color:#fff,stroke:#1A1410,stroke-width:2px;
+    classDef tenant fill:#6B7A5C,color:#fff,stroke:#1A1410,stroke-width:2px;
+    classDef data fill:#C7944A,color:#fff,stroke:#1A1410,stroke-width:2px;
+    classDef transport fill:#6B7A5C,color:#fff,stroke:#1A1410,stroke-width:2px;
+
+    class A1,A2,A3,A4,A5,A6,A7,A8,A9 auth;
+    class RL1,RL2,RL3,RL4 ratelimit;
+    class TR1,TR2,TR3,TR4,TR5 tenant;
+    class DP1,DP2,DP3,DP4,DP5,DP6,DP7 data;
+    class TS1,TS2,TS3,TS4,TS5 transport;
+</div>
+</section>
+
+<!-- Section 11: API Flow Diagram -->
+<section id="api-flow" class="mb-12">
+    <h2 class="section-title text-2xl md:text-3xl mb-6">10. API Flow Diagram</h2>
+    <div class="mermaid">
+%%{init: {'theme': 'base', 'themeVariables': { 'primaryColor': '#1A1410', 'edgeLabelBackground': '#F8F4ED', 'tertiaryColor': '#D14B2C', 'background': '#F8F4ED', 'mainBkg': '#FFFFFF', 'secondaryColor': '#C7944A', 'lineColor': '#1A1410', 'textColor': '#1A1410', 'fontFamily': 'Inter' }}}%%
+flowchart TB
+    subgraph Public["🌐 Public Endpoints\n(No Auth Required)"]
+        P1[GET /health]
+        P2[GET /api/openapi.json]
+        P3[GET /api/docs]
+        P4[GET /api/branding\noptionalTenant]
+        P5[GET /api/pricing\noptionalTenant]
+        P6[GET /api/discovery\nAnonymous]
+        P6a[GET /api/integrations\nAnonymous]
+        P7[GET /api/legal\nAnonymous]
+        P8[GET /api/blog\nAnonymous]
+        P9[POST /api/saas/signup\nsignupLimiter]
+        P10[POST /api/saas/verify-email\notpLimiter]
+        P10a[POST /api/auth/forgot-password\npasswordResetLimiter]
+        P11[POST /api/customer/auth/login\nloginLimiter]
+        P12[POST /api/customer/auth/register\nsignupLimiter]
+    end
+
+    subgraph Customer["👤 Customer API\nJWT Cookie + optionalTenant"]
+        C1[POST /api/customer/print-jobs\nUpload document]
+        C2[POST /api/customer/print-jobs/batch\nMulti-file]
+        C3[GET /api/customer/print-jobs\nList jobs]
+        C4[GET /api/customer/print-jobs/:id\nJob details]
+        C5[POST /api/customer/print-jobs/quote\nPrice quote]
+        C6[GET /api/customer/stations\nFind shops]
+        C7[POST /api/customer/print-token/rotate\nMint token]
+        C8[GET /api/customer/pricing\nLive matrix]
+        C9[POST /api/customer/shops/:slug/reviews]
+        C10[POST /api/customer/disputes\nFile dispute]
+    end
+
+    subgraph Agent["🤖 Agent API\nX-Kiosk-Key Header"]
+        AG1[GET /api/agent/jobs/ready\nPoll 4s]
+        AG2[GET /api/agent/jobs/:id/file\nSigned JWT (5min)]
+        AG3[POST /api/agent/jobs/:id/start\nClaim job]
+        AG4[POST /api/agent/jobs/:id/complete\nJob-truth confirmation]
+        AG5[POST /api/agent/jobs/:id/failed\nReport failure]
+        AG6[POST /api/agent/printer/capabilities\nV2-44 P2]
+    end
+
+    subgraph SaaS["🏢 SaaS Admin API\nJWT + resolveTenant"]
+        S1[GET /api/saas/dashboard\nDashboard home]
+        S2[GET /api/saas/queue\nJob queue]
+        S3[POST /api/saas/edit-queue\nEdit queue]
+        S4[GET /api/saas/editor/:sessionId\nCollaborative editor]
+        S5[GET /api/saas/transactions\nRevenue]
+        S6[GET /api/saas/payouts\nPayouts]
+        S7[GET /api/saas/settings/*\nBranding, Domains, Webhooks]
+        S8[POST /api/saas/setup/paystack-subaccount\nOnboarding]
+        S9[POST /api/saas/setup/bank-account\nPayout setup]
+    end
+
+    subgraph Admin["👑 Admin API\nJWT + authenticate + resolveTenant"]
+        AD1[POST /api/admin/auth/login\nloginLimiter]
+        AD2[GET /api/admin/kiosks\nManage kiosks]
+        AD3[GET /api/admin/disputes\nDisputes]
+        AD4[GET /api/admin/*\nFull admin]
+        AD5[POST /api/admin/spike\nENABLE_SPIKE_RENDER=1]
+    end
+
+    subgraph Platform["🌐 Platform API\nSUPER_ADMIN Only"]
+        PF1[GET /api/platform\nConsole]
+        PF2[GET /api/platform/tenants\nAll tenants]
+        PF3[POST /api/platform/tenants/:id/suspend]
+    end
+
+    subgraph Webhooks["🔔 Webhooks\nHMAC-SHA256"]
+        WH1[POST /api/payments/webhook\nPaystack]
+        WH2[POST /api/render/callback\nRender worker]
+        WH3[POST /api/webhooks/paystack\nAlias]
+        WH4[POST /api/cups/print\nCUPS ingress]
+    end
+
+    subgraph Internal["🔧 Internal\n(No External Auth)"]
+        IN1[POST /api/internal/render/callback\nWorker only]
+        IN2[POST /api/internal/payouts/callback\nTransfer worker]
+    end
+
+    %% Styling
+    classDef public fill:#D14B2C,color:#fff,stroke:#1A1410,stroke-width:2px;
+    classDef customer fill:#C7944A,color:#fff,stroke:#1A1410,stroke-width:2px;
+    classDef agent fill:#6B7A5C,color:#fff,stroke:#1A1410,stroke-width:2px;
+    classDef saas fill:#C7944A,color:#fff,stroke:#1A1410,stroke-width:2px;
+    classDef admin fill:#D14B2C,color:#fff,stroke:#1A1410,stroke-width:2px;
+    classDef platform fill:#1A1410,color:#F8F4ED,stroke:#D14B2C,stroke-width:2px;
+    classDef webhook fill:#6B7A5C,color:#fff,stroke:#1A1410,stroke-width:2px;
+    classDef internal fill:#888888,color:#fff,stroke:#1A1410,stroke-width:2px;
+
+    class P1,P2,P3,P4,P5,P6,P6a,P7,P8,P9,P10,P11,P12 public;
+    class C1,C2,C3,C4,C5,C6,C7,C8,C9,C10 customer;
+    class AG1,AG2,AG3,AG4,AG5,AG6 agent;
+    class S1,S2,S3,S4,S5,S6,S7,S8,S9 saas;
+    class AD1,AD2,AD3,AD4,AD5 admin;
+    class PF1,PF2,PF3 platform;
+    class WH1,WH2,WH3,WH4 webhook;
+    class IN1,IN2 internal;
+</div>
+</section>
+
+<!-- Footer -->
+<footer class="mt-12 pt-8 border-t-2 border-ink text-center text-sm text-gray-600 no-print">
+    <p>PrintLoop SaaS v2 - Complete Architectural Flow Mapping</p>
+    <p class="mt-2">Generated from codebase analysis • Every service, data flow, and integration point mapped</p>
+</footer>
+
+<script>
+    mermaid.initialize({
+        startOnLoad: true,
+        theme: 'base',
+        flowchart: {
+            useMaxWidth: true,
+            htmlLabels: true,
+            curve: 'basis'
+        }
+    });
+</script>
+</body>
+</html>

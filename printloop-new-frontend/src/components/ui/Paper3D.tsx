@@ -126,7 +126,7 @@ export default function Paper3D() {
           style={{
             width: SW,
             height: SH,
-            background: "#1A1410",
+            background: "var(--toner)",
             filter: "blur(12px)",
             borderRadius: 8,
             transform: `translate(-50%,-50%) rotateX(90deg) translateZ(-${SH / 2}px)`,
@@ -142,7 +142,7 @@ export default function Paper3D() {
             style={{
               width: SW,
               height: SH,
-              background: i % 2 ? "#FBF6EC" : "#FFFEFA",
+              background: i % 2 ? "var(--paper-warm)" : "var(--paper-light)",
               transform: `translate(-50%,-50%) translateZ(${-i * 16}px) translateY(${i * 5}px) translateX(${i * 5}px) rotateZ(${i * 1.4}deg)`,
             }}
           >
@@ -161,15 +161,15 @@ export default function Paper3D() {
           style={{
             width: SW,
             height: SH,
-            background: "#FFFEFA",
-            boxShadow: "6px 6px 0 rgba(26,20,16,0.18)",
+            background: "var(--paper-light)",
+            boxShadow: "6px 6px 0 var(--hairline)",
             transform: "translate(-50%,-50%) translateY(0px) translateZ(12px) rotateX(0deg) rotateZ(0deg)",
           }}
         >
           <div className="absolute inset-0 p-3.5 flex flex-col gap-2">
             <div className="flex items-center justify-between">
-              <span className="editorial-label text-persimmon text-[8px]">▸ PROOF</span>
-              <span className="inline-block w-1.5 h-1.5 rounded-full bg-persimmon animate-blink" />
+              <span className="editorial-label text-process text-[8px]">▸ PROOF</span>
+              <span className="inline-block w-1.5 h-1.5 rounded-full bg-process animate-blink" />
             </div>
             <div className="h-1.5 bg-ink/20 rounded-full w-full" />
             <div className="h-1.5 bg-ink/20 rounded-full w-4/5" />
@@ -178,7 +178,7 @@ export default function Paper3D() {
             <div className="h-1.5 bg-ink/20 rounded-full w-3/4" />
             <div className="mt-auto flex items-center justify-between">
               <span className="pl-serif font-extrabold text-ink text-xs leading-none">
-                PrintLoop<span className="text-persimmon">.</span>
+                PrintLoop<span className="text-process">.</span>
               </span>
               <span className="pl-mono text-[9px] font-bold bg-ink text-paper px-1.5 py-0.5">
                 RDY · 7F3K9Q

@@ -1,5 +1,21 @@
 {
   "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "render": {
+      "type": "remote",
+      "url": "https://mcp.render.com/mcp",
+      "enabled": true,
+      "oauth": false,
+      "headers": {
+        "Authorization": "Bearer {env:RENDER_API_KEY}"
+      }
+    },
+    "open-meteo": {
+      "type": "local",
+      "command": ["npx", "-y", "-p", "open-meteo-mcp-server", "open-meteo-mcp-server"],
+      "enabled": true
+    }
+  },
   "skills": {
     "paths": [
       ".opencode/skills",
@@ -8,6 +24,7 @@
     ]
   },
   "plugin": [
+    "superpowers@git+https://github.com/obra/superpowers.git",
     "C:/Users/abdur/.claude/plugins/marketplaces/claude-plugins-official/plugins/playground",
     "C:/Users/abdur/.claude/plugins/marketplaces/claude-plugins-official/plugins/plugin-dev",
     "C:/Users/abdur/.claude/plugins/marketplaces/claude-plugins-official/plugins/pr-review-toolkit",

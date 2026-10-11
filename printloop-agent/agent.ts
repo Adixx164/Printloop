@@ -40,7 +40,7 @@ interface Config {
   kioskKey: string;
   printerIp: string;
   printerPort: number;
-  transport: 'ipp' | 'raw9100' | 'spooler';
+  transport: 'ipp' | 'raw9100' | 'spooler' | 'printnode' | 'lpd' | 'email';
   rawPort: number;
   ippPath: string;
   ippVersion: '1.0' | '1.1' | '2.0';
@@ -51,6 +51,13 @@ interface Config {
   confirmTimeoutMs: number;
   /** CONFIRM_DISABLE=1 skips confirmation polling entirely. */
   confirmDisabled: boolean;
+  // PrintNode
+  printNodeApiKey: string;
+  printNodePrinterId: number;
+  // LPD
+  lpdQueue: string;
+  // Email-to-print
+  emailToPrintAddress: string;
 }
 
 /**
@@ -65,7 +72,7 @@ interface Config {
  */
 interface Confirmation {
   state: 'confirmed' | 'unconfirmed';
-  method: 'ipp-job-state' | 'queue-drain' | 'none';
+  method: 'ipp-job-state' | 'queue-drain' | 'none' | 'printnode' | 'lpd' | 'email';
   detail?: string;
 }
 
@@ -79,15 +86,30 @@ function loadConfig(): Config {
     return v;
   };
   const rawTransport = String(process.env.PRINTER_TRANSPORT || 'ipp').trim().toLowerCase();
-  const transport: 'ipp' | 'raw9100' | 'spooler' =
-    rawTransport === 'raw9100' ? 'raw9100' : rawTransport === 'spooler' ? 'spooler' : 'ipp';
+  const transport: 'ipp' | 'raw9100' | 'spooler' | 'printnode' | 'lpd' | 'email' =
+    rawTransport === 'raw9100' ? 'raw9100' :
+    rawTransport === 'spooler' ? 'spooler' :
+    rawTransport === 'printnode' ? 'printnode' :
+    rawTransport === 'lpd' ? 'lpd' :
+    rawTransport === 'email' ? 'email' :
+    'ipp';
 
   const versionRaw = String(process.env.IPP_VERSION || '2.0').trim();
   const version: '1.0' | '1.1' | '2.0' =
     versionRaw === '1.0' ? '1.0' : versionRaw === '1.1' ? '1.1' : '2.0';
 
   const printerName = process.env.PRINTER_NAME || process.env.PRINTER_IP || 'default';
-  const printerIp = transport === 'spooler' ? printerName : need('PRINTER_IP');
+  const printerIp = (transport === 'spooler' || transport === 'printnode' || transport === 'email') ? printerName : need('PRINTER_IP');
+
+  // PrintNode config
+  const printNodeApiKey = process.env.PRINTNODE_API_KEY || '';
+  const printNodePrinterId = Number(process.env.PRINTNODE_PRINTER_ID) || 0;
+
+  // LPD config
+  const lpdQueue = process.env.LPD_QUEUE || 'lp';
+
+  // Email-to-print config
+  const emailToPrintAddress = process.env.EMAIL_TO_PRINT_ADDRESS || '';
 
   return {
     baseUrl: need('PRINTLOOP_BASE_URL').replace(/\/+$/, ''),
@@ -103,6 +125,13 @@ function loadConfig(): Config {
     spoolerCommand: process.env.SPOOLER_COMMAND,
     confirmTimeoutMs: Math.max(5_000, Number(process.env.CONFIRM_TIMEOUT_MS) || 90_000),
     confirmDisabled: process.env.CONFIRM_DISABLE === '1',
+    // PrintNode
+    printNodeApiKey,
+    printNodePrinterId,
+    // LPD
+    lpdQueue,
+    // Email-to-print
+    emailToPrintAddress,
   };
 }
 
@@ -462,6 +491,204 @@ async function spoolerDispatch(
   }
 }
 
+/** PrintNode cloud print proxy — works with any printer behind NAT/firewall. */
+async function printnodeDispatch(
+  cfg: Config,
+  bytes: Buffer,
+  jobName: string,
+  opts: ReadyJobItem['printConfiguration'],
+  contentType: string,
+): Promise<void> {
+  if (!cfg.printNodeApiKey || !cfg.printNodePrinterId) {
+    throw new Error('PrintNode: PRINTNODE_API_KEY and PRINTNODE_PRINTER_ID required');
+  }
+
+  const base64 = bytes.toString('base64');
+  const copies = Math.max(1, Math.min(99, Number(opts.copies) || 1));
+  const colour = opts.color === 'color';
+
+  const body = {
+    printerId: cfg.printNodePrinterId,
+    title: `PrintLoop-${jobName}`,
+    contentType: contentType.includes('pwg-raster') ? 'pdf' : 'pdf_base64',
+    content: base64,
+    source: 'PrintLoop',
+    options: {
+      copies,
+      color: colour ? 'Color' : 'Grayscale',
+      duplex: opts.sided === 'double',
+      paperSize: String(opts.paper || 'A4').toUpperCase(),
+      orientation: opts.orientation || 'portrait',
+      quality: Number(opts.qualityDpi) || 300,
+    },
+  };
+
+  const response = await fetch('https://api.printnode.com/printjobs', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Basic ${Buffer.from(cfg.printNodeApiKey + ':').toString('base64')}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(body),
+  });
+
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(`PrintNode API error: ${response.status} ${text}`);
+  }
+
+  const result = await response.json();
+  console.log(`[agent] PrintNode dispatched ${jobName} (job-id ${result.id})`);
+}
+
+/** LPD/LPR line printer daemon protocol — legacy but still widely used. */
+async function lpdDispatch(
+  cfg: Config,
+  bytes: Buffer,
+  jobName: string,
+  opts: ReadyJobItem['printConfiguration'],
+  contentType: string,
+): Promise<void> {
+  if (!cfg.printerIp) {
+    throw new Error('LPD: PRINTER_IP required');
+  }
+  const queue = cfg.lpdQueue || 'lp';
+  const copies = Math.max(1, Math.min(99, Number(opts.copies) || 1));
+  const jobId = `PL-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
+
+  // LPD protocol: send control file first, then data file
+  // Control file format: H<hostname>\nP<user>\nJ<jobname>\nC<class>\nL<user>\nN<filename>\nc<copies>\nU<unlink>\n
+  const hostname = os.hostname();
+  const user = os.userInfo().username;
+
+  const controlFile = [
+    `H${hostname}`,
+    `P${user}`,
+    `J${jobName}`,
+    `C${cfg.lpdQueue || 'dfA'}`,
+    `L${user}`,
+    `N${jobName}.pdf`,
+    `c${Math.max(1, Number(opts.copies) || 1)}`,
+    'UdfA001',
+  ].join('\n') + '\n';
+
+  const controlBuffer = Buffer.from(controlFile);
+  const dataBuffer = bytes;
+
+  await new Promise<void>((resolve, reject) => {
+    const sock = net.createConnection(515, cfg.printerIp);
+    sock.setTimeout(60_000);
+
+    let state = 'waiting';
+    let receivedJobId = false;
+
+    sock.on('connect', () => {
+      console.log(`[agent] LPD connected to ${cfg.printerIp}:515`);
+      // Send receive control file subcommand: 02 <length> <queue> \n
+      const ctrlLen = controlBuffer.length;
+      const cmd = Buffer.concat([
+        Buffer.from([0x02]), // receive control file
+        Buffer.from(`${ctrlLen.toString().padStart(4, '0')} ${cfg.lpdQueue}\n`),
+      ]);
+      sock.write(cmd);
+      state = 'sent_ctrl_cmd';
+    });
+
+    sock.on('data', (data) => {
+      if (data[0] === 0x00) {
+        // ACK received
+        if (state === 'sent_ctrl_cmd') {
+          // Send data file subcommand: 03 <length> <filename> \n
+          const dataLen = dataBuffer.length;
+          const cmd = Buffer.concat([
+            Buffer.from([0x03]),
+            Buffer.from(`${dataLen.toString().padStart(4, '0')} dfA001${cfg.printerIp.replace(/\./g, '')}\n`),
+          ]);
+          sock.write(cmd);
+          state = 'sent_data_cmd';
+        } else if (state === 'sent_data_cmd') {
+          // Send the actual data
+          sock.write(dataBuffer);
+          state = 'sent_data';
+        } else if (state === 'sent_data') {
+          // Send final null byte
+          sock.write(Buffer.from([0x00]));
+          state = 'sent_null';
+        } else if (state === 'sent_null') {
+          // Final ACK
+          console.log(`[agent] LPD job ${jobId} sent successfully`);
+          sock.end();
+          resolve();
+        }
+      }
+    });
+
+    sock.on('end', () => {
+      if (state !== 'sent_null') {
+        reject(new Error('LPD connection closed unexpectedly'));
+      }
+    });
+
+    sock.on('timeout', () => {
+      sock.destroy();
+      reject(new Error('LPD timeout'));
+    });
+
+    sock.on('error', reject);
+
+    sock.setTimeout(60_000);
+  });
+}
+
+/** Email-to-print — for printers with email printing (HP ePrint, Canon, Epson). */
+async function emailDispatch(
+  cfg: Config,
+  bytes: Buffer,
+  jobName: string,
+  opts: ReadyJobItem['printConfiguration'],
+  contentType: string,
+): Promise<void> {
+  if (!cfg.emailToPrintAddress) {
+    throw new Error('Email-to-print: EMAIL_TO_PRINT_ADDRESS required');
+  }
+
+  // For this we'd need an email sending library (nodemailer)
+  // This is a stub - implement with your preferred email provider
+  const nodemailer = await import('nodemailer').catch(() => null);
+  if (!nodemailer) {
+    throw new Error('Email-to-print requires nodemailer package (npm install nodemailer)');
+  }
+
+  const transporter = nodemailer.default.createTransport({
+    host: process.env.SMTP_HOST || 'smtp.gmail.com',
+    port: Number(process.env.SMTP_PORT) || 587,
+    secure: false,
+    auth: {
+      user: process.env.SMTP_USER,
+      pass: process.env.SMTP_PASS,
+    },
+  });
+
+  const ext = contentType.includes('pwg-raster') ? '.pwg' : '.pdf';
+  const filename = `${jobName.replace(/[^a-zA-Z0-9]/g, '_')}${ext}`;
+
+  await transporter.sendMail({
+    from: process.env.SMTP_FROM || '"PrintLoop" <noreply@printloop.ng>',
+    to: cfg.emailToPrintAddress,
+    subject: `PrintLoop: ${jobName}`,
+    text: `Print job from PrintLoop kiosk.\nJob: ${jobName}\nCopies: ${opts.copies || 1}\nColor: ${opts.color || 'bw'}\nPaper: ${opts.paper || 'A4'}`,
+    attachments: [
+      {
+        filename,
+        content: bytes,
+        contentType,
+      },
+    ],
+  });
+
+  console.log(`[agent] Email-to-print sent ${jobName} to ${cfg.emailToPrintAddress}`);
+}
+
 async function dispatchToPrinter(
   cfg: Config,
   bytes: Buffer,
@@ -480,6 +707,21 @@ async function dispatchToPrinter(
       return { state: 'unconfirmed', method: 'queue-drain', detail: 'confirmation disabled' };
     }
     return confirmSpoolerDrain(cfg);
+  }
+  if (cfg.transport === 'printnode') {
+    await printnodeDispatch(cfg, bytes, jobName, opts, contentType);
+    // PrintNode provides job ID but real-time status requires polling their API
+    return { state: 'unconfirmed', method: 'printnode', detail: 'PrintNode job submitted; status polling not implemented' };
+  }
+  if (cfg.transport === 'lpd') {
+    await lpdDispatch(cfg, bytes, jobName, opts, contentType);
+    // LPD is fire-and-forget; no standard feedback
+    return { state: 'unconfirmed', method: 'lpd', detail: 'LPD job submitted; no feedback channel' };
+  }
+  if (cfg.transport === 'email') {
+    await emailDispatch(cfg, bytes, jobName, opts, contentType);
+    // Email is fire-and-forget
+    return { state: 'unconfirmed', method: 'email', detail: 'Email sent to printer; delivery not confirmed' };
   }
   const jobId = await ippDispatch(cfg, bytes, jobName, opts, contentType);
   if (cfg.confirmDisabled) {

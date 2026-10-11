@@ -16,9 +16,9 @@ function getStations(data: any): Station[] {
 }
 
 const STATUS_STYLES: Record<string, { dot: string; text: string }> = {
-  online: { dot: "bg-sage animate-pulse-soft", text: "text-sage" },
-  maintenance: { dot: "bg-ochre", text: "text-ochre" },
-  offline: { dot: "bg-fog", text: "text-fog" },
+  online: { dot: "bg-emerald-600 animate-pulse-soft", text: "text-emerald-600" },
+  maintenance: { dot: "bg-amber-500", text: "text-amber-500" },
+  offline: { dot: "bg-gray-500", text: "text-gray-500" },
 };
 
 export default function StationsPage() {
@@ -27,18 +27,18 @@ export default function StationsPage() {
 
   return (
     <div>
-      <div className="editorial-label text-persimmon mb-1">STATIONS</div>
+      <div className="editorial-label text-indigo-600 mb-1">STATIONS</div>
       <h1 className="pl-serif text-3xl sm:text-4xl font-bold tracking-tight mb-1">
         {stations.length > 0 ? `${stations.length} ${stations.length === 1 ? "station" : "stations"}` : "Stations"}
         ,{" "}
-        <em className="italic text-persimmon font-semibold">always ready</em>.
+        <em className="italic text-indigo-600 font-semibold">always ready</em>.
       </h1>
-      <p className="pl-serif italic text-ink/60 mb-6 sm:mb-7 text-sm sm:text-base">
+      <p className="pl-serif italic text-gray-900/60 mb-6 sm:mb-7 text-sm sm:text-base">
         Live directory — updated as soon as new kiosks are added in the admin console.
       </p>
 
       {isError && (
-        <div className="border-2 border-persimmon bg-persimmon/10 text-ink p-3 rounded mb-4 text-sm font-semibold">
+        <div className="border-2 border-indigo-600 bg-indigo-50 text-gray-900 p-3 rounded mb-4 text-sm font-semibold">
           Stations could not be loaded from the backend.
         </div>
       )}
@@ -59,11 +59,11 @@ export default function StationsPage() {
                 </span>
               </div>
               <h3 className="pl-serif text-xl font-bold leading-tight tracking-tight">{station.name}</h3>
-              <div className="pl-serif italic text-ink/60 text-sm mt-1">
+              <div className="pl-serif italic text-gray-900/60 text-sm mt-1">
                 {station.area || "—"}
                 {station.campus && station.campus !== station.area ? ` · ${station.campus}` : ""}
               </div>
-              <div className="flex justify-between items-baseline mt-4 pt-3 border-t border-ink/15">
+              <div className="flex justify-between items-baseline mt-4 pt-3 border-t border-gray-900/15">
                 <div>
                   <div className="editorial-label opacity-60">QUEUE</div>
                   <div className="pl-mono font-bold text-sm">{station.queue === 0 ? "—" : `${station.queue} ahead`}</div>
@@ -78,7 +78,7 @@ export default function StationsPage() {
                     DIRECTIONS →
                   </a>
                 ) : (
-                  <span className="text-[10px] text-fog italic">No map link set</span>
+                  <span className="text-[10px] text-gray-500 italic">No map link set</span>
                 )}
               </div>
             </div>
@@ -87,7 +87,7 @@ export default function StationsPage() {
       </div>
 
       {!isLoading && stations.length === 0 && (
-        <div className="border-2 border-ink p-10 text-center text-ink/50 pl-serif italic">
+        <div className="border-2 border-gray-900 p-10 text-center text-gray-900/50 pl-serif italic">
           No stations are available yet. Add one from the admin console (Kiosks tab) and it will appear here automatically.
         </div>
       )}

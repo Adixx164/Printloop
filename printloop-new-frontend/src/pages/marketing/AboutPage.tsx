@@ -48,17 +48,17 @@ const STATS = [
 
 export default function AboutPage() {
   return (
-    <div className="min-h-screen flex flex-col bg-paper">
+    <div className="min-h-screen flex flex-col bg-gray-50">
       <PublicHeader />
       <main className="flex-1">
         <section className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-14 sm:py-20">
           <Reveal variant="rise">
-            <div className="editorial-label text-persimmon mb-3">▸ ABOUT PRINTLOOP</div>
+            <div className="editorial-label text-indigo-600 mb-3">▸ ABOUT PRINTLOOP</div>
             <h1 className="pl-serif font-extrabold text-[38px] leading-[1.02] sm:text-[54px] sm:leading-[0.98] tracking-tight mb-5 max-w-3xl">
               Campus printing, rebuilt like a{" "}
-              <em className="italic text-persimmon font-semibold">public service.</em>
+              <em className="italic text-indigo-600 font-semibold">public service.</em>
             </h1>
-            <p className="pl-serif italic text-ink/60 text-sm sm:text-base max-w-2xl">
+            <p className="pl-serif italic text-gray-50/60 text-sm sm:text-base max-w-2xl">
               PrintLoop started with a simple observation: Nigerian students spend hours of
               their week queuing at print labs for a 10-minute job. The fix isn't a faster
               printer — it's a better loop. Upload anywhere. Pay once. Collect by code.
@@ -68,12 +68,12 @@ export default function AboutPage() {
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mt-10">
             {STATS.map((s) => (
               <Reveal key={s.label} variant="rise">
-                <div className="border-4 border-ink bg-paper-light p-5 text-center">
+                <div className="border-4 border-gray-900 bg-gray-100 p-5 text-center">
                   <div className="pl-mono text-4xl sm:text-5xl font-bold leading-none mb-2">
                     <Counter to={s.value} />
-                    <span className="text-persimmon">{s.suffix}</span>
+                    <span className="text-indigo-600">{s.suffix}</span>
                   </div>
-                  <div className="editorial-label text-ink/55">{s.label}</div>
+                  <div className="editorial-label text-gray-50/55">{s.label}</div>
                 </div>
               </Reveal>
             ))}
@@ -83,22 +83,22 @@ export default function AboutPage() {
         <section className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pb-10">
           {PERSPECTIVES.map((p) => (
             <Reveal key={p.n} variant="rise">
-              <div className="border-t-2 border-ink py-10 grid grid-cols-1 lg:grid-cols-[220px_1fr] gap-6">
+              <div className="border-t-2 border-gray-900 py-10 grid grid-cols-1 lg:grid-cols-[220px_1fr] gap-6">
                 <div>
-                  <div className="pl-mono text-4xl font-bold text-ink/15">{p.n}</div>
-                  <div className="editorial-label text-persimmon mt-2">{p.who}</div>
+                  <div className="pl-mono text-4xl font-bold text-gray-50/15">{p.n}</div>
+                  <div className="editorial-label text-indigo-600 mt-2">{p.who}</div>
                 </div>
                 <div>
                   <h2 className="pl-serif text-2xl sm:text-3xl font-bold tracking-tight mb-3">
                     {p.title}
                   </h2>
-                  <p className="pl-serif italic text-ink/65 text-sm sm:text-base leading-relaxed mb-4">
+                  <p className="pl-serif italic text-gray-50/65 text-sm sm:text-base leading-relaxed mb-4">
                     {p.copy}
                   </p>
                   <ul className="space-y-1.5 text-sm">
                     {p.items.map((i) => (
                       <li key={i} className="flex items-start gap-2">
-                        <span className="text-persimmon font-bold mt-px">▸</span>
+                        <span className="text-indigo-600 font-bold mt-px">▸</span>
                         <span className="font-medium">{i}</span>
                       </li>
                     ))}
@@ -110,13 +110,13 @@ export default function AboutPage() {
           <div className="border-t-2 border-ink" />
         </section>
 
-        <section className="bg-ink text-paper">
+        <section className="bg-gray-900 text-gray-50">
           <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-14 text-center">
             <Reveal variant="rise">
               <h2 className="pl-serif text-2xl sm:text-4xl font-bold tracking-tight mb-3">
-                Read how it works, <em className="italic text-persimmon">in full.</em>
+                Read how it works, <em className="italic text-indigo-600">in full.</em>
               </h2>
-              <p className="pl-serif italic text-paper/60 text-sm sm:text-base mb-6">
+              <p className="pl-serif italic text-gray-50/60 text-sm sm:text-base mb-6">
                 Guides, updates and the occasional rant about lab printers.
               </p>
               <div className="flex gap-3 justify-center flex-wrap">

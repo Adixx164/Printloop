@@ -107,9 +107,9 @@ export default function BlogTab({ canManage }: { canManage: boolean }) {
     <div className="max-w-5xl space-y-6">
       <div className="flex justify-between items-end gap-4 flex-wrap">
         <div>
-          <div className="editorial-label text-persimmon mb-1">ADMIN CONSOLE</div>
-          <h1 className="pl-serif text-4xl font-bold text-ink mb-1">Blog</h1>
-          <p className="pl-serif italic text-ink/60">
+          <div className="editorial-label text-indigo-600 mb-1">ADMIN CONSOLE</div>
+          <h1 className="pl-serif text-4xl font-bold text-gray-900 mb-1">Blog</h1>
+          <p className="pl-serif italic text-gray-50/60">
             Write guides for your customers. Published posts appear on the public blog.
           </p>
         </div>
@@ -121,13 +121,13 @@ export default function BlogTab({ canManage }: { canManage: boolean }) {
       </div>
 
       {(editing || (canManage && !isLoading && !posts.length)) && (
-        <form onSubmit={(e) => handleSave(e, false)} className="border-4 border-ink bg-paper-light p-5 space-y-4">
+        <form onSubmit={(e) => handleSave(e, false)} className="border-4 border-gray-900 bg-gray-100 p-5 space-y-4">
           <div className="flex items-center justify-between">
-            <span className="editorial-label text-persimmon">
+            <span className="editorial-label text-indigo-600">
               {editing ? "EDIT POST" : "NEW POST"}
             </span>
             {editing && (
-              <button type="button" onClick={resetForm} className="text-xs font-bold text-ink/55 hover:text-persimmon">
+              <button type="button" onClick={resetForm} className="text-xs font-bold text-gray-50/55 hover:text-indigo-600">
                 CANCEL ✕
               </button>
             )}
@@ -190,16 +190,16 @@ export default function BlogTab({ canManage }: { canManage: boolean }) {
         </form>
       )}
 
-      <div className="border-2 border-ink overflow-hidden">
-        <div className="bg-ink text-paper px-5 py-3">
+      <div className="border-2 border-gray-900 overflow-hidden">
+        <div className="bg-gray-900 text-gray-50 px-5 py-3">
           <div className="editorial-label">
             {isLoading ? "LOADING…" : `POSTS — ${posts.length} TOTAL`}
           </div>
         </div>
-        <div className="overflow-x-auto bg-paper-light">
+        <div className="overflow-x-auto bg-gray-100">
           <table className="w-full text-left text-sm">
             <thead>
-              <tr className="border-b border-ink/20 bg-ink/5 text-ink/70">
+              <tr className="border-b border-gray-900/20 bg-gray-900/5 text-gray-50/70">
                 <th className="p-3 font-semibold">Title</th>
                 <th className="p-3 font-semibold">Status</th>
                 <th className="p-3 font-semibold">Updated</th>
@@ -209,41 +209,41 @@ export default function BlogTab({ canManage }: { canManage: boolean }) {
             <tbody>
               {!isLoading && posts.length === 0 && !editing && (
                 <tr>
-                  <td colSpan={4} className="p-6 text-center text-fog italic">
+                  <td colSpan={4} className="p-6 text-center text-gray-500 italic">
                     No posts yet{canManage ? " — write the first one." : "."}
                   </td>
                 </tr>
               )}
               {posts.map((p) => (
-                <tr key={p.id} className="border-b border-ink/10 last:border-0 hover:bg-ink/5">
+                <tr key={p.id} className="border-b border-gray-900/10 last:border-0 hover:bg-gray-900/5">
                   <td className="p-3">
                     <div className="font-bold text-xs">{p.title}</div>
-                    <div className="text-[11px] text-fog pl-mono mt-0.5">/{p.slug}</div>
+                    <div className="text-[11px] text-gray-500 pl-mono mt-0.5">/{p.slug}</div>
                   </td>
                   <td className="p-3">
                     <span
                       className={`pl-pill text-[10px] font-bold uppercase ${
                         p.status === "published"
-                          ? "bg-sage/15 text-sage border border-sage/30"
-                          : "bg-ochre/15 text-ochre border border-ochre/30"
+                          ? "bg-emerald-600/15 text-emerald-600 border border-emerald-600/30"
+                          : "bg-amber-500/15 text-amber-500 border border-amber-500/30"
                       }`}
                     >
                       {p.status}
                     </span>
                   </td>
-                  <td className="p-3 text-xs text-fog whitespace-nowrap">
+                  <td className="p-3 text-xs text-gray-500 whitespace-nowrap">
                     {new Date(p.updatedAt).toLocaleDateString()}
                   </td>
                   <td className="p-3 text-right whitespace-nowrap">
                     {canManage && (
                       <>
-                        <button onClick={() => togglePublish(p)} className="text-xs font-bold text-ochre hover:underline mr-3">
+                        <button onClick={() => togglePublish(p)} className="text-xs font-bold text-amber-500 hover:underline mr-3">
                           {p.status === "published" ? "UNPUBLISH" : "PUBLISH"}
                         </button>
-                        <button onClick={() => openEdit(p)} className="text-xs font-bold text-ink hover:underline mr-3">
+                        <button onClick={() => openEdit(p)} className="text-xs font-bold text-gray-900 hover:underline mr-3">
                           EDIT
                         </button>
-                        <button onClick={() => handleDelete(p)} className="text-xs font-bold text-persimmon hover:underline">
+                        <button onClick={() => handleDelete(p)} className="text-xs font-bold text-indigo-600 hover:underline">
                           DELETE
                         </button>
                       </>

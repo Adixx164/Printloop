@@ -49,7 +49,7 @@ export function ResponsiveTable<T>({
 }: ResponsiveTableProps<T>) {
   if (!rows.length) {
     return (
-      <div className="border-2 border-dashed border-ink/30 rounded-lg p-8 text-center text-sm text-fog">
+      <div className="border-2 border-dashed border-ink/30 rounded-lg p-8 text-center text-sm text-ink/50">
         {emptyState || "No items yet."}
       </div>
     );
@@ -62,7 +62,7 @@ export function ResponsiveTable<T>({
       {/* Desktop / tablet table */}
       <div className="hidden md:block border-2 border-ink rounded-lg overflow-hidden">
         <table className="w-full text-sm">
-          <thead className="bg-ink text-paper">
+          <thead className="bg-ink text-paper-light">
             <tr>
               {columns.map((c) => (
                 <th
@@ -108,7 +108,7 @@ export function ResponsiveTable<T>({
               <Wrapper
                 {...(onRowClick ? { onClick: () => onRowClick(row), type: "button" as const } : {})}
                 className={`w-full text-left border-2 border-ink rounded-lg bg-paper-light p-4 transition-all ${
-                  onRowClick ? "hover:shadow-[3px_3px_0_#1A1410] active:shadow-none" : ""
+                  onRowClick ? "hover:shadow-soft active:shadow-none" : ""
                 }`}
               >
                 {(mobileTitle || mobileTrailing) && (
@@ -122,7 +122,7 @@ export function ResponsiveTable<T>({
                 <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1.5 text-sm">
                   {mobileCols.map((c) => (
                     <div key={c.label} className="contents">
-                      <dt className="text-[10px] font-bold tracking-editorial uppercase text-fog self-center">
+                      <dt className="text-[10px] font-bold tracking-editorial uppercase text-ink/50 self-center">
                         {c.label}
                       </dt>
                       <dd className="text-ink break-words">{c.cell(row)}</dd>

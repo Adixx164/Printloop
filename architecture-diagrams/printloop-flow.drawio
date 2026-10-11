@@ -1,0 +1,154 @@
+<mxfile host="app.diagrams.net" agent="5.0 (Windows)">
+  <diagram id="printloop-system-flow" name="PrintLoop System Flow">
+    <mxGraphModel dx="4972" dy="3305" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="users" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E8F5E9;strokeColor=#2E7D32;fontSize=14;fontStyle=1;" value="👥 USERS / CUSTOMERS (Students)" vertex="1">
+          <mxGeometry height="80" width="220" x="485" y="-550" as="geometry" />
+        </mxCell>
+        <mxCell id="find" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF3E0;strokeColor=#E65100;fontSize=12;" value="🔍 MARKETPLACE / FIND PAGE\n(/find, /find/:slug)" vertex="1">
+          <mxGeometry height="80" width="250" x="470" y="-300" as="geometry" />
+        </mxCell>
+        <mxCell id="discovery" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E3F2FD;strokeColor=#1565C0;fontSize=11;" value="📡 DISCOVERY API\n/api/discovery/shops/nearby\n/api/discovery/shops/:slug\n/api/discovery/handoff" vertex="1">
+          <mxGeometry height="110" width="500" x="910" y="-110" as="geometry" />
+        </mxCell>
+        <mxCell id="tenant_subdomain" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FCE4EC;strokeColor=#C2185B;fontSize=12;" value="🏪 TENANT SHOP SUBDOMAIN\n(tenant-slug.printloop.app)\n\nPages:\n• /print/new (upload)\n• /customer/dashboard\n• /customer/print-jobs" vertex="1">
+          <mxGeometry height="150" width="280" x="-650" y="-170" as="geometry" />
+        </mxCell>
+        <mxCell id="customer_print" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E3F2FD;strokeColor=#1565C0;fontSize=11;" value="📤 CUSTOMER PRINT API\n/api/customer/print-jobs\n/api/customer/print-jobs/batch\n/api/customer/print-jobs/quote\n/api/customer/pricing" vertex="1">
+          <mxGeometry height="150" width="250" x="-635" y="270" as="geometry" />
+        </mxCell>
+        <mxCell id="paystack" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF8E1;strokeColor=#F57F17;fontSize=11;" value="💳 PAYSTACK PAYMENT\n• Checkout Session\n• Split Payment (tenant %)\n• Webhook: charge.success\n→ Creates release code" vertex="1">
+          <mxGeometry height="150" width="220" x="820" y="270" as="geometry" />
+        </mxCell>
+        <mxCell id="render_worker" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E8EAF6;strokeColor=#303F9F;fontSize=11;" value="☁️ RENDER WORKER (Cloud)\nBullMQ Consumer\n• Fetches job from queue\n• Renders to PWG Raster\n• Uploads to S3/R2\n• HMAC callback to backend" vertex="1">
+          <mxGeometry height="150" width="250" x="1640" y="150" as="geometry" />
+        </mxCell>
+        <mxCell id="backend" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F3E5F5;strokeColor=#7B1FA2;fontSize=11;" value="🖥️ BACKEND CORE (Express + TypeORM)\n\nRoutes:\n• /api/saas/* (tenant admin)\n• /api/admin/* (shop operator)\n• /api/platform/* (super admin)\n• /api/agent/* (kiosk agent)\n• /api/printer/* (kiosk printer)\n• /api/discovery/* (marketplace)\n• /api/customer/* (customer)" vertex="1">
+          <mxGeometry height="200" width="500" x="-330" y="500" as="geometry" />
+        </mxCell>
+        <mxCell id="database" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E8EAF6;strokeColor=#303F9F;fontSize=11;" value="🗄️ DATABASE (PostgreSQL / SQLite)\n\nEntities:\n• Tenant, TenantMember, TenantBranding\n• Kiosk, PrintJob, PrintJobItem\n• File, Payment, Transaction\n• PricingConfig, Promotion\n• User, AuditLog, ShopReview" vertex="1">
+          <mxGeometry height="180" width="280" x="220" y="680" as="geometry" />
+        </mxCell>
+        <mxCell id="filestorage" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E8EAF6;strokeColor=#303F9F;fontSize=11;" value="📁 FILE STORAGE\n(S3 / R2 / Local)\n• Original PDFs\n• Rendered PWG files\n• Shop photos" vertex="1">
+          <mxGeometry height="180" width="220" x="1340" y="370" as="geometry" />
+        </mxCell>
+        <mxCell id="webhook" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF3E0;strokeColor=#E65100;fontSize=11;" value="🔔 WEBHOOKS &amp; EVENTS\n• Paystack: charge.success\n• Tenant webhooks (14 events)\n• Job status changes\n• Agent confirmations" vertex="1">
+          <mxGeometry height="180" width="220" x="385" y="390" as="geometry" />
+        </mxCell>
+        <mxCell id="saas_admin" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E8F5E9;strokeColor=#2E7D32;fontSize=12;" value="🎛️ SAAS TENANT ADMIN PANEL\n(/saas/*)\n\nPages:\n• Dashboard (/saas)\n• Queue (/saas/queue)\n• Operator Console\n• Branding, Domains\n• Payouts, Transactions\n• Webhooks, LMS Link" vertex="1">
+          <mxGeometry height="200" width="320" x="-573" y="950" as="geometry" />
+        </mxCell>
+        <mxCell id="kiosk_operator" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF3E0;strokeColor=#E65100;fontSize=12;" value="🖨️ KIOSK / PRINTSHOP OPERATOR\n(On-site at print shop)\n\nInterfaces:\n• Electron Kiosk App (kiosk mode)\n• Operator Console (web)\n• Receives jobs via agent" vertex="1">
+          <mxGeometry height="200" width="300" x="500" y="1270" as="geometry" />
+        </mxCell>
+        <mxCell id="printloop_agent" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E3F2FD;strokeColor=#1565C0;fontSize=11;" value="🤖 PRINTLOOP AGENT (Node.js)\nRuns on shop computer\n\nTransports:\n• IPP (IPP/IPPS)\n• Raw 9100 (JetDirect)\n• Spooler (OS print queue)\n\nPolling: /api/agent/jobs/ready\nDownload: /api/agent/jobs/:id/file\nReport: /complete, /failed" vertex="1">
+          <mxGeometry height="220" width="300" x="870" y="840" as="geometry" />
+        </mxCell>
+        <mxCell id="printer" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F3E5F5;strokeColor=#7B1FA2;fontSize=12;" value="📄 PHYSICAL PRINTER\n• Connected via USB/LAN\n• Receives PWG/PDF via agent\n• Prints customer documents" vertex="1">
+          <mxGeometry height="120" width="220" x="1340" y="890" as="geometry" />
+        </mxCell>
+        <mxCell id="platform_admin" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FCE4EC;strokeColor=#C2185B;fontSize=12;" value="👑 PLATFORM ADMIN (SUPER_ADMIN)\n(/platform)\n\nCapabilities:\n• Tenant list, suspend/reactivate\n• Impersonate tenant\n• Fleet reliability dashboard\n• Hard delete (30-day cool-off)\n• System settings, audit logs" vertex="1">
+          <mxGeometry height="180" width="320" x="-865" y="510" as="geometry" />
+        </mxCell>
+        <mxCell id="e1" edge="1" parent="1" source="users" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#2E7D32;strokeWidth=2;endArrow=block;" target="find" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e2" edge="1" parent="1" source="find" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#1565C0;strokeWidth=2;endArrow=block;" target="discovery" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e3" edge="1" parent="1" source="find" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#C2185B;strokeWidth=2;endArrow=block;dashed=1;" target="tenant_subdomain" value="handoff JWT">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e4" edge="1" parent="1" source="tenant_subdomain" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#1565C0;strokeWidth=2;endArrow=block;" target="customer_print" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e5" edge="1" parent="1" source="customer_print" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#F57F17;strokeWidth=2;endArrow=block;" target="paystack" value="create checkout">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e6" edge="1" parent="1" source="paystack" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#F57F17;strokeWidth=2;endArrow=block;dashed=1;" target="backend" value="webhook: charge.success">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e7" edge="1" parent="1" source="backend" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#303F9F;strokeWidth=2;endArrow=block;" target="render_worker" value="enqueue render job">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e8" edge="1" parent="1" source="render_worker" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#303F9F;strokeWidth=2;endArrow=block;" target="filestorage" value="upload PWG">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e9" edge="1" parent="1" source="render_worker" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#303F9F;strokeWidth=2;endArrow=block;dashed=1;" target="backend" value="HMAC callback">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e10" edge="1" parent="1" source="backend" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#303F9F;strokeWidth=2;endArrow=block;" target="database" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e11" edge="1" parent="1" source="backend" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#303F9F;strokeWidth=2;endArrow=block;" target="filestorage" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e11b" edge="1" parent="1" source="backend" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#E65100;strokeWidth=2;endArrow=block;" target="webhook" value="emit events">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e12" edge="1" parent="1" source="backend" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#2E7D32;strokeWidth=2;endArrow=block;" target="saas_admin" value="/api/saas/*">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e13" edge="1" parent="1" source="backend" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#E65100;strokeWidth=2;endArrow=block;" target="kiosk_operator" value="/api/admin/*">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e14" edge="1" parent="1" source="backend" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#C2185B;strokeWidth=2;endArrow=block;" target="platform_admin" value="/api/platform/*">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e15" edge="1" parent="1" source="backend" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#1565C0;strokeWidth=2;endArrow=block;" target="printloop_agent" value="/api/agent/jobs/ready (poll)">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e16" edge="1" parent="1" source="printloop_agent" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#1565C0;strokeWidth=2;endArrow=block;dashed=1;" target="filestorage" value="/api/agent/jobs/:id/file (signed JWT)">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e17" edge="1" parent="1" source="printloop_agent" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#1565C0;strokeWidth=2;endArrow=block;" target="backend" value="/api/agent/jobs/:id/complete\n/api/agent/jobs/:id/failed">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e18" edge="1" parent="1" source="printloop_agent" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#7B1FA2;strokeWidth=3;endArrow=block;" target="printer" value="IPP / Raw 9100 / Spooler">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e19" edge="1" parent="1" source="kiosk_operator" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#E65100;strokeWidth=2;endArrow=block;" target="printloop_agent" value="runs on same machine">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e20" edge="1" parent="1" source="kiosk_operator" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#E65100;strokeWidth=2;endArrow=block;dashed=1;" target="backend" value="/api/admin/* (operator)">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e21" edge="1" parent="1" source="kiosk_operator" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#E65100;strokeWidth=2;endArrow=block;dashed=1;" target="printer" value="test print">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e22" edge="1" parent="1" source="saas_admin" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#2E7D32;strokeWidth=2;endArrow=block;" target="backend" value="manages shop via /api/saas/*">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e23" edge="1" parent="1" source="admin_console" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#E65100;strokeWidth=2;endArrow=block;" target="backend" value="manages via /api/admin/*">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e24" edge="1" parent="1" source="platform_admin" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#C2185B;strokeWidth=2;endArrow=block;" target="backend" value="super admin via /api/platform/*">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e25" edge="1" parent="1" source="customer_print" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#1565C0;strokeWidth=2;endArrow=block;" target="backend" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e26" edge="1" parent="1" source="discovery" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#1565C0;strokeWidth=2;endArrow=block;" target="backend" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e27" edge="1" parent="1" source="admin_console" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#2E7D32;strokeWidth=2;endArrow=block;dashed=1;" target="kiosk_operator" value="add/manage kiosks">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e28" edge="1" parent="1" source="webhook" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#E65100;strokeWidth=2;endArrow=block;dashed=1;" target="backend" value="incoming webhooks">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="fYY19IIWCHLO-bOlq0zI-2" edge="1" parent="1" source="saas_admin" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#2E7D32;strokeWidth=2;endArrow=block;dashed=1;" target="admin_console" value="">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="-253" y="1050" as="sourcePoint" />
+            <mxPoint x="720" y="1330" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="admin_console" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF3E0;strokeColor=#E65100;fontSize=11;" value="⚙️ ADMIN CONSOLE (Legacy)\n(/admin/*)\n\nTabs:\n• Jobs, Printers, Pricing\n• Promotions, Transactions\n• Reports, Blog, Disputes\n• Printer Profiles, Users\n• Settings, Audit Logs" vertex="1">
+          <mxGeometry height="200" width="300" x="70" y="1550" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

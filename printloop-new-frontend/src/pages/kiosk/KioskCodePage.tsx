@@ -28,10 +28,10 @@ export default function KioskCodePage() {
   };
 
   return (
-    <div className="min-h-screen bg-paper text-ink flex flex-col">
-      <div className="bg-ink text-paper border-b-[3px] border-persimmon px-10 py-4 flex justify-between items-baseline">
+    <div className="min-h-screen bg-gray-50 text-gray-900 flex flex-col">
+      <div className="bg-gray-900 text-gray-50 border-b-[3px] border-indigo-600 px-10 py-4 flex justify-between items-baseline">
         <div className="font-serif font-extrabold text-2xl tracking-tight">
-          PrintLoop<span className="text-persimmon">.</span>
+          PrintLoop<span className="text-indigo-600">.</span>
         </div>
         <div className="flex items-center gap-3 text-[11px] tracking-editorial font-bold">
           <span className="editorial-folio not-italic"><span className="italic">No. 04</span></span>
@@ -49,11 +49,11 @@ export default function KioskCodePage() {
         <div className="absolute left-16 bottom-12 w-32 h-32 rounded-full bg-ochre/15" />
 
         <div className="relative z-10 max-w-3xl">
-          <div className="editorial-label text-persimmon mb-3">▸ A RITUAL IN SIX CHARACTERS</div>
+          <div className="editorial-label text-indigo-600 mb-3">▸ A RITUAL IN SIX CHARACTERS</div>
           <h1 className="pl-serif font-extrabold text-[70px] leading-[0.95] tracking-tight mb-3">
-            Kindly enter your <em className="italic text-persimmon font-semibold">code</em>.
+            Kindly enter your <em className="italic text-indigo-600 font-semibold">code</em>.
           </h1>
-          <p className="pl-serif italic text-xl text-ink/60 mb-10">
+          <p className="pl-serif italic text-xl text-gray-50/60 mb-10">
             The six characters delivered to your phone moments ago.
           </p>
 
@@ -64,9 +64,9 @@ export default function KioskCodePage() {
                 ref={(el) => { inputs.current[i] = el; }}
                 value={d}
                 onChange={(e) => onChange(i, e.target.value)}
-                className={`w-20 h-28 text-5xl font-mono font-bold text-center border-2 border-ink rounded-lg outline-none transition-all
-                  ${d ? "bg-ink text-paper" : "bg-paper"}
-                  focus:border-persimmon focus:ring-4 focus:ring-persimmon/20`}
+                className={`w-20 h-28 text-5xl font-mono font-bold text-center border-2 border-gray-900 rounded-lg outline-none transition-all
+                  ${d ? "bg-gray-900 text-gray-50" : "bg-gray-50"}
+                  focus:border-indigo-600 focus:ring-4 focus:ring-indigo-600/20`}
                 maxLength={1}
               />
             ))}
@@ -79,14 +79,14 @@ export default function KioskCodePage() {
             <button onClick={() => setDigits(Array(6).fill(""))} className="pl-btn-ghost text-base px-7 py-4">CLEAR</button>
           </div>
 
-          <div className="text-ochre text-3xl mb-3">❦</div>
-          <p className="text-sm text-ink/55">No code? Visit printloop.ng to begin.</p>
+          <div className="text-amber-500 text-3xl mb-3">❦</div>
+          <p className="text-sm text-gray-50/55">No code? Visit printloop.ng to begin.</p>
         </div>
       </main>
 
-      <div className="bg-ink text-paper px-10 py-4 flex justify-between items-center">
+      <div className="bg-gray-900 text-gray-50 px-10 py-4 flex justify-between items-center">
         <span className="pl-serif italic text-sm opacity-80">Yours faithfully — PrintLoop, Yaba.</span>
-        <span className="text-[11px] tracking-editorial">VOL. I · LAGOS · ©2026 <span className="text-ochre ml-2">❦</span></span>
+        <span className="text-[11px] tracking-editorial">VOL. I · LAGOS · ©2026 <span className="text-amber-500 ml-2">❦</span></span>
       </div>
     </div>
   );

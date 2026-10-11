@@ -33,7 +33,7 @@ const HERO_WORDS: { w?: string; br?: boolean; cls?: string }[] = [
   { w: "campus" },
   { w: "printing," },
   { br: true },
-  { w: "finally", cls: "italic text-persimmon font-semibold" },
+  { w: "finally", cls: "italic text-indigo-600 font-semibold" },
   { w: "done" },
   { w: "right." },
 ];
@@ -54,17 +54,17 @@ function LoopStamp() {
             d="M60,60 m-44,0 a44,44 0 1,1 88,0 a44,44 0 1,1 -88,0"
           />
         </defs>
-        <circle cx="60" cy="60" r="56" fill="none" stroke="#1A1410" strokeWidth="2" />
+        <circle cx="60" cy="60" r="56" fill="none" stroke="var(--ink)" strokeWidth="2" />
         <circle
           cx="60"
           cy="60"
           r="31"
           fill="none"
-          stroke="#D14B2C"
+          stroke="var(--process)"
           strokeWidth="1.5"
           strokeDasharray="3 4"
         />
-        <text fontSize="10.5" fontWeight="700" letterSpacing="2.4" fill="#D14B2C">
+        <text fontSize="10.5" fontWeight="700" letterSpacing="2.4" fill="var(--process)">
           <textPath href="#loop-stamp-circle">UPLOAD · PAY · COLLECT · REPEAT ·</textPath>
         </text>
         <text
@@ -73,8 +73,8 @@ function LoopStamp() {
           textAnchor="middle"
           fontSize="13"
           fontWeight="800"
-          fill="#1A1410"
-          fontFamily="Fraunces, serif"
+          fill="var(--ink)"
+          fontFamily="var(--font-serif)"
           fontStyle="italic"
         >
           est. ’26
@@ -117,7 +117,7 @@ function StepConnector() {
         <path
           ref={lineRef}
           d="M16 26 C 130 2, 250 32, 350 16 C 460 0, 570 34, 684 22"
-          stroke="#C7944A"
+          stroke="var(--process)"
           strokeWidth="2"
           strokeLinecap="round"
           pathLength={1}
@@ -133,8 +133,8 @@ function StepConnector() {
             cx={n.x}
             cy={n.y}
             r="5"
-            fill="#D14B2C"
-            stroke="#1A1410"
+            fill="var(--process)"
+            stroke="var(--ink)"
             strokeWidth="1.5"
             style={{
               opacity: 0,
@@ -186,7 +186,7 @@ function PinnedMethod() {
       t.style.transform = i === idx ? "translateY(0)" : "translateY(6px)";
     });
     dots.current.forEach((d, i) => {
-      if (d) d.style.background = i <= idx ? "#D14B2C" : "#EEE7D9";
+      if (d) d.style.background = i <= idx ? "var(--process)" : "var(--sheet)";
     });
     if (moveNo.current) moveNo.current.textContent = `MOVE 0${idx + 1} / 03`;
     if (fill.current) fill.current.style.transform = `scaleX(${s.toFixed(4)})`;
@@ -212,13 +212,13 @@ function PinnedMethod() {
       <div className="sticky top-0 h-screen overflow-hidden flex items-center">
         <div className="max-w-5xl mx-auto w-full px-6 lg:px-8 pt-14">
           <div className="flex items-baseline justify-between gap-3 mb-2">
-            <div className="editorial-label text-persimmon">▸ HOW IT WORKS — ONE CONTINUOUS SHOT</div>
-            <span ref={moveNo} className="pl-mono text-[11px] tracking-wider text-ink/40">
+            <div className="editorial-label text-indigo-600">▸ HOW IT WORKS — ONE CONTINUOUS SHOT</div>
+            <span ref={moveNo} className="pl-mono text-[11px] tracking-wider text-gray-50/40">
               MOVE 01 / 03
             </span>
           </div>
           <h2 className="pl-serif font-bold text-[28px] lg:text-[40px] leading-tight tracking-tight mb-8">
-            Three moves. <em className="italic text-ochre">A small ritual.</em>
+            Three moves. <em className="italic text-amber-500">A small ritual.</em>
           </h2>
 
           {/* The route: phone → Paystack gate → printer tray */}
@@ -242,14 +242,14 @@ function PinnedMethod() {
             <div className="absolute -translate-x-1/2" style={{ left: `${STATION_X[2]}%`, top: 60 }}>
               <div className="w-24 h-[52px] border-2 border-ink bg-paper-light relative">
                 <div className="absolute left-2 right-2 bottom-2 h-1.5 bg-ink" />
-                <div className="absolute right-2 top-2 w-1.5 h-1.5 rounded-full bg-persimmon animate-blink" />
+                <div className="absolute right-2 top-2 w-1.5 h-1.5 rounded-full bg-process animate-blink" />
               </div>
             </div>
 
             {/* The travelling document */}
             <div
               ref={paper}
-              className="absolute top-[64px] w-12 h-16 bg-paper-light border-2 border-ink rounded-sm shadow-[4px_4px_0_#1A1410] z-10 p-1.5"
+              className="absolute top-[64px] w-12 h-16 bg-paper-light border-2 border-ink rounded-sm shadow-soft z-10 p-1.5"
               style={{ left: `${STATION_X[0]}%`, transform: "translateX(-50%) rotate(-6deg)" }}
             >
               <div className="w-full h-1 bg-ink/20 mb-1" />
@@ -257,7 +257,7 @@ function PinnedMethod() {
               <div className="w-full h-1 bg-ink/20" />
               <div
                 ref={chip}
-                className="absolute -right-4 -top-3 pl-mono text-[10px] font-bold bg-ink text-paper px-1.5 py-0.5 transition-all duration-300"
+                className="absolute -right-4 -top-3 pl-mono text-[10px] font-bold bg-ink text-paper-light px-1.5 py-0.5 transition-all duration-300"
                 style={{ opacity: 0, transform: "rotate(-6deg) scale(1.5)" }}
               >
                 K7DQ2A
@@ -291,18 +291,18 @@ function PinnedMethod() {
                 <h3 className="pl-serif font-bold text-lg lg:text-xl leading-tight tracking-tight mb-1.5">
                   {step.t}
                 </h3>
-                <p className="pl-serif italic text-ink/70 text-sm leading-snug mb-2">{step.b}</p>
-                <div className="pl-mono text-[10px] tracking-wider text-ink/40">{step.foot}</div>
+                <p className="pl-serif italic text-gray-50/70 text-sm leading-snug mb-2">{step.b}</p>
+                <div className="pl-mono text-[10px] tracking-wider text-gray-50/40">{step.foot}</div>
               </div>
             ))}
           </div>
 
           {/* Scene progress rail */}
           <div className="flex items-center gap-3">
-            <div className="flex-1 h-[3px] bg-paper-deep relative overflow-hidden">
+            <div className="flex-1 h-[3px] bg-ink relative overflow-hidden">
               <div
                 ref={fill}
-                className="absolute inset-0 bg-persimmon origin-left"
+                className="absolute inset-0 bg-process origin-left"
                 style={{ transform: "scaleX(0)" }}
               />
             </div>
@@ -313,7 +313,7 @@ function PinnedMethod() {
                   dots.current[i] = el;
                 }}
                 className="w-2.5 h-2.5 rounded-full border-2 border-ink transition-colors duration-300"
-                style={{ background: i === 0 ? "#D14B2C" : "#EEE7D9" }}
+                style={{ background: i === 0 ? "var(--process)" : "var(--paper-deep)" }}
               />
             ))}
           </div>
@@ -321,7 +321,7 @@ function PinnedMethod() {
 
         <div
           ref={hint}
-          className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-2 editorial-label text-ink/50 transition-opacity duration-500"
+          className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-2 editorial-label text-gray-50/50 transition-opacity duration-500"
         >
           <span className="inline-block w-1.5 h-1.5 rounded-full bg-persimmon animate-blink" />
           KEEP SCROLLING — THE SCENE PLAYS ITSELF
@@ -394,7 +394,7 @@ export default function LandingPage() {
       <div className="sticky top-0 z-40">
         <div className="bg-paper border-b-2 border-ink px-4 sm:px-6 lg:px-8 py-3 sm:py-4 flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
           <div className="font-serif font-extrabold text-[22px] sm:text-[26px] lg:text-[28px] tracking-tight">
-            PrintLoop<span className="text-persimmon">.</span>
+            PrintLoop<span className="text-process">.</span>
           </div>
           <nav className="order-3 sm:order-none w-full sm:w-auto flex items-center gap-1 overflow-x-auto">
             {[
@@ -407,7 +407,7 @@ export default function LandingPage() {
               <Link
                 key={to}
                 to={to}
-                className="text-[11px] sm:text-xs font-bold tracking-editorial uppercase px-2.5 py-1.5 whitespace-nowrap border-2 border-transparent text-ink/70 hover:text-ink hover:border-persimmon transition-all"
+                className="text-[11px] sm:text-xs font-bold tracking-editorial uppercase px-2.5 py-1.5 whitespace-nowrap border-2 border-transparent text-ink/70 hover:text-ink hover:border-process transition-all"
               >
                 {label}
               </Link>
@@ -430,7 +430,7 @@ export default function LandingPage() {
         <section className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16 lg:py-20 relative overflow-hidden">
           <div
             ref={driftSlow}
-            className="absolute -right-20 top-12 w-48 h-48 sm:w-72 sm:h-72 rounded-full bg-persimmon/8 pointer-events-none"
+            className="absolute -right-20 top-12 w-48 h-48 sm:w-72 sm:h-72 rounded-full bg-process/8 pointer-events-none"
           />
           <div
             ref={driftFast}
@@ -440,7 +440,7 @@ export default function LandingPage() {
             ref={ghostDrift}
             aria-hidden="true"
             className="absolute -right-4 -bottom-12 pl-serif font-extrabold text-[140px] sm:text-[200px] leading-none text-transparent pointer-events-none select-none"
-            style={{ WebkitTextStroke: "2px rgba(26, 20, 16, 0.09)" }}
+            style={{ WebkitTextStroke: "2px var(--ink) / 0.09" }}
           >
             Nº09
           </div>
@@ -449,7 +449,7 @@ export default function LandingPage() {
           <div className="relative z-10">
             <Reveal variant="rise">
               <div className="flex items-baseline justify-between gap-3 mb-3">
-                <div className="editorial-label text-persimmon">▸ THE PRINTLOOP DISPATCH</div>
+                <div className="editorial-label text-process">▸ THE PRINTLOOP DISPATCH</div>
                 <div className="editorial-label text-ink/35 hidden sm:block">§ 01 · FRONT PAGE</div>
               </div>
             </Reveal>
@@ -474,7 +474,7 @@ export default function LandingPage() {
               )}
             </h1>
             <Reveal variant="rise" delay={520}>
-              <p className="pl-serif italic text-base sm:text-lg lg:text-xl text-ink/70 max-w-2xl mb-6 sm:mb-7 leading-snug">
+              <p className="pl-serif italic text-base sm:text-lg lg:text-xl text-gray-50/70 max-w-2xl mb-6 sm:mb-7 leading-snug">
                 Upload from your phone. Pay online. Walk into any PrintLoop station and your prints
                 are waiting. No queue. No haggling.
               </p>
@@ -501,7 +501,7 @@ export default function LandingPage() {
             </Reveal>
             <Reveal variant="fade" delay={900}>
               <div className="mt-10 flex items-center gap-2 editorial-label text-ink/50">
-                <span className="inline-block w-1.5 h-1.5 rounded-full bg-persimmon animate-blink" />
+<span className="inline-block w-1.5 h-1.5 rounded-full bg-process animate-blink" />
                 SCROLL FOR THE FULL STORY ↓
               </div>
             </Reveal>
@@ -510,7 +510,7 @@ export default function LandingPage() {
 
         {/* ── Stats strip — counts up as it enters ──────────────────── */}
         <section className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pb-10 sm:pb-12">
-          <div className="border-2 border-ink grid grid-cols-2 md:grid-cols-4 bg-paper-light">
+          <div className="border-2 border-ink grid grid-cols-2 md:grid-cols-4 bg-paper-warm">
             {STATS.map((s, i) => (
               <Reveal
                 key={s.label}
@@ -521,7 +521,7 @@ export default function LandingPage() {
                 <div className="pl-serif font-extrabold text-3xl sm:text-4xl lg:text-5xl tracking-tight mb-1">
                   <Counter to={s.to} prefix={s.prefix} suffix={s.suffix} />
                 </div>
-                <div className="editorial-label text-ink/50 text-[9px] sm:text-[10px]">{s.label}</div>
+                <div className="editorial-label text-gray-50/50 text-[9px] sm:text-[10px]">{s.label}</div>
               </Reveal>
             ))}
           </div>
@@ -531,7 +531,7 @@ export default function LandingPage() {
         <section className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 border-t-2 border-ink overflow-hidden">
           <Reveal variant="rise">
             <div className="flex items-baseline justify-between gap-3 mb-2">
-              <div className="editorial-label text-persimmon">▸ THE PROOF</div>
+              <div className="editorial-label text-process">▸ THE PROOF</div>
               <div className="editorial-label text-ink/35 hidden sm:block">§ 1B · IN 3D</div>
             </div>
           </Reveal>
@@ -541,7 +541,7 @@ export default function LandingPage() {
             </h2>
           </Reveal>
           <Reveal variant="fade" delay={220}>
-            <p className="pl-serif italic text-ink/60 text-sm sm:text-base mb-2 max-w-xl">
+            <p className="pl-serif italic text-gray-50/60 text-sm sm:text-base mb-2 max-w-xl">
               Scroll to lift the top sheet — and drag your cursor to turn the stack.
             </p>
           </Reveal>
@@ -558,13 +558,13 @@ export default function LandingPage() {
           <section className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-12 border-t-2 border-ink">
             <Reveal variant="rise">
               <div className="flex items-baseline justify-between gap-3 mb-2">
-                <div className="editorial-label text-persimmon">▸ HOW IT WORKS</div>
+                <div className="editorial-label text-process">▸ HOW IT WORKS</div>
                 <div className="editorial-label text-ink/35 hidden sm:block">§ 02 · THE METHOD</div>
               </div>
             </Reveal>
             <Reveal variant="wipe" delay={100}>
               <h2 className="pl-serif font-bold text-[28px] sm:text-[36px] lg:text-[42px] leading-tight tracking-tight mb-6 sm:mb-9">
-                Three moves. <em className="italic text-ochre">A small ritual.</em>
+Three moves. <em className="italic text-ochre">A small ritual.</em>
               </h2>
             </Reveal>
 
@@ -573,15 +573,15 @@ export default function LandingPage() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               {STEPS.map((step, i) => (
                 <Reveal key={step.n} variant="rise" delay={i * 140}>
-                  <div className="border-2 border-ink p-5 sm:p-6 h-full bg-paper-light transition-all duration-150 ease-out hover:-translate-x-[3px] hover:-translate-y-[3px] hover:shadow-[5px_5px_0_#1A1410]">
+                  <div className="border-2 border-ink p-5 sm:p-6 h-full bg-paper-warm transition-all duration-150 ease-out hover:-translate-x-[3px] hover:-translate-y-[3px] hover:shadow-soft">
                     <div className="editorial-folio not-italic mb-3">
                       <span className="italic text-2xl">{step.n}</span>
                     </div>
                     <h3 className="pl-serif font-bold text-xl sm:text-2xl leading-tight tracking-tight mb-2">
                       {step.t}
                     </h3>
-                    <p className="pl-serif italic text-ink/70 text-sm leading-snug mb-4">{step.b}</p>
-                    <div className="pl-mono text-[10px] tracking-wider text-ink/40 border-t border-ink/15 pt-3">
+                    <p className="pl-serif italic text-gray-50/70 text-sm leading-snug mb-4">{step.b}</p>
+                    <div className="pl-mono text-[10px] tracking-wider text-gray-50/40 border-t border-gray-900/15 pt-3">
                       {step.foot}
                     </div>
                   </div>
@@ -618,7 +618,7 @@ export default function LandingPage() {
                 <div className="editorial-label text-paper/30 hidden sm:block">§ 04 · TRADE PAGES</div>
               </div>
               <h2 className="pl-serif font-bold text-[28px] sm:text-[36px] lg:text-[42px] leading-tight tracking-tight mb-3">
-                Own a printer? <em className="italic text-persimmon">Run the loop.</em>
+                Own a printer? <em className="italic text-process">Run the loop.</em>
               </h2>
               <p className="pl-serif italic text-base sm:text-lg opacity-80 max-w-xl mb-4 leading-snug">
                 We bring the customers, the payments, and the queue — you press print. PrintLoop
@@ -640,7 +640,7 @@ export default function LandingPage() {
               <Magnetic>
                 <Link
                   to="/find"
-                  className="pl-btn w-full bg-transparent text-paper border-paper text-sm px-6 py-3.5 justify-center hover:shadow-[5px_5px_0_#D14B2C]"
+                  className="pl-btn w-full bg-transparent text-paper border-paper text-sm px-6 py-3.5 justify-center hover:shadow-soft"
                 >
                   FIND A STATION
                 </Link>
@@ -653,7 +653,7 @@ export default function LandingPage() {
         <section className="bg-ink text-paper py-10 sm:py-14 px-4 sm:px-6 lg:px-8 border-t border-paper/15">
           <div className="max-w-5xl mx-auto text-center">
             <Reveal variant="rise">
-              <div className="editorial-label text-persimmon mb-3">▸ JOIN THE LOOP</div>
+              <div className="editorial-label text-process mb-3">▸ JOIN THE LOOP</div>
             </Reveal>
             <Reveal variant="stamp" delay={120}>
               <h2 className="pl-serif font-bold text-[30px] sm:text-[38px] lg:text-[44px] leading-tight tracking-tight mb-3">

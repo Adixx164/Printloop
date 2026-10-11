@@ -143,20 +143,20 @@ export default function SettingsPage() {
 
   return (
     <div>
-      <div className="editorial-label text-persimmon mb-1">▸ SETTINGS</div>
+      <div className="editorial-label text-indigo-600 mb-1">▸ SETTINGS</div>
       <h1 className="pl-serif text-3xl sm:text-4xl font-bold tracking-tight mb-1">
-        Your <em className="italic text-persimmon font-semibold">account</em>.
+        Your <em className="italic text-indigo-600 font-semibold">account</em>.
       </h1>
-      <p className="pl-serif italic text-ink/60 mb-7">Keep your details current.</p>
+      <p className="pl-serif italic text-gray-900/60 mb-7">Keep your details current.</p>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-        <aside className="border-2 border-ink p-4">
+        <aside className="border-2 border-gray-900 p-4">
           <div className="editorial-label mb-3">SECTIONS</div>
           <ul className="space-y-1.5 text-sm">
             <li
               onClick={() => setActiveTab("profile")}
               className={`px-3 py-2 font-bold tracking-wider text-xs cursor-pointer transition-colors ${
-                activeTab === "profile" ? "bg-persimmon text-paper" : "hover:bg-ink hover:text-paper"
+                activeTab === "profile" ? "bg-indigo-600 text-gray-50" : "hover:bg-gray-900 hover:text-gray-50"
               }`}
             >
               PROFILE
@@ -164,7 +164,7 @@ export default function SettingsPage() {
             <li
               onClick={() => setActiveTab("password")}
               className={`px-3 py-2 font-bold tracking-wider text-xs cursor-pointer transition-colors ${
-                activeTab === "password" ? "bg-persimmon text-paper" : "hover:bg-ink hover:text-paper"
+                activeTab === "password" ? "bg-indigo-600 text-gray-50" : "hover:bg-gray-900 hover:text-gray-50"
               }`}
             >
               PASSWORD
@@ -172,7 +172,7 @@ export default function SettingsPage() {
             <li
               onClick={() => setActiveTab("data")}
               className={`px-3 py-2 font-bold tracking-wider text-xs cursor-pointer transition-colors ${
-                activeTab === "data" ? "bg-persimmon text-paper" : "hover:bg-ink hover:text-paper"
+                activeTab === "data" ? "bg-indigo-600 text-gray-50" : "hover:bg-gray-900 hover:text-gray-50"
               }`}
             >
               DATA & PRIVACY
@@ -180,7 +180,7 @@ export default function SettingsPage() {
           </ul>
         </aside>
 
-        <div className="md:col-span-2 border-2 border-ink p-4 sm:p-6 bg-paper-light">
+        <div className="md:col-span-2 border-2 border-gray-900 p-4 sm:p-6 bg-gray-100">
           {activeTab === "profile" && (
             <div>
               <h2 className="pl-serif text-xl sm:text-2xl font-bold mb-4 tracking-tight">Profile.</h2>
@@ -259,9 +259,9 @@ export default function SettingsPage() {
             <div>
               <h2 className="pl-serif text-xl sm:text-2xl font-bold mb-4 tracking-tight">Data & Privacy.</h2>
 
-              <section className="border-2 border-ink rounded-pl p-4 space-y-3 bg-paper-light">
+              <section className="border-2 border-gray-900 rounded-pl p-4 space-y-3 bg-gray-100">
                 <h3 className="font-bold">Export your data</h3>
-                <p className="text-sm text-ink/60">
+                <p className="text-sm text-gray-900/60">
                   Downloads a JSON archive of your print jobs, payments, transactions,
                   files, group sessions, disputes, reviews, and audit log. Credentials are
                   stripped.
@@ -273,14 +273,14 @@ export default function SettingsPage() {
                 >
                   {exporting ? "Preparing…" : "Download export (JSON)"}
                 </button>
-                {exportError && <p className="text-persimmon text-sm font-semibold">{exportError}</p>}
+                {exportError && <p className="text-indigo-600 text-sm font-semibold">{exportError}</p>}
               </section>
 
-              <section className="border-2 border-persimmon rounded-pl p-4 space-y-3 bg-persimmon/5">
-                <h3 className="font-bold text-persimmon uppercase tracking-wider text-sm">
+              <section className="border-2 border-indigo-600 rounded-pl p-4 space-y-3 bg-indigo-50">
+                <h3 className="font-bold text-indigo-600 uppercase tracking-wider text-sm">
                   ▸ Danger zone
                 </h3>
-                <p className="text-sm text-ink/70">
+                <p className="text-sm text-gray-900/70">
                   Closing your account stops all printing immediately and starts
                   a 30-day cooling-off window, after which your data is deleted.
                   Type your email to confirm.
@@ -292,11 +292,11 @@ export default function SettingsPage() {
                     value={confirmEmail}
                     onChange={(e) => setConfirmEmail(e.target.value)}
                   />
-                  {deleteError && <p className="text-persimmon text-sm font-semibold">{deleteError}</p>}
+                  {deleteError && <p className="text-indigo-600 text-sm font-semibold">{deleteError}</p>}
                   <button
                     type="submit"
                     disabled={deleting || confirmEmail.toLowerCase() !== user?.email?.toLowerCase()}
-                    className="pl-btn !bg-persimmon !text-paper !border-persimmon disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="pl-btn !bg-indigo-600 !text-gray-50 !border-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {deleting ? "Closing…" : "Close this account"}
                   </button>

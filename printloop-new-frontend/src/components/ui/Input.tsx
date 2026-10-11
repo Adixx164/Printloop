@@ -12,7 +12,7 @@ export const Input = forwardRef<HTMLInputElement, Props>(
     return (
       <div className="mb-3">
         {label && (
-          <label htmlFor={inputId} className="editorial-label block mb-1.5">
+          <label htmlFor={inputId} className="text-xs font-bold tracking-wider uppercase block mb-1.5">
             {label}
           </label>
         )}
@@ -22,8 +22,8 @@ export const Input = forwardRef<HTMLInputElement, Props>(
           className={`pl-input ${error ? "error" : ""} ${className}`}
           {...rest}
         />
-        {error && <div className="text-xs text-persimmon font-semibold mt-1">{error}</div>}
-        {!error && helper && <div className="text-xs text-fog font-medium mt-1">{helper}</div>}
+        {error && <div className="text-xs text-indigo-600 font-semibold mt-1">{error}</div>}
+        {!error && helper && <div className="text-xs text-gray-500 font-medium mt-1">{helper}</div>}
       </div>
     );
   }

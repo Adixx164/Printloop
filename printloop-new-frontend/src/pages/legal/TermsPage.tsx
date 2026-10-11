@@ -12,13 +12,13 @@ export default function TermsPage() {
     <div className="max-w-3xl mx-auto px-4 py-12 sm:py-20 space-y-10">
       <header>
         <Link to="/" className="font-serif font-extrabold text-[22px] tracking-tight mb-8 inline-block">
-          PrintLoop<span className="text-persimmon">.</span>
+          PrintLoop<span className="text-indigo-600">.</span>
         </Link>
-        <div className="editorial-label text-persimmon mb-2">▸ LEGAL</div>
+        <div className="text-xs font-bold tracking-wider uppercase text-indigo-600 mb-2">▸ LEGAL</div>
         <h1 className="pl-serif font-extrabold text-4xl sm:text-5xl tracking-tight">
           Terms of Service
         </h1>
-        <p className="text-sm text-ink/60 mt-2">Last updated: {lastUpdated}</p>
+        <p className="text-sm text-gray-900/60 mt-2">Last updated: {lastUpdated}</p>
       </header>
 
       <section className="prose prose-ink max-w-none space-y-8">
@@ -26,7 +26,7 @@ export default function TermsPage() {
         <p>
           By accessing or using PrintLoop ("the Platform", "we", "us", "our"),
           you agree to be bound by these Terms of Service ("Terms") and our
-          <Link to="/privacy" className="text-persimmon underline">Privacy Policy</Link>.
+          <Link to="/privacy" className="text-indigo-600 underline">Privacy Policy</Link>.
           If you do not agree, do not use the Platform.
         </p>
 
@@ -146,16 +146,16 @@ export default function TermsPage() {
         <h2 className="pl-serif font-extrabold text-2xl tracking-tight">16. Contact</h2>
         <p>
           Questions about these Terms? Email
-          <a href="mailto:legal@printloop.ng" className="text-persimmon underline">legal@printloop.ng</a>
+          <a href="mailto:legal@printloop.ng" className="text-indigo-600 underline">legal@printloop.ng</a>
           or write to PrintLoop, Lagos, Nigeria.
         </p>
       </section>
 
-      <footer className="border-t-2 border-ink pt-8 text-center text-sm text-ink/60">
-        <Link to="/privacy" className="text-persimmon underline hover:text-persimmon/80 mr-4">
+      <footer className="border-t-2 border-gray-900 pt-8 text-center text-sm text-gray-900/60">
+        <Link to="/privacy" className="text-indigo-600 underline hover:text-indigo-600/80 mr-4">
           Privacy Policy
         </Link>
-        <Link to="/contact" className="text-persimmon underline hover:text-persimmon/80">
+        <Link to="/contact" className="text-indigo-600 underline hover:text-indigo-600/80">
           Contact us
         </Link>
       </footer>

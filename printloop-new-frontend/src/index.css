@@ -1,28 +1,31 @@
+@import '../../packages/ui/design-system/design-system.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
-  body {
-    font-family: "Inter", system-ui, sans-serif;
-    background-color: #f8f4ed;
-    color: #1a1410;
+  html {
+    scroll-behavior: smooth;
   }
-  ::selection { background: #d14b2c; color: #f8f4ed; }
+  body {
+    font-family: "IBM Plex Sans", system-ui, -apple-system, sans-serif;
+    background-color: #F9FBFF;
+    color: #17140F;
+  }
+  ::selection {
+    background: #0077C8;
+    color: #FFFFFF;
+  }
   @media (prefers-reduced-motion: no-preference) {
-    html { scroll-behavior: smooth; }
+    html {
+      scroll-behavior: smooth;
+    }
   }
 }
 
-/* ───────────────────────────────────────────────────────────────────────
-   PrintLoop — canonical editorial-brutalist component layer
-   ───────────────────────────────────────────────────────────────────────
-   This matches the ui_kits exactly: hard offset shadows (NEVER blur),
-   2px ink borders, 6px / 8px radii, italic-persimmon emphasis. The
-   `ui_kits/` README is the source of truth — see colors_and_type.css.
-*/
-
 @layer components {
+  /* ── Editorial helpers ────────────────────────────────────────────── */
   .editorial-label {
     @apply uppercase tracking-editorial font-bold text-[10px];
   }
@@ -33,204 +36,269 @@
     @apply border-t-2 border-ink;
   }
 
-  /* Brutalist button: heavy border, lift-on-hover with hard shadow */
+  /* ── Button family (six-ink: background-only hover, hard-offset shadows) ── */
   .pl-btn {
-    @apply inline-flex items-center justify-center gap-2 border-2 border-ink rounded-md
-           px-5 py-3 font-bold text-sm tracking-wider uppercase cursor-pointer
-           transition-all duration-150 ease-out select-none;
+    @apply inline-flex items-center justify-center gap-2 border border-ink rounded-sm
+           px-4 py-2.5 font-semibold text-sm tracking-wide uppercase cursor-pointer
+           transition-colors duration-150 select-none;
   }
-  .pl-btn:hover { transform: translate(-3px, -3px); box-shadow: 5px 5px 0 #1a1410; }
-  .pl-btn:active { transform: translate(0, 0); box-shadow: none; }
+  .pl-btn:active {
+    filter: brightness(0.95);
+  }
+  .pl-btn-primary {
+    @apply pl-btn bg-persimmon text-paper-light;
+  }
+  .pl-btn-primary:hover {
+    @apply bg-[var(--process-ink)];
+  }
+  .pl-btn-dark {
+    @apply pl-btn bg-ink text-paper-light;
+  }
+  .pl-btn-dark:hover {
+    filter: brightness(1.15);
+  }
+  .pl-btn-ghost {
+    @apply pl-btn border-transparent bg-transparent text-ink underline decoration-1 underline-offset-4;
+  }
+  .pl-btn-ghost:hover {
+    @apply bg-paper-warm;
+  }
+  .pl-btn-sm {
+    @apply px-3 py-1.5 text-xs;
+  }
+  .pl-btn-lg {
+    @apply px-6 py-3.5 text-base;
+  }
 
-  .pl-btn-primary { @apply pl-btn bg-persimmon text-paper; }
-  .pl-btn-primary:hover { box-shadow: 5px 5px 0 #1a1410; }
-
-  .pl-btn-dark { @apply pl-btn bg-ink text-paper; }
-  .pl-btn-dark:hover { box-shadow: 5px 5px 0 #d14b2c; }
-
-  .pl-btn-ghost { @apply pl-btn bg-transparent text-ink; }
-
-  .pl-btn-sm { @apply px-3 py-1.5 text-xs; }
-  .pl-btn-lg { @apply px-7 py-4 text-base; }
-
-  /* Input */
+  /* ── Input (six-ink: hairline border, process focus ring) ─────────── */
   .pl-input {
-    @apply w-full px-3.5 py-2.5 border-2 border-ink rounded-md bg-paper-light
-           text-ink font-medium text-sm transition-all duration-150 outline-none;
+    @apply w-full px-3 py-2.5 border border-ink rounded-sm bg-paper-light
+           text-ink font-normal text-sm transition-colors duration-150 outline-none;
   }
-  .pl-input:hover { background-color: #f8f4ed; }
-  .pl-input:focus { transform: translate(-2px, -2px); box-shadow: 3px 3px 0 #d14b2c; }
-  .pl-input.error { border-color: #d14b2c; }
+  .pl-input::placeholder {
+    @apply text-fog;
+  }
+  .pl-input:focus {
+    @apply border-process;
+    box-shadow: 0 0 0 3px rgba(0, 119, 200, 0.18);
+  }
+  .pl-input.error {
+    @apply border-register;
+  }
 
-  /* Card */
+  /* ── Card (six-ink: hairline border, hard-offset hover shadow) ─────── */
   .pl-card {
-    @apply border-2 border-ink rounded-lg bg-paper-light p-5 transition-all duration-150 cursor-pointer;
+    @apply border border-hairline rounded-sm bg-paper-light p-5 transition-shadow duration-150;
   }
-  .pl-card:hover { transform: translate(-3px, -3px); box-shadow: 5px 5px 0 #1a1410; }
+  .pl-card:hover {
+    box-shadow: 4px 4px 0 #E3E9F4;
+  }
 
-  /* Chip */
+  /* ── Chip / pill (six-ink: ink border, process/ochre accents) ─────── */
   .pl-chip {
     @apply inline-flex items-center gap-1.5 border border-ink rounded-full px-3 py-1.5
            text-xs font-semibold cursor-pointer transition-colors duration-150;
   }
-  .pl-chip:hover { background: #1a1410; color: #f8f4ed; }
-  .pl-chip-active { background: #d14b2c; color: #f8f4ed; border-color: #d14b2c; }
+  .pl-chip:hover {
+    @apply bg-ink text-paper-light;
+  }
+  .pl-chip-active {
+    @apply bg-persimmon text-paper-light border-persimmon;
+  }
 
-  /* Pill: status (MUST carry a text label) */
-  .pl-pill { @apply inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] tracking-editorial font-bold uppercase; }
-  .pl-pill-ready { @apply bg-persimmon text-paper; }
-  .pl-pill-done  { @apply text-fog border border-fog; }
+  .pl-pill {
+    @apply inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px]
+           tracking-editorial font-bold uppercase;
+  }
+  .pl-pill-ready {
+    @apply bg-persimmon text-paper-light;
+  }
+  .pl-pill-done {
+    @apply text-fog border border-fog;
+  }
 
-  /* Slider — accent only */
-  .pl-slider { accent-color: #d14b2c; }
-  .pl-slider::-webkit-slider-thumb { cursor: pointer; }
-  .pl-slider::-moz-range-thumb     { cursor: pointer; }
+  /* ── Slider (six-ink accent) ───────────────────────────────────────── */
+  .pl-slider {
+    @apply w-full accent-[var(--process)];
+  }
 
-  .pl-mono  { font-family: "JetBrains Mono", monospace; }
-  .pl-serif { font-family: "Fraunces", serif; }
+  /* ── Typography aliases (six-ink: Archivo for serif/mono/display/data) ── */
+  .pl-mono {
+    font-family: "Archivo", "Helvetica Neue", Arial, sans-serif;
+  }
+  .pl-serif {
+    font-family: "Archivo", "Helvetica Neue", Arial, sans-serif;
+  }
 
-  /* ── Scroll reveals (V2-43) ─────────────────────────────────────────
-     Driven by components/ui/scrollFx.tsx: variant class = hidden state,
-     [data-shown] = resting state. Press-room motion: stamp, wipe, rise.
-     `wipe` keeps clip-path off the other variants so hard offset
-     shadows on children are never clipped. */
+  /* ── Reveal / scrollFx (kept verbatim — design-system agnostic) ────── */
   .pl-reveal {
-    transition:
-      opacity 700ms cubic-bezier(0.16, 1, 0.3, 1),
-      transform 700ms cubic-bezier(0.16, 1, 0.3, 1),
-      clip-path 700ms cubic-bezier(0.16, 1, 0.3, 1);
-  }
-  .pl-reveal-rise  { opacity: 0; transform: translateY(24px); }
-  .pl-reveal-left  { opacity: 0; transform: translateX(-32px); }
-  .pl-reveal-right { opacity: 0; transform: translateX(32px); }
-  /* Rubber stamp: presses DOWN onto the paper. */
-  .pl-reveal-stamp { opacity: 0; transform: scale(1.12) rotate(-1deg); }
-/* Printhead pass: left → right. Negative top/bottom/left insets so
-      italic overhangs and descenders never clip mid-wipe. */
-  .pl-reveal-wipe  { clip-path: inset(-12px 100% -12px -12px); }
-  .pl-reveal-fade  { opacity: 0; }
-  /* 3D flip: rotates on Y axis like a page turning. */
-  .pl-reveal-flip  { opacity: 0; transform: perspective(600px) rotateY(90deg); }
-  /* Scale up from center — subtle "pop" onto the page. */
-  .pl-reveal-scale { opacity: 0; transform: scale(0.88); }
-  /* Blur → sharp: text resolves into focus. */
-  .pl-reveal-blur  { opacity: 0; filter: blur(8px); }
-  /* Rotates in from an angle. */
-  .pl-reveal-rotate-in { opacity: 0; transform: rotate(-12deg) scale(0.9); }
-  /* Slides up with slight scale — heavier than rise. */
-  .pl-reveal-slide-up { opacity: 0; transform: translateY(36px) scale(0.95); }
-  .pl-reveal[data-shown] { opacity: 1; transform: none; filter: none; }
-  .pl-reveal-wipe[data-shown] { clip-path: inset(-12px); }
-  .pl-reveal-flip[data-shown] { transform: perspective(600px) rotateY(0); }
-  .pl-reveal-scale[data-shown] { transform: scale(1); }
-  .pl-reveal-blur[data-shown] { filter: none; }
-  .pl-reveal-rotate-in[data-shown] { transform: none; }
-  .pl-reveal-slide-up[data-shown] { transform: none; }
-
-  /* ── Typeset headline (V2-43b) ────────────────────────────────────
-     Each word is a piece of movable type pressed onto the page in
-     sequence. Container gets .pl-typeset + [data-shown] (useInView);
-     words carry --w (their index) for the stagger. */
-  .pl-typeset .pl-word {
-    display: inline-block;
     opacity: 0;
-    transform: translateY(0.38em) rotate(-1.2deg) scale(1.06);
-    transition:
-      opacity 480ms cubic-bezier(0.16, 1, 0.3, 1),
-      transform 480ms cubic-bezier(0.16, 1, 0.3, 1);
-    transition-delay: calc(120ms + var(--w, 0) * 65ms);
+    transform: translateY(16px);
+    transition: opacity 600ms cubic-bezier(0.16, 1, 0.3, 1), transform 600ms cubic-bezier(0.16, 1, 0.3, 1);
   }
-  .pl-typeset[data-shown] .pl-word {
+  .pl-reveal.is-visible {
+    opacity: 1;
+    transform: none;
+  }
+  .pl-reveal-delay-1 { transition-delay: 80ms; }
+  .pl-reveal-delay-2 { transition-delay: 160ms; }
+  .pl-reveal-delay-3 { transition-delay: 240ms; }
+  .pl-reveal-delay-4 { transition-delay: 320ms; }
+  .pl-reveal-delay-5 { transition-delay: 400ms; }
+
+  .pl-reveal-left {
+    opacity: 0;
+    transform: translateX(-24px);
+    transition: opacity 600ms cubic-bezier(0.16, 1, 0.3, 1), transform 600ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .pl-reveal-left.is-visible {
     opacity: 1;
     transform: none;
   }
 
-  /* ── Global chrome motion (V2-48) ───────────────────────────────────
-     Entrance + micro-interaction for the persistent frame — masthead,
-     footer, nav, buttons. Same press-room language as scrollFx: snappy
-     transforms, hard edges, no springy overshoot. Auto-playing pieces
-     collapse under prefers-reduced-motion (see the reduce block below);
-     user-triggered hover transforms stay, matching .pl-btn:hover. */
-
-  /* Masthead stamps down once on load. */
-  @keyframes pl-drop-in {
-    from { opacity: 0; transform: translateY(-14px); }
-    to   { opacity: 1; transform: translateY(0); }
+  .pl-reveal-right {
+    opacity: 0;
+    transform: translateX(24px);
+    transition: opacity 600ms cubic-bezier(0.16, 1, 0.3, 1), transform 600ms cubic-bezier(0.16, 1, 0.3, 1);
   }
-  .pl-anim-header { animation: pl-drop-in 460ms cubic-bezier(0.16, 1, 0.3, 1) both; }
+  .pl-reveal-right.is-visible {
+    opacity: 1;
+    transform: none;
+  }
 
-  /* Nav link / chrome button: lifts a hair on hover, presses flat on tap. */
+  .pl-reveal-scale {
+    opacity: 0;
+    transform: scale(0.96);
+    transition: opacity 500ms cubic-bezier(0.16, 1, 0.3, 1), transform 500ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .pl-reveal-scale.is-visible {
+    opacity: 1;
+    transform: none;
+  }
+
+  .pl-typeset {
+    @apply text-ink max-w-3xl;
+  }
+  .pl-typeset h1,
+  .pl-typeset h2,
+  .pl-typeset h3 {
+    @apply font-serif font-semibold tracking-tight text-ink;
+  }
+  .pl-typeset p {
+    @apply leading-relaxed my-4;
+  }
+  .pl-typeset ul,
+  .pl-typeset ol {
+    @apply my-4 pl-6 space-y-2;
+  }
+  .pl-typeset code {
+    @apply pl-mono text-sm bg-paper-warm px-1.5 py-0.5 rounded-sm;
+  }
+  .pl-typeset pre {
+    @apply pl-mono text-sm bg-ink text-paper-light p-4 rounded-sm overflow-x-auto my-4;
+  }
+  .pl-typeset pre code {
+    @apply bg-transparent p-0 text-inherit;
+  }
+  .pl-typeset blockquote {
+    @apply border-l-4 border-persimmon pl-4 my-4 italic text-ink-soft;
+  }
+
+  .pl-anim-header {
+    @apply pl-reveal-delay-1;
+    opacity: 0;
+    transform: translateY(16px);
+    transition: opacity 600ms cubic-bezier(0.16, 1, 0.3, 1), transform 600ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .pl-anim-header.is-visible {
+    opacity: 1;
+    transform: none;
+  }
+
   .pl-nav-link {
-    transition: transform 150ms cubic-bezier(0.4, 0, 0.2, 1),
-                background-color 150ms, color 150ms, border-color 150ms;
+    @apply relative inline-block py-1 text-ink font-medium transition-colors duration-150;
   }
-  .pl-nav-link:hover { transform: translateY(-2px); }
-  .pl-nav-link:active { transform: translateY(0); }
-
-  /* Arrow nudges right as the button lifts (Button.tsx → span.pl-arrow). */
-  .pl-arrow { transition: transform 150ms cubic-bezier(0.4, 0, 0.2, 1); }
-  .pl-btn:hover .pl-arrow { transform: translateX(4px); }
-
-  /* Keyboard focus: hard persimmon outline — on-brand, no soft glow. */
-  .pl-btn:focus-visible,
-  .pl-nav-link:focus-visible {
-    outline: none;
-    box-shadow: 0 0 0 2px #f8f4ed, 0 0 0 4px #d14b2c;
+  .pl-nav-link::after {
+    content: "";
+    @apply absolute bottom-0 left-0 w-0 h-0.5 bg-persimmon transition-all duration-300 ease-snap;
+  }
+  .pl-nav-link:hover::after,
+  .pl-nav-link.active::after {
+    @apply w-full;
   }
 
-  /* Footer fleuron turns on hover. */
-  .pl-ornament { display: inline-block; transition: transform 400ms cubic-bezier(0.16, 1, 0.3, 1); }
-  .pl-ornament:hover { transform: rotate(180deg); }
+  .pl-arrow {
+    @apply inline-flex items-center justify-center w-8 h-8 rounded-sm border border-ink
+           bg-paper-light text-ink transition-all duration-150;
+  }
+  .pl-arrow:hover {
+    @apply bg-ink text-paper-light;
+    box-shadow: 4px 4px 0 #E3E9F4;
+  }
 
-  /* Mobile-drawer items slide + fade in, staggered, as the drawer opens. */
+  .pl-ornament {
+    @apply inline-block w-16 h-px bg-ink my-6;
+  }
+
   .pl-drawer-item {
-    transition: opacity 300ms cubic-bezier(0.16, 1, 0.3, 1),
-                transform 300ms cubic-bezier(0.16, 1, 0.3, 1);
+    @apply flex items-center gap-3 px-4 py-3 rounded-sm text-ink font-medium
+           transition-colors duration-150;
   }
-  .pl-drawer-item[data-open="false"] { opacity: 0; transform: translateX(14px); }
-  .pl-drawer-item[data-open="true"]  { opacity: 1; transform: translateX(0); }
+  .pl-drawer-item:hover {
+    @apply bg-paper-warm;
+  }
+  .pl-drawer-item.active {
+    @apply bg-persimmon text-paper-light;
+  }
 
-  /* ── CSS-3D scene (V2-45) ──────────────────────────────────────────
-     Real perspective + preserve-3d, GPU-composited, no WebGL — runs
-     on a low-end Android. The scroll-driven transforms are written to
-     element.style by Printer3D.tsx; these classes only set up the 3D
-     context and the static cuboid faces. */
-  .pl-3d { transform-style: preserve-3d; }
+  /* ── 3D card flip (kept verbatim) ──────────────────────────────────── */
+  .pl-3d {
+    perspective: 1000px;
+  }
+  .pl-3d-inner {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    transition: transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+    transform-style: preserve-3d;
+  }
+  .pl-3d.is-flipped .pl-3d-inner {
+    transform: rotateY(180deg);
+  }
   .pl-face {
     position: absolute;
-    left: 50%;
-    top: 50%;
+    inset: 0;
     backface-visibility: hidden;
-    will-change: transform;
+    border-radius: var(--r);
+  }
+  .pl-face-back {
+    transform: rotateY(180deg);
   }
 
+  /* ── Reduced motion (global kill switch) ───────────────────────────── */
   @media (prefers-reduced-motion: reduce) {
-    .pl-reveal, .pl-reveal[data-shown] {
-      transition: none;
-      opacity: 1;
-      transform: none;
-      clip-path: none;
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
     }
-    .pl-typeset .pl-word {
-      transition: none;
-      opacity: 1;
-      transform: none;
+    .pl-reveal,
+    .pl-reveal-left,
+    .pl-reveal-right,
+    .pl-reveal-scale {
+      opacity: 1 !important;
+      transform: none !important;
+      transition: none !important;
     }
-    /* Chrome motion (V2-48): drop the auto-playing entrances; the
-       hover micro-lifts are user-triggered and stay, matching .pl-btn. */
-    .pl-anim-header { animation: none; }
-    .pl-drawer-item,
-    .pl-drawer-item[data-open="false"],
-    .pl-drawer-item[data-open="true"] {
-      transition: none;
-      opacity: 1;
-      transform: none;
+    .pl-3d-inner {
+      transition: none !important;
     }
   }
 
-  /* Pulse animation for collaboration cursors */
-  @keyframes pulse {
-    0%, 100% { opacity: 1; transform: scale(1); }
-    50% { opacity: 0.5; transform: scale(1.1); }
+  /* ── Pulse for live badges (uses process blue via keyframe) ────────── */
+  .pl-pulse {
+    animation: pulse-ring 1.8s ease-in-out infinite;
   }
 }

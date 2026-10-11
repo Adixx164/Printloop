@@ -103,15 +103,15 @@ export default function AccountPage() {
         <h2 className="pl-serif font-extrabold text-2xl tracking-tight">
           Account &amp; data
         </h2>
-        <p className="text-sm text-ink/60">
+        <p className="text-sm text-gray-50/60">
           Export everything we hold for your business, or close your
           account.
         </p>
       </div>
 
-      <section className="border-2 border-ink rounded-pl p-4 space-y-3 bg-paper-light">
+      <section className="border-2 border-gray-900 rounded-pl p-4 space-y-3 bg-gray-100">
         <h3 className="font-bold">Month-end statement</h3>
-        <p className="text-sm text-ink/60">
+        <p className="text-sm text-gray-50/60">
           A CSV of your transactions (gross, our commission, your net)
           and payouts for the month — for your accountant.
         </p>
@@ -135,12 +135,12 @@ export default function AccountPage() {
             {stmtBusy ? "Preparing…" : "Download statement (CSV)"}
           </button>
         </div>
-        {stmtError && <p className="text-persimmon text-sm font-semibold">{stmtError}</p>}
+        {stmtError && <p className="text-indigo-600 text-sm font-semibold">{stmtError}</p>}
       </section>
 
-      <section className="border-2 border-ink rounded-pl p-4 space-y-3 bg-paper-light">
+      <section className="border-2 border-gray-900 rounded-pl p-4 space-y-3 bg-gray-100">
         <h3 className="font-bold">Export your data</h3>
-        <p className="text-sm text-ink/60">
+        <p className="text-sm text-gray-50/60">
           Downloads a JSON archive of your tenant, customers, kiosks,
           print jobs, payments, payouts, and audit log. Credentials are
           stripped.
@@ -152,18 +152,18 @@ export default function AccountPage() {
         >
           {exporting ? "Preparing…" : "Download export (JSON)"}
         </button>
-        {exportError && <p className="text-persimmon text-sm font-semibold">{exportError}</p>}
+        {exportError && <p className="text-indigo-600 text-sm font-semibold">{exportError}</p>}
       </section>
 
-      <section className="border-2 border-persimmon rounded-pl p-4 space-y-3 bg-persimmon/5">
-        <h3 className="font-bold text-persimmon uppercase tracking-wider text-sm">
+      <section className="border-2 border-indigo-600 rounded-pl p-4 space-y-3 bg-indigo-600/5">
+        <h3 className="font-bold text-indigo-600 uppercase tracking-wider text-sm">
           ▸ Danger zone
         </h3>
-        <p className="text-sm text-ink/70">
+        <p className="text-sm text-gray-50/70">
           Closing your account stops all printing immediately and starts
           a 30-day cooling-off window, after which your data is deleted.
           Type your subdomain{" "}
-          <code className="font-mono bg-paper-warm px-1 rounded">{me?.slug}</code>{" "}
+          <code className="font-mono bg-gray-100 px-1 rounded">{me?.slug}</code>{" "}
           to confirm.
         </p>
         <form onSubmit={onClose} className="space-y-3">
@@ -180,14 +180,14 @@ export default function AccountPage() {
             onChange={(e) => setReason(e.target.value)}
           />
           {closeState.isError && (
-            <p className="text-persimmon text-sm font-semibold">
+            <p className="text-indigo-600 text-sm font-semibold">
               {(closeState.error as any)?.data?.message || "Close failed."}
             </p>
           )}
           <button
             type="submit"
             disabled={closeState.isLoading || confirmSlug !== me?.slug}
-            className="pl-btn !bg-persimmon !text-paper !border-persimmon disabled:opacity-50 disabled:cursor-not-allowed"
+            className="pl-btn !bg-indigo-600 !text-gray-50 !border-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {closeState.isLoading ? "Closing…" : "Close this account"}
           </button>

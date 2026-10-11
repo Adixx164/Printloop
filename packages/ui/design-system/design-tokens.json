@@ -1,0 +1,243 @@
+{
+  "meta": {
+    "name": "PrintLoop Design System",
+    "description": "Six print-shop inks + two typefaces (Archivo / IBM Plex Sans). The page is a printed sheet.",
+    "version": "2.0.0",
+    "created": "2026-09-29",
+    "updated": "2026-10-09",
+    "personality": "Editorial print-shop. Six inks on paper: toner, process blue, register red, highlight yellow, pass green, hairline. Hard offset shadows, tight radii, uppercase data labels. Nigerian print-shop content, ₦ pricing.",
+    "source": "design-system/sample.html"
+  },
+  "ink": {
+    "sheet": "#F9FBFF",
+    "paper": "#FFFFFF",
+    "toner": "#17140F",
+    "muted": "#6E6A61",
+    "inkSoft": "#3B372F",
+    "process": "#0077C8",
+    "processInk": "#005E9E",
+    "register": "#CE2B37",
+    "highlight": "#FFD400",
+    "pass": "#177245",
+    "hairline": "#E3E8F0",
+    "radius": "3px",
+    "rail": "52px"
+  },
+  "tints": {
+    "ticketShadow": "#E3E9F4",
+    "cool": "#F1F5FC",
+    "rowHover": "#F2F5FB",
+    "btnHover": "#EDF1F8",
+    "primaryHover": "#0066AD",
+    "dangerHover": "#B0222C",
+    "ghostHover": "#EAF2FA",
+    "badge": "#EDF0F6",
+    "badgeReady": "#E9F3EE",
+    "badgeRender": "#E9F2FA",
+    "alertBorder": "#EFC7CC",
+    "alertBg": "#FDF0F1"
+  },
+  "colors": {
+    "brand": {
+      "50": "#E9F2FA",
+      "100": "#D6E8F6",
+      "200": "#A9CDEC",
+      "300": "#7BB0E0",
+      "400": "#3F92D4",
+      "500": "#0077C8",
+      "600": "#005E9E",
+      "700": "#004877",
+      "800": "#003254",
+      "900": "#001F35",
+      "950": "#00111F"
+    },
+    "neutral": {
+      "0": "#FFFFFF",
+      "50": "#F9FBFF",
+      "100": "#F1F5FC",
+      "200": "#E3E8F0",
+      "300": "#C9D0DA",
+      "400": "#8A857B",
+      "500": "#6E6A61",
+      "600": "#3B372F",
+      "700": "#2A261F",
+      "800": "#211D17",
+      "900": "#17140F",
+      "950": "#100E0A"
+    },
+    "success": {
+      "50": "#E9F3EE",
+      "100": "#D5EBDF",
+      "500": "#177245",
+      "600": "#136039",
+      "700": "#0F4E2E"
+    },
+    "warning": {
+      "50": "#FFFBE6",
+      "100": "#FFF3B8",
+      "500": "#FFD400",
+      "600": "#C7944A",
+      "700": "#8A6A2E"
+    },
+    "error": {
+      "50": "#FDF0F1",
+      "100": "#F9DDE0",
+      "500": "#CE2B37",
+      "600": "#B0222C",
+      "700": "#8F1B23"
+    },
+    "info": {
+      "50": "#E9F2FA",
+      "100": "#D6E8F6",
+      "500": "#0077C8",
+      "600": "#005E9E",
+      "700": "#004877"
+    },
+    "semantic": {
+      "primary": "{brand.500}",
+      "primaryHover": "{tints.primaryHover}",
+      "primaryActive": "{ink.processInk}",
+      "primaryForeground": "{ink.paper}",
+      "secondary": "{neutral.100}",
+      "secondaryHover": "{neutral.200}",
+      "secondaryForeground": "{ink.toner}",
+      "destructive": "{ink.register}",
+      "destructiveHover": "{tints.dangerHover}",
+      "destructiveForeground": "{ink.paper}",
+      "muted": "{neutral.100}",
+      "mutedForeground": "{ink.muted}",
+      "accent": "{brand.50}",
+      "accentForeground": "{ink.processInk}",
+      "background": "{ink.sheet}",
+      "foreground": "{ink.toner}",
+      "card": "{ink.paper}",
+      "cardForeground": "{ink.toner}",
+      "popover": "{ink.paper}",
+      "popoverForeground": "{ink.toner}",
+      "border": "{ink.hairline}",
+      "input": "{ink.hairline}",
+      "ring": "{ink.process}",
+      "sheet": "{ink.sheet}",
+      "paper": "{ink.paper}",
+      "toner": "{ink.toner}",
+      "process": "{ink.process}",
+      "processInk": "{ink.processInk}",
+      "register": "{ink.register}",
+      "highlight": "{ink.highlight}",
+      "pass": "{ink.pass}",
+      "hairline": "{ink.hairline}"
+    }
+  },
+  "typography": {
+    "fontDisplay": {
+      "family": "Archivo",
+      "fallback": "'Helvetica Neue', Arial, sans-serif",
+      "weights": [500, 600, 700, 800, 900],
+      "source": "https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800;900&display=swap"
+    },
+    "fontBody": {
+      "family": "IBM Plex Sans",
+      "fallback": "system-ui, -apple-system, sans-serif",
+      "weights": [400, 500, 600],
+      "source": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&display=swap"
+    },
+    "fontData": {
+      "family": "Archivo",
+      "fallback": "'Helvetica Neue', Arial, sans-serif",
+      "weights": [500, 600, 700, 800, 900],
+      "usage": "Codes, numbers, money, uppercase labels (tabular figures)",
+      "source": "https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800;900&display=swap"
+    },
+    "fontMono": "{typography.fontData}",
+    "scale": {
+      "xs": { "size": "0.75rem", "lineHeight": "1rem", "weight": 400, "usage": "Fine print, badges, timestamps" },
+      "sm": { "size": "0.875rem", "lineHeight": "1.25rem", "weight": 400, "usage": "Captions, labels, helper text" },
+      "base": { "size": "1rem", "lineHeight": "1.6", "weight": 400, "usage": "Body text, paragraphs" },
+      "lg": { "size": "1.125rem", "lineHeight": "1.75rem", "weight": 500, "usage": "Lead text, card titles" },
+      "xl": { "size": "1.25rem", "lineHeight": "1.75rem", "weight": 600, "usage": "Section headers" },
+      "2xl": { "size": "1.5rem", "lineHeight": "2rem", "weight": 700, "usage": "Page headers" },
+      "3xl": { "size": "1.875rem", "lineHeight": "2.25rem", "weight": 700, "usage": "Hero titles" },
+      "4xl": { "size": "2.25rem", "lineHeight": "2.5rem", "weight": 800, "usage": "Display text, marketing hero" }
+    },
+    "weights": {
+      "normal": 400,
+      "medium": 500,
+      "semibold": 600,
+      "bold": 700,
+      "extrabold": 800,
+      "black": 900
+    },
+    "letterSpacing": {
+      "tight": "-0.02em",
+      "normal": "0",
+      "wide": "0.02em",
+      "editorial": "0.16em"
+    }
+  },
+  "spacing": {
+    "baseUnit": "4px",
+    "scale": {
+      "0": "0",
+      "1": "0.25rem",
+      "2": "0.5rem",
+      "3": "0.75rem",
+      "4": "1rem",
+      "5": "1.25rem",
+      "6": "1.5rem",
+      "8": "2rem",
+      "10": "2.5rem",
+      "12": "3rem",
+      "16": "4rem",
+      "20": "5rem",
+      "24": "6rem"
+    }
+  },
+  "borders": {
+    "radius": {
+      "none": "0",
+      "sm": "2px",
+      "md": "3px",
+      "lg": "4px",
+      "xl": "6px",
+      "2xl": "10px",
+      "full": "9999px"
+    },
+    "width": {
+      "default": "1px",
+      "thick": "2px"
+    }
+  },
+  "shadows": {
+    "0": "none",
+    "1": "4px 4px 0 var(--tint-ticket-shadow)",
+    "2": "6px 6px 0 var(--tint-ticket-shadow)",
+    "3": "10px 10px 0 var(--tint-ticket-shadow)",
+    "4": "12px 12px 0 var(--tint-ticket-shadow)",
+    "ticket": "12px 12px 0 var(--tint-ticket-shadow)",
+    "glow": "0 0 0 1px var(--process), 0 0 0 4px var(--color-accent)"
+  },
+  "effects": {
+    "transitionFast": "150ms ease",
+    "transitionNormal": "200ms ease",
+    "transitionSlow": "300ms ease"
+  },
+  "breakpoints": {
+    "sm": "640px",
+    "md": "768px",
+    "lg": "1024px",
+    "xl": "1280px",
+    "2xl": "1536px"
+  },
+  "zIndex": {
+    "hide": -1,
+    "base": 0,
+    "dropdown": 100,
+    "sticky": 200,
+    "fixed": 300,
+    "modalBackdrop": 400,
+    "modal": 500,
+    "popover": 600,
+    "tooltip": 700,
+    "toast": 800
+  }
+}

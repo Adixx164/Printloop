@@ -116,17 +116,17 @@ export default function OperatorPrintersPage() {
     <div className="max-w-5xl mx-auto p-4 sm:p-6 space-y-6">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <div className="editorial-label text-persimmon mb-1">▸ PRINTERS</div>
+          <div className="editorial-label text-indigo-600 mb-1">▸ PRINTERS</div>
           <h1 className="pl-serif font-extrabold text-3xl sm:text-4xl leading-none tracking-tight">
             Your printers
           </h1>
-          <p className="mt-1 text-sm text-ink/60">
+          <p className="mt-1 text-sm text-gray-50/60">
             Add a printer, pair the kiosk PC by QR, confirm a test print.
           </p>
         </div>
         <Link
           to="/saas/operator"
-          className="text-sm font-bold text-persimmon border-b-2 border-persimmon whitespace-nowrap"
+          className="text-sm font-bold text-indigo-600 border-b-2 border-indigo-600 whitespace-nowrap"
         >
           ← Console
         </Link>
@@ -135,7 +135,7 @@ export default function OperatorPrintersPage() {
       {/* Add printer */}
       <form
         onSubmit={onCreate}
-        className="border-2 border-ink rounded-pl p-4 sm:p-5 bg-paper-light space-y-3"
+        className="border-2 border-gray-900 rounded-pl p-4 sm:p-5 bg-gray-100 space-y-3"
       >
         <h2 className="pl-serif font-extrabold text-xl">Add a printer</h2>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -186,16 +186,16 @@ export default function OperatorPrintersPage() {
       {/* Printer list */}
       <div className="space-y-3">
         {isLoading && (
-          <p className="text-fog text-sm pl-serif italic">Loading printers…</p>
+          <p className="text-gray-500 text-sm pl-serif italic">Loading printers…</p>
         )}
         {isError && (
-          <p className="text-persimmon text-sm font-semibold">
+          <p className="text-indigo-600 text-sm font-semibold">
             Could not load printers.
           </p>
         )}
         {kiosks && kiosks.length === 0 && !isLoading && (
-          <div className="border-2 border-dashed border-ink/40 rounded-pl p-8 text-center">
-            <p className="pl-serif italic text-ink/60">
+          <div className="border-2 border-dashed border-gray-900/40 rounded-pl p-8 text-center">
+            <p className="pl-serif italic text-gray-50/60">
               No printers yet. Add your first one above to go live.
             </p>
           </div>
@@ -243,23 +243,23 @@ function KioskRow({
   repairBusy: boolean;
 }) {
   return (
-    <div className="border-2 border-ink rounded-pl p-4 bg-paper-light">
+    <div className="border-2 border-gray-900 rounded-pl p-4 bg-gray-100">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <span className="font-bold">{k.name}</span>
             <OnlinePill online={k.online} status={k.status} />
             {k.testPrintPassedAt ? (
-              <span className="px-2 py-0.5 rounded-pl-sm text-[10px] font-bold uppercase tracking-editorial bg-sage/20 text-sage">
+<span className="px-2 py-0.5 rounded-pl-sm text-[10px] font-bold uppercase tracking-editorial bg-emerald-600/20 text-emerald-600">
                 test print ✓
               </span>
             ) : (
-              <span className="px-2 py-0.5 rounded-pl-sm text-[10px] font-bold uppercase tracking-editorial bg-ochre/20 text-ochre">
+              <span className="px-2 py-0.5 rounded-pl-sm text-[10px] font-bold uppercase tracking-editorial bg-amber-100 text-amber-500">
                 test pending
               </span>
             )}
           </div>
-          <div className="text-xs text-ink/50 mt-1 font-mono">
+          <div className="text-xs text-gray-50/50 mt-1 font-mono">
             {[k.location, k.printerName].filter(Boolean).join(" · ") || "—"}
             {k.lastSeenAt && (
               <> · last seen {new Date(k.lastSeenAt).toLocaleString()}</>
@@ -271,24 +271,24 @@ function KioskRow({
           {(k.capColor != null || k.capDuplex != null || k.capA3 != null) && (
             <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
               {k.capColor != null && (
-                <span className={`px-2 py-0.5 rounded-pl-sm text-[10px] font-bold uppercase tracking-editorial ${k.capColor ? "bg-persimmon/15 text-persimmon" : "bg-ink/10 text-ink/50"}`}>
+                <span className={`px-2 py-0.5 rounded-pl-sm text-[10px] font-bold uppercase tracking-editorial ${k.capColor ? "bg-indigo-600/15 text-indigo-600" : "bg-gray-900/10 text-gray-900/50"}`}>
                   {k.capColor ? "colour" : "b&w only"}
                 </span>
               )}
               {k.capDuplex != null && k.capDuplex && (
-                <span className="px-2 py-0.5 rounded-pl-sm text-[10px] font-bold uppercase tracking-editorial bg-sage/20 text-sage">
+<span className="px-2 py-0.5 rounded-pl-sm text-[10px] font-bold uppercase tracking-editorial bg-emerald-600/20 text-emerald-600">
                   duplex
                 </span>
               )}
               {k.capA3 != null && k.capA3 && (
-                <span className="px-2 py-0.5 rounded-pl-sm text-[10px] font-bold uppercase tracking-editorial bg-ochre/20 text-ochre">
+<span className="px-2 py-0.5 rounded-pl-sm text-[10px] font-bold uppercase tracking-editorial bg-amber-100 text-amber-500">
                   a3
                 </span>
               )}
-              <span className="text-[10px] text-ink/35 font-mono">auto-detected</span>
+              <span className="text-[10px] text-gray-50/35 font-mono">auto-detected</span>
             </div>
           )}
-          <div className="text-xs text-ink/40 mt-0.5">
+          <div className="text-xs text-gray-50/40 mt-0.5">
             {k.totalJobsPrinted} jobs printed
           </div>
         </div>
@@ -310,11 +310,11 @@ function KioskRow({
           </button>
           <button
             onClick={onToggle}
-            className="text-sm font-bold text-persimmon"
+            className="text-sm font-bold text-indigo-600"
           >
             {k.status === "ACTIVE" ? "Pause" : "Activate"}
           </button>
-          <button onClick={onDelete} className="text-sm font-bold text-persimmon">
+          <button onClick={onDelete} className="text-sm font-bold text-indigo-600">
             Remove
           </button>
         </div>
@@ -326,13 +326,13 @@ function KioskRow({
 function OnlinePill({ online, status }: { online: boolean; status: string }) {
   if (online) {
     return (
-      <span className="px-2 py-0.5 rounded-pl-sm text-[10px] font-bold uppercase tracking-editorial bg-sage/20 text-sage">
+      <span className="px-2 py-0.5 rounded-pl-sm text-[10px] font-bold uppercase tracking-editorial bg-emerald-600/20 text-emerald-600">
         online
       </span>
     );
   }
-  return (
-    <span className="px-2 py-0.5 rounded-pl-sm text-[10px] font-bold uppercase tracking-editorial bg-ink/10 text-ink/50">
+return (
+      <span className="px-2 py-0.5 rounded-pl-sm text-[10px] font-bold uppercase tracking-editorial bg-gray-900/10 text-gray-900/50">
       {status === "ACTIVE" ? "offline" : status.toLowerCase()}
     </span>
   );
@@ -353,18 +353,18 @@ function PairingModal({
 }) {
   return (
     <div
-      className="fixed inset-0 z-50 bg-ink/60 flex items-center justify-center p-4"
+      className="fixed inset-0 z-50 bg-gray-900/60 flex items-center justify-center p-4"
       onClick={onClose}
     >
       <div
-        className="bg-paper border-2 border-ink rounded-pl-lg p-6 max-w-md w-full"
+        className="bg-gray-50 border-2 border-gray-900 rounded-pl-lg p-6 max-w-md w-full"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="editorial-label text-persimmon mb-1">▸ PAIR THE KIOSK PC</div>
+        <div className="editorial-label text-indigo-600 mb-1">▸ PAIR THE KIOSK PC</div>
         <h3 className="pl-serif font-extrabold text-2xl tracking-tight mb-1">
           {name}
         </h3>
-        <p className="text-sm text-ink/60 mb-4">
+        <p className="text-sm text-gray-50/60 mb-4">
           On the kiosk PC, open the PrintLoop installer and scan this QR — it
           carries the cloud address and this printer's pairing key. No typing.
         </p>
@@ -374,22 +374,22 @@ function PairingModal({
         </div>
 
         <details className="mb-4">
-          <summary className="text-xs font-bold uppercase tracking-wider cursor-pointer text-ink/60">
+          <summary className="text-xs font-bold uppercase tracking-wider cursor-pointer text-gray-50/60">
             Can't scan? Enter manually
           </summary>
           <div className="mt-2 space-y-1 font-mono text-xs">
-            <div className="bg-paper-warm border-2 border-ink rounded-pl-sm p-2 break-all">
-              <span className="text-ink/40">cloud </span>
+            <div className="bg-gray-100 border-2 border-gray-900 rounded-pl-sm p-2 break-all">
+              <span className="text-gray-50/40">cloud </span>
               {baseUrl}
             </div>
-            <div className="bg-paper-warm border-2 border-ink rounded-pl-sm p-2 break-all">
-              <span className="text-ink/40">key </span>
+            <div className="bg-gray-100 border-2 border-gray-900 rounded-pl-sm p-2 break-all">
+              <span className="text-gray-50/40">key </span>
               {apiKey}
             </div>
           </div>
         </details>
 
-        <p className="text-[11px] text-ochre font-semibold mb-4">
+        <p className="text-[11px] text-amber-500 font-semibold mb-4">
           This key won't be shown again. Pair the kiosk now, or hit "Pairing QR"
           later to issue a fresh one.
         </p>

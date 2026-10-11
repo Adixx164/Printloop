@@ -33,20 +33,20 @@ export default function PayoutsPage() {
   return (
     <div className="max-w-4xl mx-auto p-4 sm:p-6 space-y-6">
       <div>
-        <div className="editorial-label text-persimmon mb-1">▸ EARNINGS</div>
+        <div className="editorial-label text-indigo-600 mb-1">▸ EARNINGS</div>
         <h1 className="pl-serif font-extrabold text-3xl sm:text-4xl leading-none tracking-tight">
           Payouts
         </h1>
       </div>
 
-      <div className="bg-paper-light border-2 border-ink rounded-pl p-5 sm:p-6">
+      <div className="bg-gray-100 border-2 border-gray-900 rounded-pl p-5 sm:p-6">
         <div className="flex items-end justify-between flex-wrap gap-4">
           <div>
-            <div className="editorial-label text-ink/50">Available now</div>
+            <div className="editorial-label text-gray-50/50">Available now</div>
             <div className="pl-serif font-extrabold text-4xl tracking-tight mt-0.5">
               {balance.data ? ngn(balance.data.availableBalance) : "—"}
             </div>
-            <div className="text-xs text-ink/50 mt-1 font-mono">
+            <div className="text-xs text-gray-50/50 mt-1 font-mono">
               Pending: {balance.data ? ngn(balance.data.pendingPayout) : "—"}
             </div>
           </div>
@@ -60,37 +60,37 @@ export default function PayoutsPage() {
                 ? "Sending…"
                 : `Pay out now (₦${INSTANT_FEE} fee)`}
             </button>
-            <p className="text-xs text-ink/50 mt-2">
+            <p className="text-xs text-gray-50/50 mt-2">
               Or wait for the automatic{" "}
               {me.data?.payoutSchedule?.cadence ?? "weekly"} payout
             </p>
           </div>
         </div>
         {instantState.isError && (
-          <p className="text-persimmon text-sm mt-3 font-semibold">
+          <p className="text-indigo-600 text-sm mt-3 font-semibold">
             {(instantState.error as any)?.data?.message ||
               "Instant payout failed."}
           </p>
         )}
         {!me.data?.onboarding.bankAccountSet && (
-          <p className="text-ochre text-sm mt-3 font-semibold">
+          <p className="text-amber-500 text-sm mt-3 font-semibold">
             Add a bank account before requesting a payout.
           </p>
         )}
       </div>
 
-      <div className="bg-paper-light border-2 border-ink rounded-pl p-5 sm:p-6">
+      <div className="bg-gray-100 border-2 border-gray-900 rounded-pl p-5 sm:p-6">
         <h2 className="pl-serif font-extrabold text-xl mb-4">Payout history</h2>
         {payouts.isLoading && (
-          <p className="text-fog text-sm pl-serif italic">Loading…</p>
+          <p className="text-gray-500 text-sm pl-serif italic">Loading…</p>
         )}
         {payouts.data && payouts.data.items.length === 0 && (
-          <p className="text-fog text-sm">No payouts yet.</p>
+          <p className="text-gray-500 text-sm">No payouts yet.</p>
         )}
         {payouts.data && payouts.data.items.length > 0 && (
           <table className="w-full text-sm">
             <thead>
-              <tr className="text-left editorial-label text-ink/50 border-b-2 border-ink">
+              <tr className="text-left editorial-label text-gray-50/50 border-b-2 border-gray-900">
                 <th className="py-2">When</th>
                 <th>Amount</th>
                 <th>Fee</th>
@@ -105,14 +105,14 @@ export default function PayoutsPage() {
                     {new Date(p.createdAt).toLocaleString()}
                   </td>
                   <td className="font-mono">{ngn(p.amount)}</td>
-                  <td className="font-mono text-ink/60">
+                  <td className="font-mono text-gray-50/60">
                     {p.feeAmount ? ngn(p.feeAmount) : "—"}
                   </td>
                   <td className="capitalize">{p.trigger}</td>
                   <td>
                     <StatusPill status={p.status} />
                     {p.failureReason && (
-                      <div className="text-xs text-persimmon mt-0.5">
+                      <div className="text-xs text-indigo-600 mt-0.5">
                         {p.failureReason}
                       </div>
                     )}
@@ -130,10 +130,10 @@ export default function PayoutsPage() {
 function StatusPill({ status }: { status: string }) {
   const color =
     status === "paid"
-      ? "bg-sage/20 text-sage"
+      ? "bg-emerald-600/20 text-emerald-600"
       : status === "failed" || status === "cancelled"
-      ? "bg-persimmon/15 text-persimmon"
-      : "bg-ochre/20 text-ochre";
+      ? "bg-indigo-600/15 text-indigo-600"
+      : "bg-amber-500/20 text-amber-500";
   return (
     <span
       className={`inline-block px-2 py-0.5 rounded-pl-sm text-[10px] font-bold uppercase tracking-editorial ${color}`}

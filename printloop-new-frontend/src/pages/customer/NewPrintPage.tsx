@@ -259,11 +259,11 @@ export default function NewPrintPage() {
 
   return (
     <div className="animate-fadein">
-      <div className="editorial-label text-persimmon mb-1">NEW PRINT</div>
+      <div className="editorial-label text-indigo-600 mb-1">NEW PRINT</div>
       <h1 className="pl-serif text-3xl sm:text-4xl font-bold tracking-tight mb-1">
-        Upload, price, preview, <em className="italic text-persimmon font-semibold">release</em>.
+        Upload, price, preview, <em className="italic text-indigo-600 font-semibold">release</em>.
       </h1>
-      <p className="pl-serif italic text-ink/60 mb-6 sm:mb-7 text-sm sm:text-base">
+      <p className="pl-serif italic text-gray-900/60 mb-6 sm:mb-7 text-sm sm:text-base">
         Print codes stay valid for 24 hours. You pay once, securely, via Paystack.
       </p>
 
@@ -277,10 +277,10 @@ export default function NewPrintPage() {
               key={label}
               className={`p-2 sm:p-3 border-2 transition-all ${
                 active
-                  ? "border-ink bg-persimmon text-paper animate-pulse-ring"
+                  ? "border-gray-900 bg-indigo-600 text-gray-50 animate-pulse-ring"
                   : done
-                  ? "border-ink bg-ink text-paper"
-                  : "border-ink/30 bg-paper text-ink/60"
+                  ? "border-gray-900 bg-gray-900 text-gray-50"
+                  : "border-gray-900/30 bg-gray-50 text-gray-900/60"
               }`}
             >
               <div className="pl-serif italic font-bold text-xs sm:text-sm opacity-80">0{n}</div>
@@ -293,22 +293,22 @@ export default function NewPrintPage() {
       </div>
 
       {step === 1 && (
-        <div className="border-2 border-ink p-4 sm:p-7 animate-fadein">
+        <div className="border-2 border-gray-900 p-4 sm:p-7 animate-fadein">
           <h2 className="pl-serif text-xl sm:text-2xl font-bold mb-4">Submit your document.</h2>
           <label
             htmlFor="filein"
-            className="block border-2 border-dashed border-ink/40 p-6 sm:p-10 text-center cursor-pointer hover:bg-paper-light transition-colors rounded"
+            className="block border-2 border-dashed border-gray-900/40 p-6 sm:p-10 text-center cursor-pointer hover:bg-gray-50-light transition-colors rounded"
           >
             <div className="pl-serif text-base sm:text-xl font-semibold mb-1">
               Drop a file, or click to browse.
             </div>
-            <div className="pl-serif italic text-ink/60 text-xs sm:text-sm mb-4">
+            <div className="pl-serif italic text-gray-900/60 text-xs sm:text-sm mb-4">
               {officeEnabled
                 ? "PDF · Word · PowerPoint · Excel · images · up to 50MB"
                 : "PDF · JPG · PNG · up to 50MB"}
             </div>
             {file && (
-              <div className="inline-block bg-ink text-paper px-3 py-1.5 text-xs font-semibold break-all max-w-full">
+              <div className="inline-block bg-gray-900 text-gray-50 px-3 py-1.5 text-xs font-semibold break-all max-w-full">
                 {file.name}
               </div>
             )}
@@ -332,9 +332,9 @@ export default function NewPrintPage() {
           </label>
 
           {editingEnabled && (
-            <div className="mt-6 border-2 border-ink/20 p-4 bg-paper-light">
+            <div className="mt-6 border-2 border-gray-900/20 p-4 bg-gray-50-light">
               <div className="flex items-start gap-3">
-                <FileEdit className="w-5 h-5 mt-0.5 shrink-0 text-persimmon" />
+                <FileEdit className="w-5 h-5 mt-0.5 shrink-0 text-indigo-600" />
                 <div>
                   <label className="flex items-center gap-2 cursor-pointer">
                     <input
@@ -345,7 +345,7 @@ export default function NewPrintPage() {
                     />
                     <div className="pl-serif font-bold text-base">Request editing service</div>
                   </label>
-                  <p className="pl-serif italic text-ink/60 text-xs sm:text-sm mt-1">
+                  <p className="pl-serif italic text-gray-900/60 text-xs sm:text-sm mt-1">
                     Our print shop will edit your document before printing (formatting, layout fixes, conversions, etc.).
                     Additional fees apply — pricing shown on next step.
                   </p>
@@ -382,9 +382,9 @@ export default function NewPrintPage() {
 
       {step === 2 && (
         <div className="grid grid-cols-1 lg:grid-cols-[1.15fr_0.85fr] gap-4 animate-fadein">
-          <section className="border-2 border-ink p-4 sm:p-7">
+          <section className="border-2 border-gray-900 p-4 sm:p-7">
             <h2 className="pl-serif text-xl sm:text-2xl font-bold mb-1">Configure the print.</h2>
-            <p className="pl-serif italic text-ink/55 text-sm mb-5">
+            <p className="pl-serif italic text-gray-900/55 text-sm mb-5">
               Pages are read from your document automatically — choose a range to print only part of it.
             </p>
 
@@ -394,13 +394,13 @@ export default function NewPrintPage() {
                 onMeta={handleMeta} />
             </div>
 
-            <div className="border-2 border-ink bg-paper-light p-4 mb-5 flex items-center justify-between">
+            <div className="border-2 border-gray-900 bg-gray-50-light p-4 mb-5 flex items-center justify-between">
               <div>
-                <div className="editorial-label text-ink/60">DOCUMENT</div>
+                <div className="editorial-label text-gray-900/60">DOCUMENT</div>
                 <div className="pl-serif font-bold text-lg truncate max-w-[280px]">{file?.name}</div>
               </div>
               <div className="text-right">
-                <div className="editorial-label text-ink/60">{isOffice ? "APPROX. PAGES" : "PAGES DETECTED"}</div>
+                <div className="editorial-label text-gray-900/60">{isOffice ? "APPROX. PAGES" : "PAGES DETECTED"}</div>
                 {rangeable ? (
                   <div className="pl-mono text-2xl font-bold">{docPages || "…"}</div>
                 ) : (
@@ -414,8 +414,8 @@ export default function NewPrintPage() {
               </div>
             </div>
             {isOffice && (
-              <div className="border-2 border-ochre/60 bg-ochre/10 p-3 mb-5 text-sm pl-serif">
-                <span className="font-bold text-ochre">Word / PowerPoint / Excel</span> is converted to PDF
+              <div className="border-2 border-amber-500/60 bg-amber-50 p-3 mb-5 text-sm pl-serif">
+                <span className="font-bold text-amber-500">Word / PowerPoint / Excel</span> is converted to PDF
                 when you upload. The price is an <span className="font-bold">estimate</span> from your
                 approximate page count — the exact pages &amp; price are confirmed on your receipt.
               </div>
@@ -489,19 +489,19 @@ export default function NewPrintPage() {
                 <input value={config.pageRange}
                   onChange={(e) => setConfig({ ...config, pageRange: e.target.value })}
                   className="pl-input" placeholder="e.g. 2-3, 10-20" />
-                <div className="text-xs text-ink/55 pl-serif italic mt-1">
+                <div className="text-xs text-gray-900/55 pl-serif italic mt-1">
                   Only these pages will print and be charged.
                 </div>
               </div>
             )}
 
-            <div className="mt-7 border-2 border-ink p-5 bg-paper-light">
+            <div className="mt-7 border-2 border-gray-900 p-5 bg-gray-50-light">
               <div className="flex justify-between items-baseline mb-3">
                 <div>
                   <div className="editorial-label">PRINT RESOLUTION</div>
                   <div className="pl-serif text-xl font-bold">{config.qualityDpi}dpi</div>
                 </div>
-                <div className="text-xs text-ink/60 pl-serif italic">100dpi draft · 300dpi standard · 600dpi sharp</div>
+                <div className="text-xs text-gray-900/60 pl-serif italic">100dpi draft · 300dpi standard · 600dpi sharp</div>
               </div>
               <input type="range" min={0} max={2} step={1}
                 value={qualityOptions.indexOf(config.qualityDpi)}
@@ -513,8 +513,8 @@ export default function NewPrintPage() {
             </div>
           </section>
 
-          <aside className="border-2 border-ink p-4 sm:p-7 bg-paper-light">
-            <div className="editorial-label text-persimmon mb-2">REVIEW PRICING</div>
+          <aside className="border-2 border-gray-900 p-4 sm:p-7 bg-gray-50-light">
+            <div className="editorial-label text-indigo-600 mb-2">REVIEW PRICING</div>
             <h2 className="pl-serif text-xl sm:text-2xl font-bold mb-5">No surprises later.</h2>
             {[
               ["FILE", file?.name || "-"],
@@ -526,29 +526,29 @@ export default function NewPrintPage() {
               ["PAGES", `${isOffice ? "~" : ""}${printedPageCount} x ${config.copies} cop${config.copies === 1 ? "y" : "ies"}${isOffice ? " (est.)" : ""}`],
               ["DUPLEX", duplexLabel],
             ].map(([k, v]) => (
-              <div key={k} className="flex justify-between border-b border-ink/15 py-2.5 gap-4">
+              <div key={k} className="flex justify-between border-b border-gray-900/15 py-2.5 gap-4">
                 <span className="editorial-label">{k}</span>
                 <span className="font-semibold text-sm text-right">{v}</span>
               </div>
             ))}
 
             {editingRequired && editingEnabled && editPricing && (
-              <div className="mt-4 pt-4 border-t-2 border-ink/15">
+              <div className="mt-4 pt-4 border-t-2 border-gray-900/15">
                 <div className="flex items-center gap-2 mb-3">
-                  <MessageSquare className="w-4 h-4 text-persimmon" />
-                  <span className="editorial-label text-persimmon">EDITING SERVICE</span>
+                  <MessageSquare className="w-4 h-4 text-indigo-600" />
+                  <span className="editorial-label text-indigo-600">EDITING SERVICE</span>
                 </div>
                 <div className="space-y-2 text-sm">
-                  <div className="flex justify-between border-b border-ink/15 py-2">
+                  <div className="flex justify-between border-b border-gray-900/15 py-2">
                     <span className="editorial-label">Base Fee</span>
                     <span className="font-semibold">₦{Number(editPricing.baseFee).toLocaleString()}</span>
                   </div>
-                  <div className="flex justify-between border-b border-ink/15 py-2">
+                  <div className="flex justify-between border-b border-gray-900/15 py-2">
                     <span className="editorial-label">Per Page</span>
                     <span className="font-semibold">₦{Number(editPricing.perPageFee).toLocaleString()}/page</span>
                   </div>
                   {Object.keys(editPricing.complexityTierFees || {}).length > 0 && (
-                    <div className="flex justify-between border-b border-ink/15 py-2">
+                    <div className="flex justify-between border-b border-gray-900/15 py-2">
                       <span className="editorial-label">Complexity</span>
                       <span className="font-semibold">
                         {Object.entries(editPricing.complexityTierFees).map(([k, v]) => `${k}: ₦${Number(v).toLocaleString()}`).join(", ")}
@@ -557,34 +557,34 @@ export default function NewPrintPage() {
                   )}
                   <div className="flex justify-between py-2">
                     <span className="editorial-label font-bold">Est. Edit Total</span>
-                    <span className="font-bold text-persimmon">
+                    <span className="font-bold text-indigo-600">
                       ₦{Number(editPricing.baseFee + editPricing.perPageFee * printedPageCount).toLocaleString()}
                     </span>
                   </div>
                 </div>
-                <div className="text-[11px] text-ink/55 pl-serif italic mt-2 text-right">
+                <div className="text-[11px] text-gray-900/55 pl-serif italic mt-2 text-right">
                   Final edit price confirmed by the shop after review.
                 </div>
               </div>
             )}
 
-            <div className="bg-ink text-paper p-5 flex justify-between items-center mt-5">
+            <div className="bg-gray-900 text-gray-50 p-5 flex justify-between items-center mt-5">
               <span className="pl-serif text-lg italic">{isOffice ? "Estimated price" : "Total locked price"}</span>
               <span className="pl-mono text-3xl font-bold">{isOffice ? "~" : ""}₦{total.toLocaleString()}</span>
             </div>
             {isOffice && (
-              <div className="text-[11px] text-ink/55 pl-serif italic mt-2 text-right">
+              <div className="text-[11px] text-gray-900/55 pl-serif italic mt-2 text-right">
                 Final price confirmed after we convert your document.
               </div>
             )}
 
             <div className="mt-5">
               <div className="editorial-label mb-2">PAYMENT METHOD</div>
-              <div className="border-2 border-ink rounded-md p-3 flex items-start gap-3 bg-paper">
+              <div className="border-2 border-gray-900 rounded-md p-3 flex items-start gap-3 bg-gray-50">
                 <CreditCard size={18} className="mt-0.5 shrink-0" />
                 <div>
                   <div className="text-xs font-bold tracking-wider uppercase">Paystack</div>
-                  <div className="text-[10px] text-ink/55 mt-1">Card · transfer · USSD · bank — secure checkout in a new tab</div>
+                  <div className="text-[10px] text-gray-900/55 mt-1">Card · transfer · USSD · bank — secure checkout in a new tab</div>
                 </div>
               </div>
             </div>
@@ -600,15 +600,15 @@ export default function NewPrintPage() {
       {step === 3 && (
         <div className="animate-fadein space-y-4">
           {/* ── Summary first ───────────────────────────────── */}
-          <div className="border-2 border-ink">
-            <div className="bg-ink text-paper px-6 py-4 flex justify-between items-center">
+          <div className="border-2 border-gray-900">
+            <div className="bg-gray-900 text-gray-50 px-6 py-4 flex justify-between items-center">
               <div>
-                <div className="editorial-label text-persimmon mb-1">ORDER SUMMARY</div>
+                <div className="editorial-label text-indigo-600 mb-1">ORDER SUMMARY</div>
                 <h2 className="pl-serif text-xl sm:text-2xl font-bold">Confirm before you pay.</h2>
               </div>
               <div className="pl-mono text-3xl font-bold">₦{total.toLocaleString()}</div>
             </div>
-            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 divide-x divide-ink/15 border-b-2 border-ink">
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 divide-x divide-ink/15 border-b-2 border-gray-900">
               {[
                 ["Document", file?.name || "-"],
                 ["Pages", pagesLabel],
@@ -625,8 +625,8 @@ export default function NewPrintPage() {
                 </div>
               ))}
             </div>
-            <div className="flex justify-between items-center p-4 bg-paper-light gap-3 flex-wrap">
-              <div className="pl-serif italic text-ink/60 text-sm">
+            <div className="flex justify-between items-center p-4 bg-gray-50-light gap-3 flex-wrap">
+              <div className="pl-serif italic text-gray-900/60 text-sm">
                 Token valid 24 hours · secure checkout via <b className="not-italic">Paystack</b>
               </div>
               <div className="flex gap-2">
@@ -639,9 +639,9 @@ export default function NewPrintPage() {
           </div>
 
           {/* ── Preview after summary ───────────────────────── */}
-          <div className="border-2 border-ink">
-            <div className="bg-ink text-paper px-6 py-3">
-              <div className="editorial-label text-persimmon">PRINT PREVIEW</div>
+          <div className="border-2 border-gray-900">
+            <div className="bg-gray-900 text-gray-50 px-6 py-3">
+              <div className="editorial-label text-indigo-600">PRINT PREVIEW</div>
               <h2 className="pl-serif text-xl font-bold">Exactly what comes out of the tray.</h2>
             </div>
             <PrintPreview
@@ -659,9 +659,9 @@ export default function NewPrintPage() {
       )}
 
       {step === 4 && (
-        <div className="border-2 border-ink animate-fadein">
-          <div className="bg-ink text-paper px-6 py-8 text-center">
-            <div className="editorial-label text-persimmon mb-2">YOUR 24-HOUR PRINT TOKEN</div>
+        <div className="border-2 border-gray-900 animate-fadein">
+          <div className="bg-gray-900 text-gray-50 px-6 py-8 text-center">
+            <div className="editorial-label text-indigo-600 mb-2">YOUR 24-HOUR PRINT TOKEN</div>
             <div className="pl-mono text-5xl font-bold tracking-wider mb-1">{receipt?.code || "------"}</div>
             <div className="pl-serif italic opacity-80 text-sm">
               Expires {formatExpiry(receipt?.expiresAt)}. Enter this code at any PrintLoop kiosk.
@@ -679,20 +679,20 @@ export default function NewPrintPage() {
               </div>
               <div className="flex-1 w-full">
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
-                  <div className="border border-ink/15 p-3">
+                  <div className="border border-gray-900/15 p-3">
                     <div className="editorial-label mb-1">NEAREST</div>
                     <div className="pl-serif font-semibold text-lg">Yaba</div>
-                    <div className="text-fog text-xs">240m away</div>
+                    <div className="text-gray-500 text-xs">240m away</div>
                   </div>
-                  <div className="border border-ink/15 p-3">
+                  <div className="border border-gray-900/15 p-3">
                     <div className="editorial-label mb-1">EXPIRES</div>
                     <div className="pl-serif font-semibold text-lg">24 hours</div>
-                    <div className="text-fog text-xs">Codes expire after 24h</div>
+                    <div className="text-gray-500 text-xs">Codes expire after 24h</div>
                   </div>
-                  <div className="border border-ink/15 p-3">
+                  <div className="border border-gray-900/15 p-3">
                     <div className="editorial-label mb-1">PAID</div>
                     <div className="pl-serif font-semibold text-lg">₦{receipt?.cost ?? total}</div>
-                    <div className="text-fog text-xs">VIA PAYSTACK</div>
+                    <div className="text-gray-500 text-xs">VIA PAYSTACK</div>
                   </div>
                 </div>
                 <div className="flex gap-2 flex-wrap">

@@ -76,15 +76,15 @@ export default function OptionsTab({ canManage }: { canManage: boolean }) {
   return (
     <div className="max-w-4xl space-y-7">
       <div>
-        <div className="editorial-label text-persimmon mb-1">ADMIN CONSOLE</div>
-        <h1 className="pl-serif text-4xl font-bold text-ink mb-1">System Options</h1>
-        <p className="pl-serif italic text-ink/60">
+        <div className="editorial-label text-indigo-600 mb-1">ADMIN CONSOLE</div>
+        <h1 className="pl-serif text-4xl font-bold text-gray-900 mb-1">System Options</h1>
+        <p className="pl-serif italic text-gray-50/60">
           Configure global system behaviour. Read-only settings are enforced by the platform.
         </p>
       </div>
 
       {dirty.size > 0 && (
-        <div className="border-2 border-ochre bg-ochre/10 px-4 py-3 text-sm font-semibold text-ink">
+        <div className="border-2 border-amber-500 bg-amber-500/10 px-4 py-3 text-sm font-semibold text-gray-900">
           ⚠ {dirty.size} unsaved change{dirty.size > 1 ? "s" : ""}. Save each field individually.
         </div>
       )}
@@ -93,11 +93,11 @@ export default function OptionsTab({ canManage }: { canManage: boolean }) {
         const items = grouped[cat] || [];
         if (items.length === 0) return null;
         return (
-          <div key={cat} className="border-2 border-ink overflow-hidden">
-            <div className="bg-ink text-paper px-5 py-3">
+          <div key={cat} className="border-2 border-gray-900 overflow-hidden">
+            <div className="bg-gray-900 text-gray-50 px-5 py-3">
               <div className="editorial-label">{cat.toUpperCase()} SETTINGS</div>
             </div>
-            <div className="divide-y-2 divide-ink/10 bg-paper-light">
+            <div className="divide-y-2 divide-gray-900/10 bg-gray-100">
               {items.map((s) => {
                 const isDirty = dirty.has(s.key);
                 const currentVal = drafts[s.key] ?? String(s.value);
@@ -107,15 +107,15 @@ export default function OptionsTab({ canManage }: { canManage: boolean }) {
                     <div className="flex items-start justify-between gap-6 flex-wrap">
                       <div className="flex-1 min-w-48">
                         <div className="flex items-center gap-2 mb-0.5">
-                          <span className="font-bold text-ink">{labelFromKey(s.key)}</span>
+                          <span className="font-bold text-gray-900">{labelFromKey(s.key)}</span>
                           {s.isReadOnly && (
-                            <span className="pl-pill bg-ink/10 text-fog text-[10px]">
+                            <span className="pl-pill bg-gray-900/10 text-gray-500 text-[10px]">
                               READ-ONLY
                             </span>
                           )}
                         </div>
-                        <div className="text-xs text-fog leading-relaxed">{s.description}</div>
-                        <div className="pl-mono text-[10px] text-ink/30 mt-1">{s.key}</div>
+                        <div className="text-xs text-gray-500 leading-relaxed">{s.description}</div>
+                        <div className="pl-mono text-[10px] text-gray-900/30 mt-1">{s.key}</div>
                       </div>
                       <div className="flex items-center gap-2 min-w-48">
                         {s.valueType === "boolean" ? (
@@ -127,8 +127,8 @@ export default function OptionsTab({ canManage }: { canManage: boolean }) {
                               }
                               className={`w-11 h-6 rounded-full relative transition-colors border-2 ${
                                 currentVal === "true"
-                                  ? "bg-sage border-sage"
-                                  : "bg-ink/10 border-ink/20"
+                                  ? "bg-emerald-600 border-emerald-600"
+                                  : "bg-gray-900/10 border-gray-900/20"
                               } ${!ro ? "cursor-pointer" : "cursor-not-allowed"}`}
                             >
                               <span
@@ -137,11 +137,11 @@ export default function OptionsTab({ canManage }: { canManage: boolean }) {
                                 }`}
                               />
                             </div>
-                            <span
-                              className={`text-sm font-bold ${
-                                currentVal === "true" ? "text-sage" : "text-fog"
-                              }`}
-                            >
+<span
+                                className={`text-sm font-bold ${
+                                  currentVal === "true" ? "text-emerald-600" : "text-gray-500"
+                                }`}
+                              >
                               {currentVal === "true" ? "Enabled" : "Disabled"}
                             </span>
                           </label>
@@ -153,17 +153,17 @@ export default function OptionsTab({ canManage }: { canManage: boolean }) {
                             readOnly={ro}
                             className={`pl-input pl-mono text-sm w-48 ${
                               ro ? "opacity-60 cursor-not-allowed" : ""
-                            } ${isDirty ? "border-ochre" : ""}`}
+                            } ${isDirty ? "border-amber-500" : ""}`}
                           />
                         )}
                         {!s.isReadOnly && canManage && (
                           <button
                             onClick={() => handleSave(s)}
                             disabled={!isDirty}
-                            className={`text-xs font-bold px-3 py-1.5 border-2 transition-colors whitespace-nowrap ${
-                              isDirty
-                                ? "border-sage bg-sage text-paper"
-                                : "border-ink/20 text-fog cursor-not-allowed"
+className={`text-xs font-bold px-3 py-1.5 border-2 transition-colors whitespace-nowrap ${
+                                isDirty
+                                  ? "border-emerald-600 bg-emerald-600 text-gray-50"
+                                  : "border-gray-900/20 text-gray-500 cursor-not-allowed"
                             }`}
                           >
                             SAVE
@@ -180,8 +180,8 @@ export default function OptionsTab({ canManage }: { canManage: boolean }) {
       })}
 
       {!canManage && (
-        <div className="border-2 border-ink/20 bg-ink/5 p-4 text-sm text-fog italic text-center">
-          You need the <strong className="text-ink">manage_settings</strong> privilege to edit
+        <div className="border-2 border-gray-900/20 bg-gray-900/5 p-4 text-sm text-gray-500 italic text-center">
+          You need the <strong className="text-gray-900">manage_settings</strong> privilege to edit
           system options.
         </div>
       )}

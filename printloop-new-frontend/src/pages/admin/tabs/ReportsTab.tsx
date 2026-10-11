@@ -52,24 +52,24 @@ export default function ReportsTab() {
     <div className="max-w-6xl space-y-6">
       <div className="flex justify-between items-end gap-4 flex-wrap">
         <div>
-          <div className="editorial-label text-persimmon mb-1">ADMIN CONSOLE</div>
-          <h1 className="pl-serif text-4xl font-bold text-ink mb-1">Reports</h1>
-          <p className="pl-serif italic text-ink/60">
+          <div className="editorial-label text-indigo-600 mb-1">ADMIN CONSOLE</div>
+          <h1 className="pl-serif text-4xl font-bold text-gray-900 mb-1">Reports</h1>
+          <p className="pl-serif italic text-gray-50/60">
             Revenue analytics and kiosk performance.
           </p>
         </div>
-        <button onClick={handleCsvExport} className="pl-btn bg-ink text-paper border-ink text-xs">
+        <button onClick={handleCsvExport} className="pl-btn bg-gray-900 text-gray-50 border-gray-900 text-xs">
           ↓ EXPORT CSV
         </button>
       </div>
 
-      <div className="flex gap-0 border-2 border-ink w-fit">
+      <div className="flex gap-0 border-2 border-gray-900 w-fit">
         {(["revenue", "kiosks"] as const).map((v) => (
           <button
             key={v}
             onClick={() => setView(v)}
             className={`px-5 py-2.5 text-xs font-bold uppercase tracking-wider transition-colors ${
-              view === v ? "bg-ink text-paper" : "text-ink hover:bg-ink/10"
+              view === v ? "bg-gray-900 text-gray-50" : "text-gray-900 hover:bg-gray-900/10"
             }`}
           >
             {v === "revenue" ? "Revenue" : "By Kiosk"}
@@ -86,8 +86,8 @@ export default function ReportsTab() {
                 onClick={() => setDays(p.days)}
                 className={`text-xs font-bold px-3 py-1.5 border-2 transition-colors ${
                   days === p.days
-                    ? "bg-persimmon text-paper border-persimmon"
-                    : "border-ink/20 text-ink hover:border-ink"
+                    ? "bg-amber-500 text-gray-50 border-amber-500"
+                    : "border-gray-900/20 text-gray-900 hover:border-gray-900"
                 }`}
               >
                 {p.label}
@@ -96,7 +96,7 @@ export default function ReportsTab() {
           </div>
 
           {!loadingRev && (
-            <div className="grid grid-cols-2 border-2 border-ink">
+            <div className="grid grid-cols-2 border-2 border-gray-900">
               {[
                 {
                   label: "TOTAL REVENUE",
@@ -109,20 +109,20 @@ export default function ReportsTab() {
               ].map((s, i) => (
                 <div
                   key={s.label}
-                  className={`p-5 ${i > 0 ? "border-l-2 border-ink" : ""} ${
-                    i === 0 ? "bg-sage text-paper" : "bg-paper-light"
+                  className={`p-5 ${i > 0 ? "border-l-2 border-gray-900" : ""} ${
+                    i === 0 ? "bg-emerald-600 text-gray-50" : "bg-gray-100"
                   }`}
                 >
                   <div
-                    className={`editorial-label mb-1 ${
-                      i === 0 ? "text-paper/60" : "text-ink/50"
-                    }`}
+className={`editorial-label mb-1 ${
+                    i === 0 ? "text-gray-50/60" : "text-gray-900/50"
+                  }`}
                   >
                     {s.label}
                   </div>
                   <div className="pl-mono text-3xl font-bold">{s.value}</div>
                   <div
-                    className={`editorial-label mt-1 ${i === 0 ? "text-paper/40" : "text-fog"}`}
+                    className={`editorial-label mt-1 ${i === 0 ? "text-gray-50/40" : "text-gray-500"}`}
                   >
                     LAST {days} DAYS
                   </div>
@@ -132,8 +132,8 @@ export default function ReportsTab() {
           )}
 
           {!loadingRev && rows.length > 0 && (
-            <div className="border-2 border-ink bg-paper-light p-5">
-              <div className="editorial-label text-persimmon mb-4">
+            <div className="border-2 border-gray-900 bg-gray-100 p-5">
+              <div className="editorial-label text-indigo-600 mb-4">
                 DAILY REVENUE — LAST {days} DAYS
               </div>
               <div className="flex items-end gap-px h-36 overflow-x-auto">
@@ -141,14 +141,14 @@ export default function ReportsTab() {
                   <div
                     key={r.date}
                     title={`${r.date}\n₦${r.revenue} · ${r.transactions} txns`}
-                    className="flex-1 min-w-[3px] bg-sage hover:bg-persimmon transition-colors cursor-default"
+                    className="flex-1 min-w-[3px] bg-emerald-600 hover:bg-indigo-600 transition-colors cursor-default"
                     style={{
                       height: `${Math.max(2, (Number(r.revenue) / maxRevenue) * 100)}%`,
                     }}
                   />
                 ))}
               </div>
-              <div className="flex justify-between text-[10px] text-fog mt-2">
+              <div className="flex justify-between text-[10px] text-gray-500 mt-2">
                 <span>{rows[0]?.date}</span>
                 <span>{rows[rows.length - 1]?.date}</span>
               </div>
@@ -156,14 +156,14 @@ export default function ReportsTab() {
           )}
 
           {!loadingRev && (
-            <div className="border-2 border-ink overflow-hidden">
-              <div className="bg-ink text-paper px-5 py-3">
+            <div className="border-2 border-gray-900 overflow-hidden">
+              <div className="bg-gray-900 text-gray-50 px-5 py-3">
                 <div className="editorial-label">DAILY BREAKDOWN TABLE</div>
               </div>
               <div className="overflow-x-auto max-h-80">
                 <table className="w-full text-left text-sm">
-                  <thead className="sticky top-0 bg-ink/5">
-                    <tr className="border-b border-ink/20 text-ink/70">
+                  <thead className="sticky top-0 bg-gray-900/5">
+                    <tr className="border-b border-gray-900/20 text-gray-50/70">
                       <th className="p-3 font-semibold">Date</th>
                       <th className="p-3 font-semibold text-right">Transactions</th>
                       <th className="p-3 font-semibold text-right">Revenue (₦)</th>
@@ -172,7 +172,7 @@ export default function ReportsTab() {
                   <tbody>
                     {rows.length === 0 && (
                       <tr>
-                        <td colSpan={3} className="p-6 text-center text-fog italic">
+                        <td colSpan={3} className="p-6 text-center text-gray-500 italic">
                           No revenue in this period.
                         </td>
                       </tr>
@@ -180,7 +180,7 @@ export default function ReportsTab() {
                     {[...rows].reverse().map((r) => (
                       <tr
                         key={r.date}
-                        className="border-b border-ink/10 last:border-0 hover:bg-ink/5"
+                        className="border-b border-gray-900/10 last:border-0 hover:bg-gray-900/5"
                       >
                         <td className="p-3 pl-mono text-sm">{r.date}</td>
                         <td className="p-3 text-right pl-mono">{r.transactions}</td>
@@ -204,14 +204,14 @@ export default function ReportsTab() {
           {loadingKiosks ? (
             <div className="text-center italic opacity-50 py-12">Loading kiosk data…</div>
           ) : (
-            <div className="border-2 border-ink overflow-hidden">
-              <div className="bg-ink text-paper px-5 py-3">
+            <div className="border-2 border-gray-900 overflow-hidden">
+              <div className="bg-gray-900 text-gray-50 px-5 py-3">
                 <div className="editorial-label">KIOSK PERFORMANCE REPORT</div>
               </div>
-              <div className="overflow-x-auto bg-paper-light">
+              <div className="overflow-x-auto bg-gray-100">
                 <table className="w-full text-left text-sm">
                   <thead>
-                    <tr className="border-b border-ink/20 bg-ink/5 text-ink/70">
+                    <tr className="border-b border-gray-900/20 bg-gray-900/5 text-gray-50/70">
                       <th className="p-3 font-semibold">Kiosk ID</th>
                       <th className="p-3 font-semibold text-right">Total Jobs</th>
                       <th className="p-3 font-semibold text-right">Total Pages</th>
@@ -221,7 +221,7 @@ export default function ReportsTab() {
                   <tbody>
                     {kiosks.length === 0 && (
                       <tr>
-                        <td colSpan={4} className="p-6 text-center text-fog italic">
+                        <td colSpan={4} className="p-6 text-center text-gray-500 italic">
                           No kiosk activity.
                         </td>
                       </tr>
@@ -229,10 +229,10 @@ export default function ReportsTab() {
                     {[...kiosks]
                       .sort((a, b) => Number(b.revenue) - Number(a.revenue))
                       .map((k) => (
-                        <tr
-                          key={k.kioskId || "unknown"}
-                          className="border-b border-ink/10 last:border-0 hover:bg-ink/5"
-                        >
+<tr
+                        key={k.kioskId || "unknown"}
+                        className="border-b border-gray-900/10 last:border-0 hover:bg-gray-900/5"
+                      >
                           <td className="p-3 pl-mono text-xs">{k.kioskId || "—"}</td>
                           <td className="p-3 text-right pl-mono font-bold">{k.totalJobs}</td>
                           <td className="p-3 text-right pl-mono font-bold">{k.totalPages}</td>

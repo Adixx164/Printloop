@@ -74,7 +74,7 @@ function FeatureBlock({ f, flip }: { f: (typeof FEATURES)[number]; flip: boolean
       <div className={flip ? "lg:order-2" : ""}>
         <Reveal variant="rise">
           <div className="flex items-baseline justify-between gap-3 mb-3">
-            <div className="editorial-label text-persimmon">§ {f.n} · {f.label}</div>
+            <div className="editorial-label text-process">§ {f.n} · {f.label}</div>
           </div>
           <h2 className="pl-serif text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight mb-4">
             {f.title}
@@ -85,7 +85,7 @@ function FeatureBlock({ f, flip }: { f: (typeof FEATURES)[number]; flip: boolean
           <ul className="space-y-2 mb-6">
             {f.bullets.map((b) => (
               <li key={b} className="flex items-start gap-2 text-sm">
-                <span className="text-persimmon font-bold mt-px">▸</span>
+                <span className="text-process font-bold mt-px">▸</span>
                 <span className="font-medium">{b}</span>
               </li>
             ))}
@@ -96,17 +96,17 @@ function FeatureBlock({ f, flip }: { f: (typeof FEATURES)[number]; flip: boolean
       {/* Visual column — a stamped "paper card" so the page needs no images. */}
       <div className={flip ? "lg:order-1" : ""}>
         <Reveal variant="rise">
-          <div className="border-4 border-ink bg-paper-light p-6 sm:p-8 shadow-[6px_6px_0_#1A1410] relative">
-            <div className="absolute -top-3 right-4 bg-persimmon text-paper text-[10px] font-bold tracking-editorial px-2.5 py-1">
+          <div className="border-4 border-ink bg-paper-warm p-6 sm:p-8 shadow-soft relative">
+            <div className="absolute -top-3 right-4 bg-process text-paper-light text-[10px] font-bold tracking-editorial px-2.5 py-1">
               PRINTLOOP · {f.label}
             </div>
             <div className="pl-mono text-6xl sm:text-7xl font-bold leading-none mb-4">
               <Counter to={f.stat.value} />
-              <span className="text-persimmon">{f.stat.suffix}</span>
+              <span className="text-ochre">{f.stat.suffix}</span>
             </div>
             <div className="editorial-label text-ink/55">{f.stat.label}</div>
             <div className="mt-6 pt-4 border-t-2 border-ink/15 flex items-center gap-2 text-[10px] pl-mono text-ink/50">
-              <span className="w-1.5 h-1.5 rounded-full bg-persimmon animate-blink" />
+              <span className="w-1.5 h-1.5 rounded-full bg-process animate-blink" />
               READY AT EVERY STATION
             </div>
           </div>
@@ -125,16 +125,16 @@ export default function FeaturesPage() {
           <div
             aria-hidden="true"
             className="absolute -right-6 -top-6 pl-serif font-extrabold text-[160px] leading-none text-transparent pointer-events-none select-none"
-            style={{ WebkitTextStroke: "2px rgba(26, 20, 16, 0.09)" }}
+            style={{ WebkitTextStroke: "2px var(--ink) / 0.09" }}
           >
             §01
           </div>
           <Reveal variant="rise">
-            <div className="editorial-label text-persimmon mb-3">▸ THE PRINTLOOP PLATFORM</div>
+            <div className="editorial-label text-process mb-3">▸ THE PRINTLOOP PLATFORM</div>
             <h1 className="pl-serif font-extrabold text-[38px] leading-[1.02] sm:text-[54px] sm:leading-[0.98] tracking-tight mb-5 max-w-3xl">
               Everything between{" "}
-              <em className="italic text-persimmon font-semibold">upload</em> and{" "}
-              <em className="italic text-persimmon font-semibold">paper</em>.
+              <em className="italic text-ochre font-semibold">upload</em> and{" "}
+              <em className="italic text-ochre font-semibold">paper</em>.
             </h1>
             <p className="pl-serif italic text-ink/60 text-sm sm:text-base max-w-2xl">
               One platform for students, course reps and print shops. From phone upload to the
@@ -156,7 +156,7 @@ export default function FeaturesPage() {
           <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-14 text-center">
             <Reveal variant="rise">
               <h2 className="pl-serif text-2xl sm:text-4xl font-bold tracking-tight mb-3">
-                Your next print is <em className="italic text-persimmon">one upload away.</em>
+                  Your next print is <em className="italic text-ochre">one upload away.</em>
               </h2>
               <p className="pl-serif italic text-paper/60 text-sm sm:text-base mb-6">
                 Register free. Find a station near you. Print from your phone.
@@ -165,7 +165,7 @@ export default function FeaturesPage() {
                 <Link to={ROUTES.AUTH.REGISTER} className="pl-btn-primary px-6 py-3 text-sm">
                   REGISTER FREE →
                 </Link>
-                <Link to="/find" className="pl-btn-light px-6 py-3 text-sm">
+                <Link to="/find" className="pl-btn w-full bg-transparent text-paper border-paper text-sm px-6 py-3.5 justify-center hover:shadow-soft">
                   FIND A STATION
                 </Link>
               </div>

@@ -1,0 +1,57 @@
+{
+  "productName": "PrintLoop Operator Console",
+  "appId": "com.printloop.operator",
+  "copyright": "Copyright © 2026 PrintLoop",
+  "directories": {
+    "output": "dist",
+    "buildResources": "assets"
+  },
+  "files": [
+    "dist/main/**/*",
+    "dist/renderer/**/*",
+    "preload/index.js",
+    "package.json"
+  ],
+  "extraResources": [
+    {
+      "from": "assets",
+      "to": "assets",
+      "filter": ["**/*"]
+    }
+  ],
+  "win": {
+    "target": [
+      {
+        "target": "nsis",
+        "arch": ["x64"]
+      }
+    ],
+    "icon": "assets/icon.ico",
+    "publisherName": "PrintLoop",
+    "certificateFile": "$env:CSC_LINK",
+    "certificatePassword": "$env:CSC_KEY_PASSWORD",
+    "signingAlgorithm": "sha256",
+    "timestampServer": "http://timestamp.digicert.com",
+    "rfc3161TimeStampServer": "http://timestamp.digicert.com",
+    "verifyUpdateCodeSignature": true
+  },
+  "nsis": {
+    "oneClick": false,
+    "perMachine": true,
+    "allowToChangeInstallationDirectory": true,
+    "createDesktopShortcut": true,
+    "createStartMenuShortcut": true,
+    "shortcutName": "PrintLoop Operator",
+    "runAfterFinish": true,
+    "installerIcon": "assets/icon.ico",
+    "uninstallerIcon": "assets/icon.ico",
+    "installerHeaderIcon": "assets/icon.ico",
+    "license": "LICENSE.txt",
+    "include": "installer.nsh"
+  },
+  "publish": {
+    "provider": "github",
+    "owner": "printloop",
+    "repo": "operator-desktop"
+  }
+}

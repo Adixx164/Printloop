@@ -58,16 +58,16 @@ export default function PromotionsTab({ canManage }: { canManage: boolean }) {
     <div className="max-w-5xl space-y-6">
       <div className="flex justify-between items-end gap-4 flex-wrap">
         <div>
-          <div className="editorial-label text-persimmon mb-1">ADMIN CONSOLE</div>
-          <h1 className="pl-serif text-4xl font-bold text-ink mb-1">Promotions</h1>
-          <p className="pl-serif italic text-ink/60">
+          <div className="editorial-label text-indigo-600 mb-1">ADMIN CONSOLE</div>
+          <h1 className="pl-serif text-4xl font-bold text-gray-900 mb-1">Promotions</h1>
+          <p className="pl-serif italic text-gray-50/60">
             Discount rules and campaign credits.
           </p>
         </div>
         {canManage && (
           <button
             onClick={() => setShowAdd(!showAdd)}
-            className="pl-btn bg-sage text-paper border-sage hover:bg-ink hover:border-ink"
+            className="pl-btn bg-emerald-600 text-gray-50 border-emerald-600 hover:bg-gray-900 hover:border-gray-900"
           >
             {showAdd ? "CANCEL" : "+ NEW PROMOTION"}
           </button>
@@ -75,8 +75,8 @@ export default function PromotionsTab({ canManage }: { canManage: boolean }) {
       </div>
 
       {showAdd && (
-        <form onSubmit={handleAdd} className="border-2 border-sage p-5 bg-sage/5 space-y-3">
-          <div className="editorial-label text-sage mb-2">CREATE PROMOTION</div>
+        <form onSubmit={handleAdd} className="border-2 border-emerald-600 p-5 bg-emerald-600/5 space-y-3">
+          <div className="editorial-label text-emerald-600 mb-2">CREATE PROMOTION</div>
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="editorial-label text-[11px] block mb-1">CODE *</label>
@@ -132,23 +132,23 @@ export default function PromotionsTab({ canManage }: { canManage: boolean }) {
           <button
             type="submit"
             disabled={creating}
-            className="pl-btn bg-sage text-paper border-sage"
+            className="pl-btn bg-emerald-600 text-gray-50 border-emerald-600"
           >
             {creating ? "CREATING..." : "CREATE →"}
           </button>
         </form>
       )}
 
-      <div className="border-2 border-ink overflow-hidden">
-        <div className="bg-ink text-paper px-5 py-3">
+      <div className="border-2 border-gray-900 overflow-hidden">
+        <div className="bg-gray-900 text-gray-50 px-5 py-3">
           <div className="editorial-label">
             {isLoading ? "LOADING…" : `PROMOTIONS — ${promotions.length}`}
           </div>
         </div>
-        <div className="overflow-x-auto bg-paper-light">
+        <div className="overflow-x-auto bg-gray-100">
           <table className="w-full text-left text-sm">
             <thead>
-              <tr className="border-b border-ink/20 bg-ink/5 text-ink/70">
+              <tr className="border-b border-gray-900/20 bg-gray-900/5 text-gray-50/70">
                 <th className="p-3 font-semibold">Code</th>
                 <th className="p-3 font-semibold">Name</th>
                 <th className="p-3 font-semibold">Type</th>
@@ -161,27 +161,27 @@ export default function PromotionsTab({ canManage }: { canManage: boolean }) {
             <tbody>
               {!isLoading && promotions.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="p-6 text-center text-fog italic">
+                  <td colSpan={7} className="p-6 text-center text-gray-500 italic">
                     No promotions yet.
                   </td>
                 </tr>
               )}
               {promotions.map((p) => (
-                <tr key={p.id} className="border-b border-ink/10 last:border-0 hover:bg-ink/5">
+                <tr key={p.id} className="border-b border-gray-900/10 last:border-0 hover:bg-gray-900/5">
                   <td className="p-3 pl-mono font-bold">{p.code}</td>
                   <td className="p-3">
-                    <div className="font-bold text-ink">{p.name}</div>
-                    <div className="text-xs text-fog">{p.description}</div>
+                    <div className="font-bold text-gray-900">{p.name}</div>
+                    <div className="text-xs text-gray-500">{p.description}</div>
                   </td>
-                  <td className="p-3 text-xs text-fog">{p.discountType}</td>
+                  <td className="p-3 text-xs text-gray-500">{p.discountType}</td>
                   <td className="p-3 pl-mono text-right">{p.discountValue}</td>
                   <td className="p-3 pl-mono text-right">{p.usageCount}</td>
                   <td className="p-3">
                     <span
                       className={`pl-pill text-[10px] font-bold uppercase ${
                         p.status === "active"
-                          ? "bg-sage/15 text-sage border border-sage/30"
-                          : "bg-ink/10 text-fog border border-ink/20"
+                          ? "bg-emerald-600/15 text-emerald-600 border border-emerald-600/30"
+                          : "bg-gray-900/10 text-gray-500 border border-gray-900/20"
                       }`}
                     >
                       {p.status}
@@ -191,7 +191,7 @@ export default function PromotionsTab({ canManage }: { canManage: boolean }) {
                     <td className="p-3 text-right">
                       <button
                         onClick={() => toggleStatus(p)}
-                        className="text-xs text-sage font-bold hover:underline"
+                        className="text-xs text-emerald-600 font-bold hover:underline"
                       >
                         {p.status === "active" ? "DEACTIVATE" : "ACTIVATE"}
                       </button>

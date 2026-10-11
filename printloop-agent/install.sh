@@ -87,15 +87,196 @@ require_root() {
   fi
 }
 
-# Pick the package manager. We support the four big-bucket families;
-# every other distro inherits from one of these (Mint=apt, Rocky=dnf, etc.).
-detect_pm() {
-  if command -v apt-get >/dev/null 2>&1; then echo apt
-  elif command -v dnf  >/dev/null 2>&1; then echo dnf
-  elif command -v yum  >/dev/null 2>&1; then echo yum
-  elif command -v pacman >/dev/null 2>&1; then echo pacman
-  else echo none
+# ─────────────────────────────────────────────────────────────────────
+#  Helpers
+# ─────────────────────────────────────────────────────────────────────
+
+log()  { printf '%s %s\n' "$LOG_TAG" "$*"; }
+warn() { printf '%s [warn] %s\n' "$LOG_TAG" "$*" >&2; }
+fail() { printf '%s [error] %s\n' "$LOG_TAG" "$*" >&2; exit 1; }
+
+require_root() {
+  if [[ $EUID -ne 0 ]]; then
+    fail "must run as root (try: sudo bash install.sh)"
   fi
+}
+
+# ─────────────────────────────────────────────────────────────────────
+#  Auto-Discovery Helpers (NEW)
+# ─────────────────────────────────────────────────────────────────────
+
+# Detect USB printers on Linux
+detect_usb_printers() {
+  local printers=()
+  
+  # Check USB printer devices via lsusb
+  if command -v lsusb >/dev/null 2>&1; then
+    while IFS= read -r line; do
+      if [[ "$line" =~ Printer|Print ]]; then
+        # Extract device info
+        local bus=$(echo "$line" | awk '{print $2}')
+        local dev=$(echo "$line" | awk '{print $4}' | sed 's/:$//')
+        local desc=$(echo "$line" | cut -d' ' -f7-)
+        printers+=("USB:$bus:$dev:$desc")
+      fi
+    done < <(lsusb 2>/dev/null)
+  fi
+  
+  # Check USB printer devices via /sys
+  for dev in /sys/bus/usb/devices/*/; do
+    if [[ -f "$dev/bInterfaceClass" ]]; then
+      local class=$(cat "$dev/bInterfaceClass" 2>/dev/null)
+      if [[ "$class" == "07" ]]; then  # 07 = Printer class
+        local devpath=$(basename "$dev")
+        printers+=("USB:sys:$devpath")
+      fi
+    done
+  
+  # Check lp devices (parallel/USB printers)
+  for dev in /dev/usb/lp* /dev/lp* 2>/dev/null; do
+    if [[ -e "$dev" ]]; then
+      printers+=("LP:$dev")
+    fi
+  done
+  
+  printf '%s\n' "${printers[@]}"
+}
+
+# Discover network printers on Linux
+discover_network_printers() {
+  local printers=()
+  
+  # 1. Avahi/Bonjour discovery (IPP printers)
+  if command -v avahi-browse >/dev/null 2>&1; then
+    while IFS= read -r line; do
+      if [[ "$line" =~ = ]]; then
+        local name=$(echo "$line" | cut -d'=' -f2 | cut -d'[' -f1)
+        local host=$(echo "$line" | grep -oP 'address = \K[^ ]+' | head -1)
+        local port=$(echo "$line" | grep -oP 'port = \K[0-9]+' | head -1)
+        if [[ -n "$host" && -n "$port" ]]; then
+          printers+=("IPP|$name|$host|$port|mDNS")
+        fi
+      fi
+    done < <(avahi-browse -r -t _ipp._tcp 2>/dev/null | grep -E '^(hostname|address|port)' | paste - - - | sed 's/\t/=/g')
+  fi
+  
+  # 2. CUPS discovered printers
+  if command -v lpstat >/dev/null 2>&1; then
+    while IFS= read -r queue; do
+      printers+=("CUPS|$queue|local|631|CUPS")
+    done < <(lpstat -a 2>/dev/null | awk '{print $1}' | sort -u)
+  fi
+  
+  # 3. Common port scan for network printers
+  local local_ip=$(ip route get 1.1.1.1 2>/dev/null | awk '{print $7}' | head -1)
+  if [[ -n "$local_ip" ]]; then
+    local base_ip=$(echo "$local_ip" | sed 's/\.[0-9]*$//')
+    local common_ports=(631 9100 515)
+    local ports_info=("631:ipp:/ipp/print" "9100:raw9100:" "515:lpd:")
+    
+    for ip in $(seq 1 254); do
+      local target_ip="$base_ip.$ip"
+      for port_info in "${ports_info[@]}"; do
+        local port="${port_info%%:*}"
+        local transport="${port_info#*:}"
+        transport="${transport%%:*}"
+        local path="${port_info##*:}"
+        
+        timeout 0.2 bash -c "cat < /dev/null > /dev/tcp/$target_ip/$port" 2>/dev/null && {
+          printers+=("SCAN|Printer at $target_ip|$target_ip|$port|$transport|$path|PortScan")
+          break  # Found printer on this IP
+        }
+      done
+    done
+  fi
+  
+  printf '%s\n' "${printers[@]}"
+}
+
+# Auto-detect best transport for a printer
+select_best_transport() {
+  local printer_info="$1"
+  local type=$(echo "$printer_info" | cut -d'|' -f1)
+  
+  case "$type" in
+    USB|LP)
+      echo "spooler|USB/Local printer detected; spooler mode gives best quality"
+      ;;
+    CUPS)
+      echo "ipp|CUPS queue detected; IPP gives full feature support"
+      ;;
+    IPP)
+      echo "ipp|IPP-capable network printer detected"
+      ;;
+    SCAN)
+      local transport=$(echo "$printer_info" | cut -d'|' -f5)
+      case "$transport" in
+        ipp) echo "ipp|IPP-capable network printer detected" ;;
+        raw9100) echo "raw9100|JetDirect-only printer detected" ;;
+        lpd) echo "lpd|LPD-capable printer detected" ;;
+        *) echo "ipp|Network printer detected; defaulting to IPP" ;;
+      esac
+      ;;
+    *)
+      echo "ipp|Defaulting to IPP"
+      ;;
+  esac
+}
+
+# Auto-configure printer with zero prompts
+auto_configure_printer() {
+  printf '\n%s %s\n' "$LOG_TAG" 'Auto-Discovering Printers...' >&2
+  
+  local usb_printers=($(detect_usb_printers))
+  local net_printers=($(discover_network_printers))
+  
+  local all_printers=("${usb_printers[@]}" "${net_printers[@]}")
+  
+  if (( ${#all_printers[@]} == 0 )); then
+    warn "No printers detected. Please connect a printer (USB or network) and re-run."
+    return 1
+  fi
+  
+  log "Found ${#all_printers[@]} printer(s):"
+  for p in "${all_printers[@]}"; do
+    log "  - $p"
+  done
+  
+  # Auto-select: prefer CUPS queues, then USB, then first network
+  local selected=""
+  for p in "${all_printers[@]}"; do
+    if [[ "$p" == CUPS* ]]; then
+      selected="$p"
+      break
+    fi
+  done
+  if [[ -z "$selected" ]]; then
+    for p in "${all_printers[@]}"; do
+      if [[ "$p" == USB:* || "$p" == LP:* ]]; then
+        selected="$p"
+        break
+      fi
+    done
+  done
+  if [[ -z "$selected" ]]; then
+    selected="${all_printers[0]}"
+  fi
+  
+  local transport_info=$(select_best_transport "$selected")
+  local transport=$(echo "$transport_info" | cut -d'|' -f1)
+  local reason=$(echo "$transport_info" | cut -d'|' -f2)
+  
+  local name=$(echo "$selected" | cut -d'|' -f2)
+  log "[ok] Auto-selected: $name → $transport ($reason)"
+  
+  # Output configuration
+  cat <<EOF
+AUTO_CONFIG=1
+TRANSPORT=$transport
+PRINTER_NAME=$name
+SELECTED_INFO=$selected
+REASON=$reason
+EOF
 }
 
 # Install a package idempotently. The package name typically matches
@@ -288,6 +469,10 @@ fi
 #  .env wizard
 # ─────────────────────────────────────────────────────────────────────
 
+# ─────────────────────────────────────────────────────────────────────
+#  .env wizard — AUTO-DISCOVERY with manual fallback
+# ─────────────────────────────────────────────────────────────────────
+
 ENV_FILE="$AGENT_DIR/.env"
 if [[ -f "$ENV_FILE" ]]; then
   log "[skip] .env already exists — leaving alone."
@@ -297,53 +482,87 @@ else
   read -r -p 'PrintLoop cloud URL (e.g. https://printloop-production.up.railway.app): ' BASE_URL
   read -r -p 'Kiosk API key (from Admin > Kiosks > this kiosk): ' KIOSK_KEY
 
-  printf '\nTransport mode:\n'
-  printf '  [1] spooler  -- USB or any locally-installed printer (recommended)\n'
-  printf '  [2] ipp      -- network printer that speaks IPP (HP, Brother, Canon, ...)\n'
-  printf '  [3] raw9100  -- Sharp MX-series or other JetDirect-only printers\n'
-  read -r -p 'Choose [1/2/3, default 1]: ' choice
-  choice="${choice:-1}"
-  case "$choice" in
-    2) TRANSPORT='ipp' ;;
-    3) TRANSPORT='raw9100' ;;
-    *) TRANSPORT='spooler' ;;
-  esac
-
-  PRINTER_IP_LINE=''
-  PRINTER_NAME_LINE=''
-  SPOOLER_CMD_LINE=''
-
-  if [[ "$TRANSPORT" == 'spooler' ]]; then
-    printf '\nLocal CUPS print queues on this machine:\n'
-    mapfile -t QUEUES < <(list_cups_printers)
-    if (( ${#QUEUES[@]} == 0 )); then
-      warn "no CUPS queues found. Add a printer in CUPS first, or enter the queue name manually."
-      read -r -p 'Queue name: ' QUEUE
+  # Try auto-discovery first
+  printf '\n%s\n' 'Attempting automatic printer discovery...' >&2
+  if auto_config=$(auto_configure_printer 2>/dev/null); then
+    eval "$auto_config"
+    if [[ "$AUTO_CONFIG" == "1" ]]; then
+      log "Using auto-discovered configuration: $TRANSPORT for $PRINTER_NAME ($REASON)"
+      
+      PRINTER_IP_LINE="PRINTER_IP=$PRINTER_NAME"
+      PRINTER_NAME_LINE="PRINTER_NAME=$PRINTER_NAME"
+      SPOOLER_CMD_LINE='# SPOOLER_COMMAND not set — using the agent built-in: lp -d "{printer}" "{file}"'
+      
+      if [[ "$TRANSPORT" == "spooler" ]]; then
+        SPOOLER_CMD_LINE='# SPOOLER_COMMAND not set — using the agent built-in: lp -d "{printer}" "{file}"'
+      fi
     else
-      for i in "${!QUEUES[@]}"; do
-        printf '  [%d] %s\n' $((i + 1)) "${QUEUES[$i]}"
-      done
-      read -r -p 'Choose queue number (or type a name): ' pick
-      if [[ "$pick" =~ ^[0-9]+$ ]] && (( pick >= 1 && pick <= ${#QUEUES[@]} )); then
-        QUEUE="${QUEUES[$((pick - 1))]}"
+      # Fallback to manual mode
+      printf '\n%s\n' 'Auto-discovery failed or no printers found. Falling back to manual configuration...' >&2
+      printf '\nTransport mode:\n'
+      printf '  [1] spooler  -- USB or any locally-installed printer (recommended)\n'
+      printf '  [2] ipp      -- network printer that speaks IPP (HP, Brother, Canon, ...)\n'
+      printf '  [3] raw9100  -- Sharp MX-series or other JetDirect-only printers\n'
+      printf '  [4] printnode -- PrintNode cloud proxy (works behind NAT/firewall)\n'
+      printf '  [5] lpd       -- Legacy LPD/LPR protocol (Kyocera, Ricoh, Unix print servers)\n'
+      printf '  [6] email     -- Email-to-print (HP ePrint, Canon, Epson)\n'
+      read -r -p 'Choose [1/2/3/4/5/6, default 1]: ' choice
+      choice="${choice:-1}"
+      case "$choice" in
+        2) TRANSPORT='ipp' ;;
+        3) TRANSPORT='raw9100' ;;
+        4) TRANSPORT='printnode' ;;
+        5) TRANSPORT='lpd' ;;
+        6) TRANSPORT='email' ;;
+        *) TRANSPORT='spooler' ;;
+      esac
+
+      PRINTER_IP_LINE=''
+      PRINTER_NAME_LINE=''
+      SPOOLER_CMD_LINE=''
+
+      if [[ "$TRANSPORT" == 'spooler' ]]; then
+        printf '\nLocal CUPS print queues on this machine:\n'
+        mapfile -t QUEUES < <(list_cups_printers)
+        if (( ${#QUEUES[@]} == 0 )); then
+          warn "no CUPS queues found. Add a printer in CUPS first, or enter the queue name manually."
+          read -r -p 'Queue name: ' QUEUE
+        else
+          for i in "${!QUEUES[@]}"; do
+            printf '  [%d] %s\n' $((i + 1)) "${QUEUES[$i]}"
+          done
+          read -r -p 'Choose queue number (or type a name): ' pick
+          if [[ "$pick" =~ ^[0-9]+$ ]] && (( pick >= 1 && pick <= ${#QUEUES[@]} )); then
+            QUEUE="${QUEUES[$((pick - 1))]}"
+          else
+            QUEUE="$pick"
+          fi
+        fi
+        log "[ok] Spooler target: $QUEUE"
+
+        PRINTER_IP_LINE="PRINTER_IP=$QUEUE"
+        PRINTER_NAME_LINE="PRINTER_NAME=$QUEUE"
+        SPOOLER_CMD_LINE='# SPOOLER_COMMAND not set — using the agent built-in: lp -d "{printer}" "{file}"'
+      elif [[ "$TRANSPORT" == 'printnode' ]]; then
+        read -r -p 'PrintNode API Key: ' PN_KEY
+        read -r -p 'PrintNode Printer ID: ' PN_PRINTER_ID
+        PRINTER_IP_LINE="PRINTNODE_API_KEY=$PN_KEY\nPRINTNODE_PRINTER_ID=$PN_PRINTER_ID"
+      elif [[ "$TRANSPORT" == 'email' ]]; then
+        read -r -p 'Printer Email Address (e.g. printer123@hpeprint.com): ' EMAIL_ADDR
+        PRINTER_IP_LINE="EMAIL_TO_PRINT_ADDRESS=$EMAIL_ADDR"
+        read -r -p 'SMTP Host (e.g. smtp.gmail.com): ' SMTP_HOST
+        read -r -p 'SMTP Port (e.g. 587): ' SMTP_PORT
+        read -r -p 'SMTP Username: ' SMTP_USER
+        read -r -p 'SMTP Password: ' SMTP_PASS
+        read -r -p 'From Address (e.g. PrintLoop <noreply@printloop.ng>): ' SMTP_FROM
+        SPOOLER_CMD_LINE="SMTP_HOST=$SMTP_HOST\nSMTP_PORT=$SMTP_PORT\nSMTP_USER=$SMTP_USER\nSMTP_PASS=$SMTP_PASS\nSMTP_FROM=$SMTP_FROM"
       else
-        QUEUE="$pick"
+        read -r -p 'Printer IP on this LAN (e.g. 192.168.0.111): ' PRINTER_IP
+        PRINTER_IP_LINE="PRINTER_IP=$PRINTER_IP"
       fi
     fi
-    log "[ok] Spooler target: $QUEUE"
 
-    PRINTER_IP_LINE="PRINTER_IP=$QUEUE"
-    PRINTER_NAME_LINE="PRINTER_NAME=$QUEUE"
-    # The lp client default already handles PDFs cleanly via cups-filters,
-    # so we don't need a SumatraPDF-equivalent on Linux. Falling through
-    # to the agent's built-in default is fine.
-    SPOOLER_CMD_LINE='# SPOOLER_COMMAND not set — using the agent built-in: lp -d "{printer}" "{file}"'
-  else
-    read -r -p 'Printer IP on this LAN (e.g. 192.168.0.111): ' PRINTER_IP
-    PRINTER_IP_LINE="PRINTER_IP=$PRINTER_IP"
-  fi
-
-  cat > "$ENV_FILE" <<EOF
+    cat > "$ENV_FILE" <<EOF
 PRINTLOOP_BASE_URL=$BASE_URL
 KIOSK_API_KEY=$KIOSK_KEY
 $PRINTER_IP_LINE
@@ -356,11 +575,11 @@ IPP_VERSION=1.1
 PRINTER_RAW_PORT=9100
 POLL_INTERVAL_MS=4000
 EOF
-  chown "$SERVICE_USER":"$SERVICE_USER" "$ENV_FILE" 2>/dev/null || true
-  chmod 600 "$ENV_FILE"
+    chown "$SERVICE_USER":"$SERVICE_USER" "$ENV_FILE" 2>/dev/null || true
+    chmod 600 "$ENV_FILE"
 
-  printf '\n'
-  log "[ok] wrote .env (mode 600, owned by $SERVICE_USER)."
+    printf '\n'
+    log "[ok] wrote .env (mode 600, owned by $SERVICE_USER)."
 fi
 
 # ─────────────────────────────────────────────────────────────────────

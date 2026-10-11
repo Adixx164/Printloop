@@ -1,0 +1,38 @@
+{
+  "name": "@printloop/operator-desktop",
+  "version": "1.0.0",
+  "private": true,
+  "main": "dist/main/index.js",
+  "scripts": {
+    "dev": "concurrently \"npm run dev:main\" \"npm run dev:renderer\"",
+    "dev:main": "tsx watch main/index.ts",
+    "dev:renderer": "vite",
+    "build": "npm run build:main && npm run build:renderer",
+    "build:main": "tsc -p tsconfig.main.json",
+    "build:renderer": "pnpm --filter @printloop/operator-desktop-renderer build",
+    "build:prod": "npm run build && electron-builder",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint . --ext .ts,.tsx"
+  },
+  "dependencies": {
+    "electron": "catalog:",
+    "socket.io": "catalog:",
+    "sqlite3": "catalog:",
+    "usb": "catalog:",
+    "ipp-printer": "catalog:",
+    "bonjour-service": "catalog:",
+    "electron-updater": "catalog:",
+    "@printloop/shared": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "catalog:",
+    "@types/node": "catalog:",
+    "@types/sqlite3": "catalog:",
+    "@types/usb": "catalog:",
+    "tsx": "catalog:",
+    "vite": "catalog:",
+    "@vitejs/plugin-react": "catalog:",
+    "electron-builder": "catalog:",
+    "concurrently": "^8.2.2"
+  }
+}

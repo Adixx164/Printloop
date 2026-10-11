@@ -17,14 +17,14 @@ import { extractError } from "@/lib/errors";
 
 function statusConfig(status: string) {
   const configs: Record<string, { label: string; cls: string; icon: any }> = {
-    pending_shop: { label: "PENDING SHOP", cls: "bg-ink/10 text-ink border border-ink/20", icon: AlertCircle },
-    in_progress: { label: "IN PROGRESS", cls: "bg-ochre/15 text-ochre border border-ochre/30 animate-pulse", icon: MessageSquare },
-    pending_customer: { label: "AWAITING CUSTOMER", cls: "bg-persimmon/15 text-persimmon border border-persimmon/30 animate-pulse", icon: AlertCircle },
-    approved: { label: "APPROVED — AWAITING PAYMENT", cls: "bg-ochre/15 text-ochre border border-ochre/30", icon: CheckCircle },
-    rejected: { label: "REJECTED — RE-EDIT NEEDED", cls: "bg-persimmon/15 text-persimmon border border-persimmon/30", icon: AlertCircle },
-    completed: { label: "PAYMENT CONFIRMED", cls: "bg-sage/15 text-sage border border-sage/30", icon: CheckCircle },
+    pending_shop: { label: "PENDING SHOP", cls: "bg-gray-900/10 text-gray-900 border border-gray-900/20", icon: AlertCircle },
+    in_progress: { label: "IN PROGRESS", cls: "bg-amber-500/15 text-amber-500 border border-amber-500/30 animate-pulse", icon: MessageSquare },
+    pending_customer: { label: "AWAITING CUSTOMER", cls: "bg-indigo-600/15 text-indigo-600 border border-indigo-600/30 animate-pulse", icon: AlertCircle },
+    approved: { label: "APPROVED — AWAITING PAYMENT", cls: "bg-amber-500/15 text-amber-500 border border-amber-500/30", icon: CheckCircle },
+    rejected: { label: "REJECTED — RE-EDIT NEEDED", cls: "bg-indigo-600/15 text-indigo-600 border border-indigo-600/30", icon: AlertCircle },
+    completed: { label: "PAYMENT CONFIRMED", cls: "bg-emerald-600/15 text-emerald-600 border border-emerald-600/30", icon: CheckCircle },
   };
-  return configs[status] || { label: status.toUpperCase(), cls: "bg-ink/10 text-ink", icon: AlertCircle };
+  return configs[status] || { label: status.toUpperCase(), cls: "bg-gray-900/10 text-gray-900", icon: AlertCircle };
 }
 
 function EditQueueCard({ edit, onStart, onUpload, onComplete, onConfirmPayment, onView, busy }: {
@@ -41,10 +41,10 @@ function EditQueueCard({ edit, onStart, onUpload, onComplete, onConfirmPayment, 
   const job = edit.printJob;
 
   return (
-    <div className="border-2 border-ink bg-paper-light overflow-hidden">
+    <div className="border-2 border-gray-900 bg-gray-100 overflow-hidden">
       <div className="flex items-start gap-4 p-4">
-        <div className="w-20 h-28 border-2 border-ink bg-paper shrink-0 flex items-center justify-center">
-          <FileText className="w-8 h-8 text-ink/30" />
+        <div className="w-20 h-28 border-2 border-gray-900 bg-gray-50 shrink-0 flex items-center justify-center">
+          <FileText className="w-8 h-8 text-gray-900/30" />
         </div>
 
         <div className="flex-1 min-w-0">
@@ -53,7 +53,7 @@ function EditQueueCard({ edit, onStart, onUpload, onComplete, onConfirmPayment, 
               <StatusIcon className="w-4 h-4" />
               <span className={`pl-pill text-[9px] font-bold uppercase ${st.cls}`}>{st.label}</span>
             </div>
-            <span className="pl-mono text-[10px] text-ink/40">
+            <span className="pl-mono text-[10px] text-gray-50/40">
               {new Date(edit.createdAt).toLocaleTimeString()}
             </span>
           </div>
@@ -62,7 +62,7 @@ function EditQueueCard({ edit, onStart, onUpload, onComplete, onConfirmPayment, 
             {edit.originalDocumentMeta?.fileName || "Untitled document"}
           </h3>
 
-          <div className="flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-ink/65 mt-1.5 font-medium">
+          <div className="flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-gray-50/65 mt-1.5 font-medium">
             <span>{edit.originalDocumentMeta?.pageCount || job?.totalPages || "?"} pp</span>
             <span>{job?.printConfiguration?.paper || "A4"}</span>
             <span>{job?.printConfiguration?.color === "color" ? "Colour" : "B&W"}</span>
@@ -75,20 +75,20 @@ function EditQueueCard({ edit, onStart, onUpload, onComplete, onConfirmPayment, 
             {job?.customerName ? (
               <span className="font-bold">{job.customerName}</span>
             ) : (
-              <span className="text-ink/40 italic">guest</span>
+              <span className="text-gray-50/40 italic">guest</span>
             )}
-            <span className="pl-mono font-bold text-persimmon">₦{Number(edit.totalEditFee).toLocaleString()}</span>
+            <span className="pl-mono font-bold text-indigo-600">₦{Number(edit.totalEditFee).toLocaleString()}</span>
           </div>
 
           {job?.editingInstructions && (
-            <div className="mt-2 text-[11px] text-ink/60 pl-serif italic bg-paper-light p-2 border border-ink/20">
+            <div className="mt-2 text-[11px] text-gray-50/60 pl-serif italic bg-gray-100 p-2 border border-gray-900/20">
               "{job.editingInstructions}"
             </div>
           )}
         </div>
       </div>
 
-      <div className="border-t-2 border-ink px-4 py-2.5 flex gap-2 flex-wrap bg-paper">
+      <div className="border-t-2 border-gray-900/20">
         {edit.status === "pending_shop" && (
           <button
             onClick={() => onStart(edit.printJobId)}
@@ -264,25 +264,25 @@ export default function SaasEditQueuePage() {
     <div className="max-w-5xl mx-auto p-4 sm:p-6 space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <div className="editorial-label text-persimmon mb-1">▸ EDIT QUEUE</div>
+          <div className="editorial-label text-indigo-600 mb-1">▸ EDIT QUEUE</div>
           <h1 className="pl-serif font-extrabold text-3xl sm:text-4xl leading-none tracking-tight">
-            Documents <em className="italic text-persimmon">being edited.</em>
+            Documents <em className="italic text-indigo-600">being edited.</em>
           </h1>
-          <p className="mt-1 text-sm text-ink/60 font-mono">
+          <p className="mt-1 text-sm text-gray-50/60 font-mono">
             {pending.length} pending · {awaitingCustomer.length} awaiting customer · {isFetching ? " · refreshing…" : " · live (10s)"}
           </p>
         </div>
       </div>
 
       <div className="mb-4 -mx-1 px-1 overflow-x-auto">
-        <div className="flex border-2 border-ink w-fit">
+        <div className="flex border-2 border-gray-900 w-fit">
           {statusTabs.map((tab, index) => (
             <button
               key={tab.k}
               onClick={() => setStatusFilter(tab.k)}
               className={`px-3 py-1.5 text-[11px] font-bold tracking-wider transition-colors whitespace-nowrap ${
-                statusFilter === tab.k ? "bg-persimmon text-paper" : "hover:bg-ink hover:text-paper"
-              } ${index < statusTabs.length - 1 ? "border-r border-ink" : ""}`}
+                statusFilter === tab.k ? "bg-indigo-600 text-gray-50" : "hover:bg-gray-900 hover:text-gray-900"
+              } ${index < statusTabs.length - 1 ? "border-r border-gray-900" : ""}`}
             >
               {tab.label}
             </button>
@@ -291,15 +291,15 @@ export default function SaasEditQueuePage() {
       </div>
 
       {isLoading && (
-        <div className="border-2 border-ink p-10 text-center text-fog italic pl-serif">
+        <div className="border-2 border-gray-900 p-10 text-center text-gray-500 italic pl-serif">
           Loading the edit queue…
         </div>
       )}
 
       {!isLoading && filtered.length === 0 && (
-        <div className="border-4 border-ink bg-paper-light p-12 text-center">
-          <div className="pl-mono text-5xl mb-3 text-ink/15">∅</div>
-          <div className="pl-serif italic text-ink/55">
+        <div className="border-4 border-gray-900 bg-gray-100 p-12 text-center">
+          <div className="pl-mono text-5xl mb-3 text-gray-900/15">∅</div>
+          <div className="pl-serif italic text-gray-50/55">
             No edit jobs {statusFilter !== "all" ? "in this view" : ""}.
           </div>
         </div>
@@ -325,18 +325,18 @@ export default function SaasEditQueuePage() {
       {/* Upload Modal */}
       {uploadModal && (
         <div className="fixed inset-0 bg-ink/75 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fadein">
-          <form onSubmit={(e) => { e.preventDefault(); handleUpload(uploadModal.jobId); }} className="bg-paper border-4 border-ink shadow-[8px_8px_0_#000] p-6 max-w-md w-full rounded flex flex-col gap-4 animate-fadein relative">
+          <form onSubmit={(e) => { e.preventDefault(); handleUpload(uploadModal.jobId); }} className="bg-paper-warm border-4 border-ink shadow-soft p-6 max-w-md w-full rounded-sm flex flex-col gap-4 animate-fadein relative">
             <button
               type="button"
               onClick={() => setUploadModal(null)}
-              className="absolute top-3 right-3 text-ink bg-paper border-2 border-ink p-1 font-bold hover:bg-persimmon hover:text-paper leading-none transition-colors w-7 h-7 flex items-center justify-center rounded"
+              className="absolute top-3 right-3 text-ink bg-paper-light border-2 border-ink p-1 font-bold hover:bg-process hover:text-paper-light leading-none transition-colors w-7 h-7 flex items-center justify-center rounded-sm"
               aria-label="Close"
             >
               ✕
             </button>
 
             <div>
-              <div className="editorial-label text-persimmon mb-0.5">UPLOAD EDITED DOCUMENT</div>
+              <div className="editorial-label text-process mb-0.5">UPLOAD EDITED DOCUMENT</div>
               <h2 className="pl-serif text-2xl font-bold tracking-tight leading-tight">Upload the corrected file</h2>
             </div>
 
@@ -348,7 +348,7 @@ export default function SaasEditQueuePage() {
                 type="file"
                 accept="application/pdf"
                 onChange={(e) => setUploadModal({ ...uploadModal, file: e.target.files?.[0] || null })}
-                className="border-2 border-ink p-2 text-sm bg-white font-medium focus:outline-none focus:ring-2 focus:ring-persimmon/55"
+                className="border-2 border-ink p-2 text-sm bg-paper-light font-medium focus:outline-none focus:ring-2 focus:ring-process/55"
                 required
               />
             </div>
@@ -362,7 +362,7 @@ export default function SaasEditQueuePage() {
                 onChange={(e) => setUploadModal({ ...uploadModal, notes: e.target.value })}
                 placeholder="Notes for the customer about what was changed..."
                 rows={3}
-                className="border-2 border-ink p-2 text-sm bg-white font-medium focus:outline-none focus:ring-2 focus:ring-persimmon/55"
+                className="border-2 border-ink p-2 text-sm bg-paper-light font-medium focus:outline-none focus:ring-2 focus:ring-process/55"
               />
             </div>
 

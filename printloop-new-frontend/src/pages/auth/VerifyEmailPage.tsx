@@ -70,18 +70,18 @@ export default function VerifyEmailPage() {
 
   return (
     <div className="px-4 sm:px-6 lg:px-8 py-8 sm:py-12 lg:py-16 flex flex-col items-center justify-center relative overflow-hidden">
-      <div className="absolute -right-4 top-10 w-24 h-24 sm:w-36 sm:h-36 rounded-full bg-persimmon/10 pointer-events-none" />
-      <div className="absolute -left-4 bottom-10 w-24 h-24 sm:w-32 sm:h-32 rounded-full bg-ochre/15 pointer-events-none" />
+      <div className="absolute -right-4 top-10 w-24 h-24 sm:w-36 sm:h-36 rounded-full bg-indigo-600/10 pointer-events-none" />
+      <div className="absolute -left-4 bottom-10 w-24 h-24 sm:w-32 sm:h-32 rounded-full bg-amber-500/15 pointer-events-none" />
 
       <div className="relative z-10 max-w-xl w-full text-center">
-        <div className="editorial-label text-persimmon mb-3">▸ STEP 02 OF 03 — VERIFY EMAIL</div>
+        <div className="editorial-label text-indigo-600 mb-3">▸ STEP 02 OF 03 — VERIFY EMAIL</div>
         <h1 className="pl-serif font-extrabold text-[28px] sm:text-[38px] lg:text-[48px] leading-[1.05] sm:leading-[0.98] tracking-tight mb-3">
           Check your inbox for{" "}
-          <em className="text-persimmon italic font-semibold">six characters</em>.
+          <em className="text-indigo-600 italic font-semibold">six characters</em>.
         </h1>
-        <p className="pl-serif italic text-sm sm:text-base text-ink/70 mb-6 sm:mb-8 max-w-md mx-auto leading-snug">
+        <p className="pl-serif italic text-sm sm:text-base text-gray-50/70 mb-6 sm:mb-8 max-w-md mx-auto leading-snug">
           We sent the code to{" "}
-          <span className="not-italic font-semibold text-ink break-all">{email || "your email"}</span>.
+          <span className="not-italic font-semibold text-gray-900 break-all">{email || "your email"}</span>.
           Type it below — it expires in 10 minutes.
         </p>
 
@@ -115,10 +115,10 @@ export default function VerifyEmailPage() {
               onChange={(e) => onChange(i, e.target.value)}
               onKeyDown={(e) => onKey(i, e)}
               onPaste={i === 0 ? onPaste : undefined}
-              className={`w-[44px] h-[56px] sm:w-12 sm:h-16 lg:w-14 lg:h-[72px] border-2 border-ink rounded-md font-mono text-2xl sm:text-3xl font-bold text-center
+              className={`w-[44px] h-[56px] sm:w-12 sm:h-16 lg:w-14 lg:h-[72px] border-2 border-gray-900 rounded-md font-mono text-2xl sm:text-3xl font-bold text-center
                 outline-none transition-all
-                ${d ? "bg-ink text-paper" : "bg-paper"}
-                focus:border-persimmon focus:ring-4 focus:ring-persimmon/20`}
+                ${d ? "bg-gray-900 text-gray-50" : "bg-gray-50"}
+                focus:border-indigo-600 focus:ring-4 focus:ring-indigo-600/20`}
             />
           ))}
         </div>
@@ -132,9 +132,9 @@ export default function VerifyEmailPage() {
           </Button>
         </div>
 
-        <p className="text-sm text-ink/55">
+        <p className="text-sm text-gray-50/55">
           Wrong email?{" "}
-          <Link to={ROUTES.AUTH.REGISTER} className="text-persimmon font-bold border-b-2 border-persimmon">
+          <Link to={ROUTES.AUTH.REGISTER} className="text-indigo-600 font-bold border-b-2 border-indigo-600">
             Go back to sign-up
           </Link>
         </p>

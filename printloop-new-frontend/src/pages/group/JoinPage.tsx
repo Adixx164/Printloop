@@ -24,20 +24,20 @@ const API = CONFIG.apiBaseUrl;
  * inside the component remounted every input on each keystroke. */
 function Shell({ children }: { children: ReactNode }) {
   return (
-    <div className="min-h-screen bg-paper text-ink flex flex-col">
-      <header className="bg-ink text-paper border-b-[3px] border-persimmon px-4 sm:px-6 lg:px-8 py-3 sm:py-4 flex justify-between items-baseline gap-3">
+    <div className="min-h-screen bg-gray-50 text-gray-900 flex flex-col">
+      <header className="bg-gray-900 text-gray-50 border-b border-indigo-600 px-4 sm:px-6 lg:px-8 py-3 sm:py-4 flex justify-between items-baseline gap-3">
         <div className="pl-serif font-extrabold text-xl sm:text-2xl">
-          PrintLoop<span className="text-persimmon">.</span>
+          PrintLoop<span className="text-indigo-600">.</span>
         </div>
-        <div className="editorial-label text-paper/60 text-right">GROUP UPLOAD</div>
+        <div className="editorial-label text-gray-50/60 text-right">GROUP UPLOAD</div>
       </header>
       <main className="flex-1 max-w-3xl w-full mx-auto px-4 sm:px-6 py-6 sm:py-10">{children}</main>
-      <footer className="bg-ink text-paper px-4 sm:px-6 lg:px-8 py-3 sm:py-4 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1">
+      <footer className="bg-gray-900 text-gray-50 px-4 sm:px-6 lg:px-8 py-3 sm:py-4 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1">
         <span className="pl-serif italic text-xs sm:text-sm opacity-80">
           Yours faithfully — PrintLoop.
         </span>
         <span className="text-[11px] tracking-editorial">
-          VOL. I · ©2026 <span className="text-ochre ml-2">❦</span>
+          VOL. I · ©2026 <span className="text-amber-500 ml-2">❦</span>
         </span>
       </footer>
     </div>
@@ -194,15 +194,15 @@ export default function JoinPage() {
   };
 
   if (stage === "loading")
-    return <Shell><div className="text-center pl-serif italic text-ink/50 py-24">Loading session…</div></Shell>;
+    return <Shell><div className="text-center pl-serif italic text-gray-50/50 py-24">Loading session…</div></Shell>;
 
   if (stage === "closed")
     return (
       <Shell>
-        <div className="border-2 border-ink p-10 text-center">
+        <div className="border-2 border-gray-900 p-10 text-center">
           <div className="text-5xl mb-3">❦</div>
           <h1 className="pl-serif text-2xl sm:text-3xl font-bold mb-2">Session unavailable</h1>
-          <p className="pl-serif italic text-ink/60">{err}</p>
+          <p className="pl-serif italic text-gray-50/60">{err}</p>
         </div>
       </Shell>
     );
@@ -210,9 +210,9 @@ export default function JoinPage() {
   if (stage === "done" && result)
     return (
       <Shell>
-        <div className="border-2 border-ink animate-fadein">
-          <div className="bg-ink text-paper px-6 py-8 text-center">
-            <div className="editorial-label text-persimmon mb-2">YOU'RE IN THE BATCH</div>
+        <div className="border-2 border-gray-900 animate-fadein">
+          <div className="bg-gray-900 text-gray-50 px-6 py-8 text-center">
+            <div className="editorial-label text-indigo-600 mb-2">YOU'RE IN THE BATCH</div>
             <div className="pl-mono text-5xl font-bold tracking-wider">{result.code}</div>
           </div>
           <div className="p-7 flex flex-col md:flex-row gap-7 items-center">
@@ -226,7 +226,7 @@ export default function JoinPage() {
             </div>
             <div>
               <h1 className="pl-serif text-xl sm:text-2xl font-bold mb-1">Document submitted &amp; paid.</h1>
-              <p className="pl-serif italic text-ink/60 mb-3">
+              <p className="pl-serif italic text-gray-50/60 mb-3">
                 The host prints the whole batch with one token — your pages are included.
               </p>
               <div className="text-sm">Paid: <b>₦{Number(result.cost).toLocaleString()}</b></div>
@@ -239,15 +239,15 @@ export default function JoinPage() {
   // join + configure share the session header
   return (
     <Shell>
-      <div className="editorial-label text-persimmon mb-1">GROUP SESSION</div>
+      <div className="editorial-label text-indigo-600 mb-1">GROUP SESSION</div>
       <h1 className="pl-serif text-2xl sm:text-3xl font-bold mb-1">{session?.groupName}</h1>
-      <p className="pl-serif italic text-ink/60 mb-6">
+      <p className="pl-serif italic text-gray-50/60 mb-6">
         Closes {new Date(session?.deadline).toLocaleString()} ·{" "}
         {enforced ? "host settings are enforced" : "you can configure your own settings"}
       </p>
 
       {stage === "join" && (
-        <div className="border-2 border-ink p-4 sm:p-7 max-w-md">
+        <div className="border-2 border-gray-900 p-4 sm:p-7 max-w-md">
           <h2 className="pl-serif text-xl sm:text-2xl font-bold mb-4">Join the group.</h2>
           <div className="editorial-label mb-1">YOUR NAME</div>
           <input className="pl-input mb-3" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Full name" />
@@ -263,10 +263,10 @@ export default function JoinPage() {
 
       {stage === "configure" && (
         <div className="grid grid-cols-1 lg:grid-cols-[340px_1fr] gap-4">
-          <section className="border-2 border-ink p-4 sm:p-6 bg-paper-light h-fit">
-            <label htmlFor="gf" className="block border-2 border-dashed border-ink/40 p-6 text-center cursor-pointer hover:bg-paper transition-colors mb-5">
+          <section className="border-2 border-gray-900 p-4 sm:p-6 bg-gray-100 h-fit">
+            <label htmlFor="gf" className="block border-2 border-dashed border-gray-400/40 p-6 text-center cursor-pointer hover:bg-gray-100 transition-colors mb-5">
               <div className="pl-serif font-bold">{file ? file.name : "Choose your document"}</div>
-              <div className="pl-serif italic text-ink/60 text-xs mt-1">PDF · JPG · PNG</div>
+              <div className="pl-serif italic text-gray-50/60 text-xs mt-1">PDF · JPG · PNG</div>
               <input id="gf" hidden type="file"
                 accept="application/pdf,image/png,image/jpeg"
                 onChange={(e) => { setFile(e.target.files?.[0] || null); setDocPages(0); setRangeable(false); }} />
@@ -282,14 +282,14 @@ export default function JoinPage() {
             )}
 
             {enforced && (
-              <div className="border-2 border-ink bg-paper p-4 text-sm mb-3">
-                <div className="editorial-label text-persimmon mb-2">HOST-ENFORCED SETTINGS</div>
+              <div className="border-2 border-gray-900 bg-gray-50 p-4 text-sm mb-3">
+                <div className="editorial-label text-indigo-600 mb-2">HOST-ENFORCED SETTINGS</div>
                 <div>
                   {cfg.paper} · {cfg.color === "color" ? "Colour" : "B&W"} ·{" "}
                   {cfg.sided === "double" ? "Duplex" : "Single"} · {cfg.qualityDpi}dpi ·{" "}
                   {cfg.orientation === "landscape" ? "Landscape" : "Portrait"}
                 </div>
-                <div className="text-[11px] text-ink/55 pl-serif italic mt-1 leading-snug">
+                <div className="text-[11px] text-gray-50/55 pl-serif italic mt-1 leading-snug">
                   You still control copies and page range below.
                 </div>
               </div>
@@ -412,7 +412,7 @@ export default function JoinPage() {
               />
             )}
 
-            <div className="bg-ink text-paper p-4 flex justify-between items-center mt-5">
+            <div className="bg-gray-900 text-gray-50 p-4 flex justify-between items-center mt-5">
               <span className="pl-serif italic">Your total</span>
               <span className="pl-mono text-2xl font-bold">₦{cost.toLocaleString()}</span>
             </div>
@@ -421,7 +421,7 @@ export default function JoinPage() {
             </button>
           </section>
 
-          <div className="border-2 border-ink">
+          <div className="border-2 border-gray-900">
             <PrintPreview file={file} pages={selected} color={cfg.color} copies={cfg.copies}
               orientation={cfg.orientation}
               onMeta={(m) => { setDocPages(m.pageCount); setRangeable(m.rangeable); }} />

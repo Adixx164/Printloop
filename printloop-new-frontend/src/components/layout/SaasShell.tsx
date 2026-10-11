@@ -25,9 +25,9 @@ const NAV: { to: string; label: string; end?: boolean }[] = [
 ];
 
 const AVAILABILITY: Record<string, { label: string; cls: string }> = {
-  open: { label: "OPEN", cls: "bg-sage text-paper" },
-  busy: { label: "BUSY", cls: "bg-ochre text-paper" },
-  closed: { label: "CLOSED", cls: "bg-persimmon text-paper" },
+  open: { label: "OPEN", cls: "bg-emerald-600 text-gray-50" },
+  busy: { label: "BUSY", cls: "bg-amber-500 text-gray-50" },
+  closed: { label: "CLOSED", cls: "bg-indigo-600 text-gray-50" },
 };
 
 export function SaasShell() {
@@ -67,12 +67,12 @@ export function SaasShell() {
   };
 
   return (
-    <div className="min-h-screen bg-paper flex flex-col">
-      <header className="sticky top-0 z-40 border-b-2 border-ink bg-paper">
+    <div className="min-h-screen bg-gray-50 flex flex-col">
+      <header className="sticky top-0 z-40 border-b-2 border-gray-900 bg-gray-50">
         <div className="px-4 sm:px-6 lg:px-8 py-3 flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
           <Link to="/saas/dashboard" className="font-serif font-extrabold text-[22px] tracking-tight">
-            PrintLoop<span className="text-persimmon">.</span>
-            <span className="ml-2 text-[10px] font-bold tracking-editorial align-middle text-ink/50">
+            PrintLoop<span className="text-indigo-600">.</span>
+            <span className="ml-2 text-[10px] font-bold tracking-editorial align-middle text-gray-900/50">
               SHOP CONSOLE
             </span>
           </Link>
@@ -86,8 +86,8 @@ export function SaasShell() {
                 className={({ isActive }) =>
                   `text-[11px] sm:text-xs font-bold tracking-editorial uppercase px-2.5 py-1.5 whitespace-nowrap border-2 transition-all ${
                     isActive
-                      ? "border-ink bg-ink text-paper"
-                      : "border-transparent text-ink/60 hover:text-ink hover:border-ink/40"
+                      ? "border-gray-900 bg-ink text-gray-50"
+                      : "border-transparent text-gray-900/60 hover:text-gray-900 hover:border-gray-900/40"
                   }`
                 }
               >
@@ -98,14 +98,14 @@ export function SaasShell() {
 
           <div className="flex items-center gap-2">
             {/* Operator availability toggle (V2-57) — open/busy/closed. */}
-            <div className="flex border-2 border-ink">
+            <div className="flex border-2 border-gray-900">
               {(["open", "busy", "closed"] as const).map((a) => (
                 <button
                   key={a}
                   onClick={() => toggle(a)}
                   title={`Set shop ${a}`}
                   className={`px-2.5 py-1.5 text-[10px] font-bold tracking-editorial uppercase transition-all ${
-                    availability === a ? AVAILABILITY[a].cls : "bg-paper text-ink/40 hover:text-ink"
+                    availability === a ? AVAILABILITY[a].cls : "bg-gray-50 text-gray-900/40 hover:text-gray-900"
                   }`}
                 >
                   {AVAILABILITY[a].label}
@@ -114,7 +114,7 @@ export function SaasShell() {
             </div>
             <button
               onClick={handleLogout}
-              className="text-[11px] font-bold tracking-editorial uppercase px-2.5 py-1.5 border-2 border-ink/30 text-ink/60 hover:border-persimmon hover:text-persimmon"
+              className="text-[11px] font-bold tracking-editorial uppercase px-2.5 py-1.5 border-2 border-gray-900/30 text-gray-900/60 hover:border-indigo-600 hover:text-indigo-600"
             >
               SIGN OUT
             </button>

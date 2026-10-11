@@ -1,0 +1,8 @@
+{
+  "name": "printloop-waitlist-functions",
+  "version": "1.0.0",
+  "type": "module",
+  "dependencies": {
+    "@netlify/functions": "^2.6.0"
+  }
+}

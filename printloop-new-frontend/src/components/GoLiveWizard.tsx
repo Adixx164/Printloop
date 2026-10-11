@@ -82,14 +82,14 @@ export default function GoLiveWizard() {
   };
 
   return (
-    <div className="border-2 border-ink rounded-pl p-5 bg-paper-light">
+    <div className="border-gray-900 rounded-pl p-5 bg-gray-100">
       <div className="flex items-center justify-between mb-1">
         <h2 className="pl-serif font-extrabold text-xl">Go live in 3 steps</h2>
         <span className="text-sm font-bold">{progress}%</span>
       </div>
-      <div className="h-2 border-2 border-ink bg-paper mb-5">
+      <div className="h-2 border-2 border-gray-900 bg-gray-50 mb-5">
         <div
-          className="h-full bg-sage transition-all"
+          className="h-full bg-emerald-600 transition-all"
           style={{ width: `${progress}%` }}
         />
       </div>
@@ -102,19 +102,19 @@ export default function GoLiveWizard() {
       </ol>
 
       {/* Go-live control */}
-      <div className="mt-5 pt-4 border-t-2 border-paper-deep">
+      <div className="mt-5 pt-4 border-t-2 border-gray-200">
         {isLive ? (
           <div className="flex items-center justify-between gap-3 flex-wrap">
-            <div className="font-bold text-sage">
+            <div className="font-bold text-emerald-600">
               ✓ You're live on the marketplace.
             </div>
-            <Link to="/find" className="text-sm font-bold text-persimmon border-b-2 border-persimmon">
+            <Link to="/find" className="text-sm font-bold text-indigo-600 border-b-2 border-persimmon">
               See your /find listing →
             </Link>
           </div>
         ) : (
           <div className="flex items-center justify-between gap-3 flex-wrap">
-            <div className="text-sm text-ink/60">
+            <div className="text-sm text-gray-900/60">
               {canGoLive
                 ? "All checks pass — you're ready."
                 : "Finish the steps above to unlock go-live."}
@@ -154,26 +154,26 @@ function StepRow({ step, active }: { step: WizardStep; active: boolean }) {
     <li
       className={`flex items-start gap-3 border-2 rounded-pl p-3 transition-all ${
         step.done
-          ? "border-sage bg-sage/5"
+          ? "border-emerald-600 bg-emerald-50"
           : active
-          ? "border-ink bg-paper"
+          ? "border-gray-900 bg-gray-50"
           : step.partial
-          ? "border-ochre/60 bg-ochre/5"
-          : "border-ink/40 bg-paper"
+          ? "border-amber-500/60 bg-amber-50"
+          : "border-gray-900/40 bg-gray-50"
       }`}
     >
       <div
         className={`shrink-0 mt-0.5 w-7 h-7 rounded-full border-2 flex items-center justify-center text-xs font-bold ${
           step.done
-            ? "bg-sage text-paper border-sage"
-            : "bg-paper border-ink text-ink"
+            ? "bg-emerald-600 text-gray-50 border-emerald-600"
+            : "bg-gray-50 border-gray-900 text-gray-900"
         }`}
       >
         {step.done ? "✓" : step.n}
       </div>
       <div className="flex-1 min-w-0">
         <div className="font-bold">{step.title}</div>
-        <div className="text-xs text-ink/60">{step.blurb}</div>
+        <div className="text-xs text-gray-900/60">{step.blurb}</div>
         {!step.done && (
           <div className="flex flex-wrap gap-2 mt-2">
             {step.actions.map((a) => (
@@ -182,7 +182,7 @@ function StepRow({ step, active }: { step: WizardStep; active: boolean }) {
                 to={a.to}
                 className={
                   a.muted
-                    ? "text-[11px] font-bold text-sage"
+                    ? "text-[11px] font-bold text-emerald-600"
                     : "pl-btn-dark !px-3 !py-1.5 !text-xs"
                 }
               >

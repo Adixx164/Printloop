@@ -34,7 +34,7 @@ export default function BrandingPage() {
     }
   }, [data]);
 
-  if (isLoading) return <p className="text-fog pl-serif italic">Loading…</p>;
+  if (isLoading) return <p className="text-gray-500 pl-serif italic">Loading…</p>;
 
   const set = (k: keyof BrandingPatch, v: string) =>
     setForm((f) => ({ ...f, [k]: v }));
@@ -58,7 +58,7 @@ export default function BrandingPage() {
   return (
     <form onSubmit={submit} className="space-y-5">
       <h2 className="pl-serif font-extrabold text-2xl tracking-tight">Branding</h2>
-      <p className="text-sm text-ink/60">
+      <p className="text-sm text-gray-50/60">
         How your customers see your print business. Leave blank to use
         PrintLoop defaults.
       </p>
@@ -81,12 +81,12 @@ export default function BrandingPage() {
       </div>
 
       {saveState.isError && (
-        <p className="text-persimmon text-sm font-semibold">
+        <p className="text-indigo-600 text-sm font-semibold">
           {(saveState.error as any)?.data?.message || "Could not save."}
         </p>
       )}
       {saveState.isSuccess && (
-        <p className="text-sage text-sm font-semibold pl-serif italic">Saved.</p>
+        <p className="text-emerald-600 text-sm font-semibold pl-serif italic">Saved.</p>
       )}
       <button
         type="submit"
@@ -133,13 +133,13 @@ function Color(props: {
       </label>
       <div className="flex items-center gap-2">
         <span
-          className="w-9 h-9 rounded-pl-sm border-2 border-ink shrink-0"
+          className="w-9 h-9 rounded-pl-sm border-2 border-gray-900 shrink-0"
           style={{ background: valid ? (props.value as string) : "#ffffff" }}
         />
         <input
           className="pl-input flex-1 font-mono"
           value={props.value ?? ""}
-          placeholder="#1A1410"
+          placeholder="#0077C8"
           onChange={(e) => props.onChange(e.target.value)}
         />
       </div>
